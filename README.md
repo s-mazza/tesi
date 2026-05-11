@@ -29,6 +29,11 @@ repository stays small and suitable for advisor-facing progress updates.
 See `NEXT_STEPS.md` for the current advisor-driven plan: standardize datasets
 first, then run small method-specific smoke experiments on SIPIT and NLA AV.
 
+Current pre-call summary:
+
+- `PROGRESS_UPDATE_2026-05-11.md`
+- `thesis-datasets/reports/validation_report.md`
+
 ## Git Note
 
 In the current Codex sandbox, `.git` is a read-only mountpoint. The parent repo
