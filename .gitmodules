@@ -2,18 +2,22 @@
 	path = embedding-inversion-demo
 	url = https://github.com/s-mazza/embedding-inversion-demo.git
 	branch = main
+	ignore = dirty
 
 [submodule "spit/SIPIT"]
 	path = spit/SIPIT
 	url = https://github.com/giorgosnikolaou/SIPIT.git
 	branch = master
+	ignore = dirty
 
 [submodule "prompt-waywardness"]
 	path = prompt-waywardness
 	url = https://github.com/Alrope123/prompt-waywardness.git
 	branch = main
+	ignore = dirty
 
 [submodule "towards_interpretable_softprompts"]
 	path = towards_interpretable_softprompts
 	url = https://github.com/NikhilNayak-debug/towards_interpretable_softprompts.git
 	branch = main
+	ignore = dirty
