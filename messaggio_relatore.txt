@@ -1,0 +1,164 @@
+Innanzitutto, tanto per non perdere il filo. Ridefiniamo un attimo il topic del progetto e quello che vogliamo dimostrare.
+
+Il progetto riguarda embedding / activation inversion, ma il nostro angolo specifico non è semplicemente “quanto bene si ricostruisce il testo”. Il punto è più sottile: vogliamo capire se i metodi di inversione ricostruiscono davvero il significato originale oppure se, quando l’input è semanticamente difficile, negato, controfattuale o contrario al senso comune, tendono a correggerlo verso una versione più plausibile.
+
+ 
+
+Il framing deve essere quindi:
+
+Finora la letteratura ha valutato l’embedding inversion soprattutto con metriche di ricostruzione standard: Token F1, Exact Match, BLEU, ROUGE, BERTScore, cosine similarity nello spazio latente. Queste metriche sono utili, ma non rispondono alla domanda che interessa a noi.
+
+Una frase può avere alta similarità embedding o alto BERTScore e allo stesso tempo perdere la negazione, invertire una relazione causale, o trasformare una frase controfattuale nella sua versione commonsense.
+
+Esempio concettuale:
+
+Originale: "Il ghiaccio non si scioglie sotto il sole."
+
+Inversione: "Il ghiaccio si scioglie sotto il sole."
+
+Metricamente possono essere vicine. Semanticamente sono opposte.
+
+La tesi deve dimostrare sistematicamente questo disaccoppiamento.
+
+ 
+
+L’obiettivo del lavoro non è fare una survey generica sull’inversione delle rappresentazioni. Il punto è più specifico:
+
+vogliamo valutare se i metodi che trasformano hidden states, logits o altre rappresentazioni latenti in testo preservano davvero il contenuto logico dell’input, oppure se producono ricostruzioni plausibili ma semanticamente alterate.
+
+Il fenomeno che vogliamo isolare è questo: una ricostruzione può essere lessicalmente simile all’input, ma perdere negazione, polarità logica, contraddizione o contenuto controfattuale.
+
+Come se stessimo facendo un paper, proviamo a definire delle Research Questions (RQ) a cui vogliamo rispondere con la nostra analisi:
+ 
+RQ1. I metodi SOTA di inversione ricostruiscono bene il testo su benchmark standard in-distribution?
+RQ2. Le metriche standard di ricostruzione catturano davvero la fedeltà semantica logica?
+RQ3. La negazione viene preservata o viene sistematicamente cancellata / attenuata?
+RQ4. Quando l’input è controfattuale o contrario al senso comune, l’inversione tende a ricostruire l’originale o a correggerlo verso una frase più plausibile?
+RQ5. Il bias verso la versione commonsense è coerente attraverso metodi diversi, oppure dipende dalla famiglia di inversione?
+
+
+Prima cosa. Fino a qualche giorno fa avevo un’idea in mente, ma poi è uscita una ricerca di Anthropic che ha cambiato un po’ le carte in tavola. Dacci una letta perchè è davvero figa. Livello di dettaglio incredibile. E non solo. I pazzi hanno pure rilasciato il codice e i modelli. Davvero una manna dal cielo per questo lavoro: https://transformer-circuits.pub/2026/nla/index.html
+ 
+Questo semplifica di molto il lavoro perché ci dà la possibilità di avere tante baseline gratis senza grosso sforzo.
+ 
+L'idea di fondo del loro lavoro è costruire un sistema che trasforma direttamente un'activation vector in testo leggibile. Tecnicamente si tratta di due componenti: un Activation Verbalizer (AV), che mappa una rappresentazione interna a una descrizione testuale, e un Activation Reconstructor (AR), che inverte la descrizione testuale per recuperare la rappresentazione originale. A noi interessa esclusivamente la direzione latente → testo, quindi il componente rilevante è solo l'AV.
+
+
+Per adesso lasciamo un attimo da parte l’encoder jina e concentriamoci su metodi training-free facilmente replicabili.
+ 
+I metodi principali sono qundi:
+1. SIPIT
+È il metodo centrale del progetto perché mira a invertire hidden states di decoder-only language models e a ricostruire il prompt originale. È il metodo più forte dal punto di vista teorico, perché non si limita a produrre una ricostruzione probabile: propone una procedura con garanzie di injectivity e verifica della ricostruzione.
+2. NLA Activation Verbalizer
+NLA AV non è lo stesso task di SIPIT. Non punta necessariamente alla ricostruzione esatta del prompt, ma alla verbalizzazione di una rappresentazione interna. Lo includiamo perché ci permette di testare una domanda collegata: quando un’attivazione rappresenta negazione, contraddizione o contenuto controfattuale, la verbalizzazione lo preserva oppure lo normalizza?
+ 
+Poi aggiungeremo i metodi confrontati da SIPIT nel loro paper. Ma andiamo per gradi.
+ 
+Alla fine avremo una roba di questo tipo:
+ 
+La struttura corretta dei metodi è questa:
+ 
+Metodo
+	
+Input
+	
+Output
+
+
+SIPIT
+	
+hidden states di decoder-only LM
+	
+prompt ricostruito
+
+
+NLA AV
+	
+activation / residual stream
+	
+descrizione testuale
+
+
+Black-box logit inverters
+	
+output probabilities / logits
+	
+prompt stimato
+
+
+Encoder logit inverters
+	
+logits di encoder model
+	
+testo ricostruito
+
+
+Sequential Policy Ranking
+	
+ranking di token candidati
+	
+prompt stimato
+ 
+
+
+ Cominciamo a standardizzare i dataset. Questo deve essere il tuo primo step. Dopo di che ci sentiamo in call per parlare del resto. Ma innanzitutto scarichiamo e parsiamo i dati come si deve.
+ 
+Useremo tre “blocchi” di dati.
+
+
+Blocco A — testi standard
+Serve per verificare che la pipeline funzioni.
+Possibili fonti:
+frasi brevi da NQ / MSMARCO;
+prompt brevi controllati;
+frasi generate manualmente o tramite template.
+Qui misuriamo ricostruzione standard: token accuracy, exact match, ROUGE, BERTScore.
+ 
+ 
+Blocco B — negazione
+Dataset:
+This is not a Dataset
+JinaAI Negation Dataset
+Questi dataset servono per testare casi in cui il contenuto logico dipende da una negazione.
+Categorie utili:
+frase positiva;
+frase negativa;
+parafrasi positiva;
+negazione con distractor;
+coppie positivo/negativo minime.
+Domanda principale:
+la ricostruzione mantiene la negazione o la elimina?
+ 
+Blocco C — controfattuali / commonsense violations
+Dataset:
+SemEval 2020 Task 4
+corpus sintetico costruito da noi
+Esempi:
+"The fire cooled the water."
+"The stone fell upward."
+"The fish walked across the desert."
+Qui vogliamo testare se il metodo preserva una frase implausibile o se produce una frase più plausibile.
+Il corpus sintetico deve contenere, per ogni esempio:
+frase originale controfattuale;
+versione commonsense corretta;
+categoria della violazione.
+ 
+Formato del corpus sintetico:
+{
+    "original": "The fire cooled the water.",
+    "corrected": "The fire heated the water.",
+    "category": "physics",
+    "phenomenon": "commonsense_violation"
+}
+Categorie iniziali:
+fisica;
+biologia;
+causalità;
+tempo;
+quantità.
+Partiamo con 300 esempi ben controllati. Se il fenomeno è chiaro, possiamo espandere.
+
+
+Mi fermo qui e non vado avanti sebbene abbia già le note pronte per i prossimi step. Ma intanto facciamo questo. Scarice e parsa questi dati. Se ti servono reference su come usare e dove trovare i dataset guarda pure il paper di SIPIT (https://arxiv.org/abs/2510.15511) che ne ha già usati alcuni. Altri dataset invece ce li hai già.
+ 
+Appena hai tutto ci sentiamo subito.

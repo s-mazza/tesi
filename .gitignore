@@ -1,0 +1,66 @@
+# Local Git metadata workaround used in this sandbox.
+.git-real/
+
+# Agent/runtime metadata.
+.agents/
+.codex/
+
+# Python/runtime artifacts.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# Build/package outputs.
+build/
+dist/
+*.egg-info/
+
+# Data, model, and experiment artifacts.
+data/
+datasets/
+thesis-datasets/cache/
+thesis-datasets/raw/
+thesis-datasets/processed/
+results/
+outputs/
+checkpoints/
+checkpoints*/
+runs/
+wandb/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+
+# Cluster/log artifacts.
+slurm-*.out
+slurm-*.err
+*.log
+
+# Local secrets.
+.env
+.env.*
+.creds
+*.key
+*.pem
+
+# Paper PDFs and generated binary assets should stay out of this progress repo.
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# Editor/OS noise.
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
