@@ -1,8 +1,9 @@
 # Thesis Workspace
 
-This repository tracks lightweight thesis progress, planning documents, and
-reproducible scripts. Large artifacts such as paper PDFs, datasets, checkpoints,
-generated results, and cluster logs are intentionally ignored.
+This repository tracks lightweight thesis code, reproducible scripts, and README
+documentation. Large artifacts such as paper PDFs, datasets, checkpoints,
+generated reports, generated results, advisor messages, and cluster logs are
+intentionally ignored.
 
 ## Current Direction
 
@@ -26,13 +27,17 @@ repository stays small and suitable for advisor-facing progress updates.
 
 ## Immediate Work
 
-See `NEXT_STEPS.md` for the current advisor-driven plan: standardize datasets
-first, then run small method-specific smoke experiments on SIPIT and NLA AV.
+The current implemented step is dataset standardization. The pipeline in
+`thesis-datasets/` builds a canonical corpus for three blocks:
 
-Current pre-call summary:
+- Block A: controlled standard short sentences, used as a sanity check.
+- Block B: negation pairs from `jinaai/negation-dataset` and
+  `HiTZ/This-is-not-a-dataset`.
+- Block C: commonsense/counterfactual pairs from SemEval 2020 Task 4 and a
+  controlled synthetic set.
 
-- `PROGRESS_UPDATE_2026-05-11.md`
-- `thesis-datasets/reports/validation_report.md`
+Generated reports and local call notes are intentionally kept out of Git. The
+README files and scripts should be enough to reproduce them.
 
 ## Git Note
 

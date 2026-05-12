@@ -54,6 +54,11 @@ slurm-*.err
 # Private/advisor messages.
 messaggio_relatore.txt
 
+# Keep Markdown notes/reports local unless they are README files.
+*.md
+!README.md
+!**/README.md
+
 # Paper PDFs and generated binary assets should stay out of this progress repo.
 *.pdf
 *.png

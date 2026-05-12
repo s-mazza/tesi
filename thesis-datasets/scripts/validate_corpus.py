@@ -100,7 +100,7 @@ def validate(rows: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
         labels_by_pair[row["pair_id"]].add(row["label"])
 
     for pair_id, labels in labels_by_pair.items():
-        if pair_id.startswith("manual_"):
+        if labels == {"standard"}:
             continue
         if labels == {"positive", "negative"}:
             continue

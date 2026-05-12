@@ -9,8 +9,8 @@ Generated dataset payloads are intentionally ignored by Git:
 - `processed/`: canonical JSONL and method-specific exports.
 - `cache/`: local runtime cache.
 
-Tracked files are limited to scripts, documentation, and compact reports that
-can be sent to the advisor.
+Tracked files are limited to scripts and README documentation. Generated reports
+can be produced locally, but they are intentionally not committed.
 
 ## Build
 
@@ -32,6 +32,9 @@ Advisor-facing summaries are written to:
 ```text
 thesis-datasets/reports/
 ```
+
+Those summaries are local artifacts. They are useful before meetings, but not
+part of the Git history.
 
 ## Canonical Schema
 
@@ -60,3 +63,8 @@ Each row has a stable schema:
 - `HiTZ/This-is-not-a-dataset` for Block B.
 - Official SemEval 2020 Task 4 ComVE CSV files for Block C.
 - 300 controlled synthetic commonsense-violation pairs for Block C.
+
+Block A intentionally uses controlled sentences in this iteration. Dataset-based
+standard text, such as NQ or MS MARCO, should be added only after defining a
+clean extraction policy; raw dataset snippets can otherwise introduce noisy
+fragments that obscure the semantic-fidelity experiment.
