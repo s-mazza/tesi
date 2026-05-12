@@ -58,7 +58,8 @@ Each row has a stable schema:
 
 ## Current Sources
 
-- Manual controlled standard sentences for Block A.
+- Manual controlled standard sentences for Block A, stored in
+  `thesis-datasets/sources/block_a_standard_sentences.json`.
 - `jinaai/negation-dataset` for Block B.
 - `HiTZ/This-is-not-a-dataset` for Block B.
 - Official SemEval 2020 Task 4 ComVE CSV files for Block C.

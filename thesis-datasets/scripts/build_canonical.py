@@ -17,8 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "raw"
 PROCESSED_DIR = ROOT / "processed"
 REPORTS_DIR = ROOT / "reports"
+SOURCES_DIR = ROOT / "sources"
 CANONICAL_PATH = PROCESSED_DIR / "canonical.jsonl"
 BUILD_REPORT_PATH = REPORTS_DIR / "build_report.md"
+BLOCK_A_STANDARD_PATH = SOURCES_DIR / "block_a_standard_sentences.json"
 
 os.environ.setdefault("HF_HOME", str(ROOT / "cache" / "huggingface"))
 os.environ.setdefault("HF_DATASETS_CACHE", str(ROOT / "cache" / "huggingface" / "datasets"))
@@ -53,6 +55,14 @@ class CanonicalRow:
 
 def normalize_text(value: Any) -> str:
     return " ".join(str(value or "").replace("\u00a0", " ").split())
+
+
+def load_json_list(path: Path) -> list[str]:
+    with path.open(encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, list) or not all(isinstance(item, str) for item in data):
+        raise ValueError(f"{path} must contain a JSON list of strings.")
+    return [normalize_text(item) for item in data if normalize_text(item)]
 
 
 def add_pair_rows(
@@ -108,48 +118,7 @@ def add_pair_rows(
 
 
 def build_standard_rows(rows: list[CanonicalRow]) -> None:
-    prompts = [
-        "The meeting starts at nine in the morning.",
-        "A red bicycle is leaning against the stone wall.",
-        "The chef added salt to the soup before serving it.",
-        "Maria bought a notebook and a black pen.",
-        "The train arrived at the central station on time.",
-        "A small dog slept under the wooden table.",
-        "The scientist measured the temperature twice.",
-        "The library closes after the final lecture.",
-        "A violinist practiced in the quiet room.",
-        "The package was delivered to the front desk.",
-        "The river flows through the valley.",
-        "A teacher explained the equation on the board.",
-        "The phone battery lasted for the entire trip.",
-        "The gardener watered the plants before sunset.",
-        "A photographer adjusted the camera lens.",
-        "The laptop was placed next to the window.",
-        "A student highlighted the important paragraph.",
-        "The museum opened a new exhibit about fossils.",
-        "The runner tied her shoes before the race.",
-        "A glass of water stood on the kitchen counter.",
-        "The airplane landed during heavy rain.",
-        "A musician tuned the guitar before the concert.",
-        "The doctor wrote a short note after the visit.",
-        "A child drew a house with a blue roof.",
-        "The engineer tested the bridge model carefully.",
-        "A baker prepared bread early in the morning.",
-        "The city installed new lights on the street.",
-        "A farmer repaired the fence near the barn.",
-        "The team reviewed the report before lunch.",
-        "A painter mixed yellow and green paint.",
-        "The store opened ten minutes late.",
-        "A bird landed on the balcony railing.",
-        "The researcher saved the experiment logs.",
-        "A waiter carried three plates to the table.",
-        "The clock stopped during the power outage.",
-        "A cyclist crossed the bridge at noon.",
-        "The student copied the title from the article.",
-        "A nurse checked the patient's pulse.",
-        "The printer produced five pages.",
-        "A tourist asked for directions to the station.",
-    ]
+    prompts = load_json_list(BLOCK_A_STANDARD_PATH)
     for idx, text in enumerate(prompts):
         split = "test" if idx % 5 == 0 else "train"
         rows.append(
