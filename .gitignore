@@ -24,6 +24,7 @@ dist/
 # Data, model, and experiment artifacts.
 data/
 datasets/
+nla-artifacts/
 thesis-datasets/cache/
 thesis-datasets/raw/
 thesis-datasets/processed/
