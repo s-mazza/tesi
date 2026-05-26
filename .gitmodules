@@ -21,3 +21,6 @@
 	url = https://github.com/NikhilNayak-debug/towards_interpretable_softprompts.git
 	branch = main
 	ignore = dirty
+[submodule "natural_language_autoencoders"]
+	path = natural_language_autoencoders
+	url = https://github.com/kitft/natural_language_autoencoders.git
