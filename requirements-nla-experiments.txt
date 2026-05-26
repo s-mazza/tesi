@@ -1,0 +1,10 @@
+accelerate
+httpx
+numpy
+orjson
+pyarrow
+pyyaml
+safetensors
+sglang[all]>=0.5.6
+torch
+transformers
