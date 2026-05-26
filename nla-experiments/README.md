@@ -47,11 +47,21 @@ Useful environment overrides:
 ```bash
 GPU_SPEC=nvidia_geforce_rtx_3090:1
 IMAGE_NAME=nla_experiments:latest
+PYTHON_BIN=python3
 NLA_ARTIFACT_ROOT=/path/to/nla-artifacts
 HF_CACHE_DIR=$HOME/.cache/huggingface
 ```
 
-Build the Docker image on each node where Slurm may schedule the job:
+For extraction on the current cluster, the existing `emb-inversion:latest`
+image is sufficient:
+
+```bash
+IMAGE_NAME=emb-inversion:latest PYTHON_BIN=python3 LIMIT=1 SLURM_NODE=faretra \
+  bash nla-experiments/slurm/submit_extract_qwen.sh
+```
+
+Build the dedicated Docker image only if the existing images do not provide the
+needed NLA/SGLang runtime for verbalization:
 
 ```bash
 docker build -f nla-experiments/docker/Dockerfile -t nla_experiments:latest .

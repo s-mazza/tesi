@@ -3,6 +3,7 @@ set -euo pipefail
 
 GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
 SLURM_NODE="${SLURM_NODE:-}"
+PYTHON_BIN="${PYTHON_BIN:-python}"
 ARTIFACT_DIR="${NLA_ARTIFACT_ROOT:-$PWD/nla-artifacts}"
 MANIFEST="${MANIFEST:-nla-artifacts/summeval/task_manifest.jsonl}"
 OUTPUT="${OUTPUT:-nla-artifacts/summeval/activations_qwen25_7b_instruct_L20.parquet}"
@@ -26,4 +27,4 @@ sbatch \
   "${NODE_ARGS[@]}" \
   --output="$ARTIFACT_DIR/slurm/slurm-%j-extract-qwen.out" \
   nla-experiments/slurm/run_docker.sh \
-  "python nla-experiments/summeval/extract_qwen_activations.py --manifest '$MANIFEST' --output '$OUTPUT' ${LIMIT_ARGS[*]}"
+  "'$PYTHON_BIN' nla-experiments/summeval/extract_qwen_activations.py --manifest '$MANIFEST' --output '$OUTPUT' ${LIMIT_ARGS[*]}"

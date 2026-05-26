@@ -24,8 +24,8 @@ docker run \
   -e "HF_HOME=$DOCKER_HF_HOME" \
   -e "HF_TOKEN=${HF_TOKEN:-}" \
   -e "NLA_ARTIFACT_ROOT=/workspace/nla-artifacts" \
+  -e "PYTHON_BIN=${PYTHON_BIN:-python}" \
   -e "PYTHONPATH=/workspace/nla-experiments:/workspace/natural_language_autoencoders:${PYTHONPATH:-}" \
   -w /workspace \
   "$IMAGE_NAME" \
   bash -lc "$*"
-

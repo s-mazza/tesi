@@ -2,6 +2,7 @@
 set -euo pipefail
 
 NLA_AV_MODEL="${NLA_AV_MODEL:-kitft/nla-qwen2.5-7b-L20-av}"
+PYTHON_BIN="${PYTHON_BIN:-python}"
 SGLANG_HOST="${SGLANG_HOST:-127.0.0.1}"
 SGLANG_PORT="${SGLANG_PORT:-30000}"
 SGLANG_URL="http://${SGLANG_HOST}:${SGLANG_PORT}"
@@ -14,7 +15,7 @@ if [[ -n "${LIMIT:-}" ]]; then
   LIMIT_ARGS=(--limit "$LIMIT")
 fi
 
-python -m sglang.launch_server \
+"$PYTHON_BIN" -m sglang.launch_server \
   --model-path "$NLA_AV_MODEL" \
   --host "$SGLANG_HOST" \
   --port "$SGLANG_PORT" \
@@ -26,7 +27,7 @@ python -m sglang.launch_server \
 SERVER_PID=$!
 trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
 
-python - <<'PY'
+"$PYTHON_BIN" - <<'PY'
 import os
 import time
 import urllib.error
@@ -44,10 +45,9 @@ while time.time() < deadline:
 raise SystemExit(f"SGLang server did not become healthy before timeout: {url}")
 PY
 
-python nla-experiments/summeval/verbalize_nla.py \
+"$PYTHON_BIN" nla-experiments/summeval/verbalize_nla.py \
   --activations "$ACTIVATIONS" \
   --output "$OUTPUT" \
   --checkpoint "$NLA_AV_MODEL" \
   --sglang-url "$SGLANG_URL" \
   "${LIMIT_ARGS[@]}"
-
