@@ -22,7 +22,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Export canonical corpus as NLA AV manifest.")
     parser.add_argument("--input", type=Path, default=CANONICAL_PATH)
     parser.add_argument("--output-dir", type=Path, default=EXPORT_DIR)
-    parser.add_argument("--model-id", default="Qwen/Qwen2.5-7B")
+    parser.add_argument("--model-id", default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--layer", type=int, default=20)
     parser.add_argument("--limit-per-block", type=int, default=50)
     args = parser.parse_args()
