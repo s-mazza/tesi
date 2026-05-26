@@ -51,3 +51,8 @@ NLA_ARTIFACT_ROOT=/path/to/nla-artifacts
 HF_CACHE_DIR=$HOME/.cache/huggingface
 ```
 
+Build the Docker image on each node where Slurm may schedule the job:
+
+```bash
+docker build -f nla-experiments/docker/Dockerfile -t nla_experiments:latest .
+```
