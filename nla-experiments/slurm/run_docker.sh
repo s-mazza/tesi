@@ -24,6 +24,11 @@ docker run \
   -e "HF_HOME=$DOCKER_HF_HOME" \
   -e "HF_TOKEN=${HF_TOKEN:-}" \
   -e "NLA_ARTIFACT_ROOT=/workspace/nla-artifacts" \
+  -e "NLA_AV_MODEL=${NLA_AV_MODEL:-}" \
+  -e "NLA_BACKEND=${NLA_BACKEND:-}" \
+  -e "ACTIVATIONS=${ACTIVATIONS:-}" \
+  -e "OUTPUT=${OUTPUT:-}" \
+  -e "LIMIT=${LIMIT:-}" \
   -e "PYTHON_BIN=${PYTHON_BIN:-python}" \
   -e "PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}" \
   -e "PYTHONPATH=/workspace/nla-experiments:/workspace/natural_language_autoencoders:${PYTHONPATH:-}" \
