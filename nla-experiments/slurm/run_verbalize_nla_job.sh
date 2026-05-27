@@ -3,6 +3,7 @@ set -euo pipefail
 
 NLA_AV_MODEL="${NLA_AV_MODEL:-kitft/nla-qwen2.5-7b-L20-av}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
+NLA_BACKEND="${NLA_BACKEND:-sglang}"
 SGLANG_HOST="${SGLANG_HOST:-127.0.0.1}"
 SGLANG_PORT="${SGLANG_PORT:-30000}"
 SGLANG_URL="http://${SGLANG_HOST}:${SGLANG_PORT}"
@@ -13,6 +14,16 @@ LIMIT_ARGS=()
 
 if [[ -n "${LIMIT:-}" ]]; then
   LIMIT_ARGS=(--limit "$LIMIT")
+fi
+
+if [[ "$NLA_BACKEND" == "transformers" ]]; then
+  "$PYTHON_BIN" nla-experiments/summeval/verbalize_nla.py \
+    --backend transformers \
+    --activations "$ACTIVATIONS" \
+    --output "$OUTPUT" \
+    --checkpoint "$NLA_AV_MODEL" \
+    "${LIMIT_ARGS[@]}"
+  exit 0
 fi
 
 "$PYTHON_BIN" -m sglang.launch_server \

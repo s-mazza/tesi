@@ -61,8 +61,12 @@ IMAGE_NAME=emb-inversion:latest PYTHON_BIN=python3 LIMIT=1 SLURM_NODE=faretra \
 ```
 
 Build the dedicated Docker image only if the existing images do not provide the
-needed NLA/SGLang runtime for verbalization:
+small NLA runtime needed for direct Transformers verbalization:
 
 ```bash
-docker build -f nla-experiments/docker/Dockerfile -t nla_experiments:latest .
+docker build -f nla-experiments/docker/Dockerfile \
+  --build-arg BASE_IMAGE=emb-inversion:latest \
+  -t nla_transformers:latest .
+IMAGE_NAME=nla_transformers:latest PYTHON_BIN=python3 NLA_BACKEND=transformers \
+  LIMIT=2 bash nla-experiments/slurm/submit_verbalize_nla.sh
 ```

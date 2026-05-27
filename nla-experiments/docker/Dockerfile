@@ -1,18 +1,12 @@
-FROM pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
+ARG BASE_IMAGE=emb-inversion:latest
+FROM ${BASE_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /workspace
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        curl \
-        git \
-    && rm -rf /var/lib/apt/lists/*
+COPY requirements-nla-transformers.txt /tmp/requirements-nla-transformers.txt
 
-COPY requirements-nla-experiments.txt /tmp/requirements-nla-experiments.txt
-
-RUN python -m pip install --upgrade pip \
-    && python -m pip install -r /tmp/requirements-nla-experiments.txt
+RUN python3 -m pip install --upgrade pip \
+    && python3 -m pip install -r /tmp/requirements-nla-transformers.txt
