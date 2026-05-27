@@ -11,9 +11,18 @@ MEM_FRACTION_STATIC="${MEM_FRACTION_STATIC:-0.85}"
 ACTIVATIONS="${ACTIVATIONS:-nla-artifacts/summeval/activations_qwen25_7b_instruct_L20.parquet}"
 OUTPUT="${OUTPUT:-nla-artifacts/summeval/verbalizations.jsonl}"
 LIMIT_ARGS=()
+GENERATION_ARGS=()
 
 if [[ -n "${LIMIT:-}" ]]; then
   LIMIT_ARGS=(--limit "$LIMIT")
+fi
+
+if [[ -n "${MAX_NEW_TOKENS:-}" ]]; then
+  GENERATION_ARGS+=(--max-new-tokens "$MAX_NEW_TOKENS")
+fi
+
+if [[ -n "${TEMPERATURE:-}" ]]; then
+  GENERATION_ARGS+=(--temperature "$TEMPERATURE")
 fi
 
 if [[ "$NLA_BACKEND" == "transformers" ]]; then
@@ -22,7 +31,8 @@ if [[ "$NLA_BACKEND" == "transformers" ]]; then
     --activations "$ACTIVATIONS" \
     --output "$OUTPUT" \
     --checkpoint "$NLA_AV_MODEL" \
-    "${LIMIT_ARGS[@]}"
+    "${LIMIT_ARGS[@]}" \
+    "${GENERATION_ARGS[@]}"
   exit 0
 fi
 
@@ -61,4 +71,5 @@ PY
   --output "$OUTPUT" \
   --checkpoint "$NLA_AV_MODEL" \
   --sglang-url "$SGLANG_URL" \
-  "${LIMIT_ARGS[@]}"
+  "${LIMIT_ARGS[@]}" \
+  "${GENERATION_ARGS[@]}"

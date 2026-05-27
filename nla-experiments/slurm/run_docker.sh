@@ -29,6 +29,8 @@ docker run \
   -e "ACTIVATIONS=${ACTIVATIONS:-}" \
   -e "OUTPUT=${OUTPUT:-}" \
   -e "LIMIT=${LIMIT:-}" \
+  -e "MAX_NEW_TOKENS=${MAX_NEW_TOKENS:-}" \
+  -e "TEMPERATURE=${TEMPERATURE:-}" \
   -e "PYTHON_BIN=${PYTHON_BIN:-python}" \
   -e "PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}" \
   -e "PYTHONPATH=/workspace/nla-experiments:/workspace/natural_language_autoencoders:${PYTHONPATH:-}" \
