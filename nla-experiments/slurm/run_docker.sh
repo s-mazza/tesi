@@ -25,6 +25,7 @@ docker run \
   -e "HF_TOKEN=${HF_TOKEN:-}" \
   -e "NLA_ARTIFACT_ROOT=/workspace/nla-artifacts" \
   -e "PYTHON_BIN=${PYTHON_BIN:-python}" \
+  -e "PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}" \
   -e "PYTHONPATH=/workspace/nla-experiments:/workspace/natural_language_autoencoders:${PYTHONPATH:-}" \
   -w /workspace \
   "$IMAGE_NAME" \
