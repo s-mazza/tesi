@@ -64,6 +64,24 @@ def first_numeric_token_index(tokenizer: Any, token_ids: list[int]) -> int | Non
     return None
 
 
+def hidden_states_only(model: Any, *, input_ids: Any, attention_mask: Any) -> Any:
+    """Return hidden states without materializing LM-head logits when possible."""
+    backbone = getattr(model, "model", None)
+    if backbone is not None:
+        return backbone(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=True,
+            use_cache=False,
+        ).hidden_states
+    return model(
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        output_hidden_states=True,
+        use_cache=False,
+    ).hidden_states
+
+
 def build_fake_records(
     manifest_rows: list[dict[str, Any]],
     *,
@@ -125,10 +143,10 @@ def build_real_records(
         input_len = int(inputs["input_ids"].shape[1])
 
         with torch.inference_mode():
-            prompt_out = model(
-                **inputs,
-                output_hidden_states=True,
-                use_cache=False,
+            prompt_hidden_states = hidden_states_only(
+                model,
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
             )
             generated = model.generate(
                 **inputs,
@@ -138,11 +156,10 @@ def build_real_records(
             )
             new_token_ids = generated[0, input_len:].tolist()
             model_output = tokenizer.decode(new_token_ids, skip_special_tokens=True)
-            full_out = model(
+            full_hidden_states = hidden_states_only(
+                model,
                 input_ids=generated.to(device),
                 attention_mask=torch.ones_like(generated).to(device),
-                output_hidden_states=True,
-                use_cache=False,
             )
 
         score_text = extract_score_text(model_output)
@@ -156,7 +173,7 @@ def build_real_records(
                     "token_status": "ok",
                     "model_output": model_output,
                     "score_text": score_text,
-                    "activation_vector": prompt_out.hidden_states[layer][0, -1].float().cpu().tolist(),
+                    "activation_vector": prompt_hidden_states[layer][0, -1].float().cpu().tolist(),
                 }
             )
 
@@ -174,7 +191,7 @@ def build_real_records(
                     "token_status": token_status,
                     "model_output": model_output,
                     "score_text": score_text,
-                    "activation_vector": full_out.hidden_states[layer][0, seq_idx].float().cpu().tolist(),
+                    "activation_vector": full_hidden_states[layer][0, seq_idx].float().cpu().tolist(),
                 }
             )
 
