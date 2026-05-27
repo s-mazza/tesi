@@ -3,6 +3,7 @@ set -euo pipefail
 
 GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
 SLURM_NODE="${SLURM_NODE:-}"
+SLURM_EXCLUDE="${SLURM_EXCLUDE:-}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 ARTIFACT_DIR="${NLA_ARTIFACT_ROOT:-$PWD/nla-artifacts}"
 MANIFEST="${MANIFEST:-nla-artifacts/summeval/task_manifest.jsonl}"
@@ -16,6 +17,10 @@ fi
 
 if [[ -n "$SLURM_NODE" ]]; then
   NODE_ARGS=(-w "$SLURM_NODE")
+fi
+
+if [[ -n "$SLURM_EXCLUDE" ]]; then
+  NODE_ARGS+=(--exclude="$SLURM_EXCLUDE")
 fi
 
 bash nla-experiments/init_artifact_repo.sh
