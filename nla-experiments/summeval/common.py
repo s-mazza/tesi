@@ -69,6 +69,8 @@ def extract_explanation(raw_text: str) -> tuple[str, str]:
     if match:
         return match.group(1).strip(), "ok"
     stripped = raw_text.strip()
+    if stripped.startswith("<explanation>"):
+        return stripped.removeprefix("<explanation>").strip(), "partial_tags"
     return stripped, "missing_tags" if stripped else "empty"
 
 
@@ -85,4 +87,3 @@ def cjk_fraction(text: str) -> float:
         ):
             cjk += 1
     return cjk / max(len(text), 1)
-

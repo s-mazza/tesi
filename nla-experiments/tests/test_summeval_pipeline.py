@@ -68,8 +68,10 @@ class SummEvalPipelineTest(unittest.TestCase):
         explanation, status = extract_explanation("plain text")
         self.assertEqual(explanation, "plain text")
         self.assertEqual(status, "missing_tags")
+        explanation, status = extract_explanation("<explanation>partial decode")
+        self.assertEqual(explanation, "partial decode")
+        self.assertEqual(status, "partial_tags")
 
 
 if __name__ == "__main__":
     unittest.main()
-
