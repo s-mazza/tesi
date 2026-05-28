@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load_env.sh"
+load_nla_repo_env
+
 GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
 SLURM_NODE="${SLURM_NODE:-}"
 SLURM_EXCLUDE="${SLURM_EXCLUDE:-}"

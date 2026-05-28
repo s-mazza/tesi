@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/load_env.sh"
+load_nla_repo_env
+
 IMAGE_NAME="${IMAGE_NAME:-nla_experiments:latest}"
 PROJECT_DIR="${PROJECT_DIR:-$PWD}"
 ARTIFACT_DIR="${NLA_ARTIFACT_ROOT:-$PROJECT_DIR/nla-artifacts}"
-HF_CACHE_DIR="${HF_CACHE_DIR:-$HOME/.cache/huggingface}"
+HF_CACHE_DIR="${HF_CACHE_DIR:-${HF_HOME:-$HOME/.cache/huggingface}}"
 DOCKER_HF_HOME="${DOCKER_HF_HOME:-/llms}"
 
 if [[ "$#" -eq 0 ]]; then
