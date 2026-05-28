@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -138,7 +139,7 @@ class TransformersNLAClient:
         return text
 
 
-def build_verbalizations(
+def iter_verbalizations(
     activation_rows: list[dict[str, Any]],
     *,
     checkpoint: str,
@@ -153,7 +154,7 @@ def build_verbalizations(
     dtype_name: str,
     device_map: str,
     trust_remote_code: bool,
-) -> list[dict[str, Any]]:
+) -> Iterator[dict[str, Any]]:
     rows = activation_rows[:limit]
     client = None
     if not dry_run:
@@ -171,8 +172,7 @@ def build_verbalizations(
         else:
             raise ValueError(f"Unsupported backend: {backend}")
 
-    outputs: list[dict[str, Any]] = []
-    for row in rows:
+    for index, row in enumerate(rows, start=1):
         if dry_run:
             raw_generation, explanation, parse_status = dry_run_generation(row)
         else:
@@ -186,19 +186,53 @@ def build_verbalizations(
             explanation, parse_status = parse_explanation(raw_generation)
 
         failure_score = cjk_fraction(raw_generation)
-        outputs.append(
-            {
-                **{key: value for key, value in row.items() if key != "activation_vector"},
-                "nla_model_id": checkpoint,
-                "nla_backend": "dry_run" if dry_run else backend,
-                "sglang_url": sglang_url,
-                "raw_generation": raw_generation,
-                "explanation": explanation,
-                "parse_status": parse_status,
-                "injection_check_status": "cjk_like" if failure_score > 0.25 else "ok",
-                "cjk_fraction": failure_score,
-            }
+        yield {
+            **{key: value for key, value in row.items() if key != "activation_vector"},
+            "nla_model_id": checkpoint,
+            "nla_backend": "dry_run" if dry_run else backend,
+            "sglang_url": sglang_url,
+            "raw_generation": raw_generation,
+            "explanation": explanation,
+            "parse_status": parse_status,
+            "injection_check_status": "cjk_like" if failure_score > 0.25 else "ok",
+            "cjk_fraction": failure_score,
+        }
+        print(f"Verbalized {index}/{len(rows)} activation rows", flush=True)
+
+
+def build_verbalizations(
+    activation_rows: list[dict[str, Any]],
+    *,
+    checkpoint: str,
+    sglang_url: str,
+    nla_root: Path,
+    backend: str,
+    limit: int | None,
+    dry_run: bool,
+    temperature: float,
+    max_new_tokens: int,
+    injection_scale: float | None,
+    dtype_name: str,
+    device_map: str,
+    trust_remote_code: bool,
+) -> list[dict[str, Any]]:
+    outputs = list(
+        iter_verbalizations(
+            activation_rows,
+            checkpoint=checkpoint,
+            sglang_url=sglang_url,
+            nla_root=nla_root,
+            backend=backend,
+            limit=limit,
+            dry_run=dry_run,
+            temperature=temperature,
+            max_new_tokens=max_new_tokens,
+            injection_scale=injection_scale,
+            dtype_name=dtype_name,
+            device_map=device_map,
+            trust_remote_code=trust_remote_code,
         )
+    )
     return outputs
 
 
@@ -221,7 +255,7 @@ def main() -> int:
     args = parser.parse_args()
 
     activation_rows = read_parquet_rows(args.activations)
-    outputs = build_verbalizations(
+    outputs = iter_verbalizations(
         activation_rows,
         checkpoint=args.checkpoint,
         sglang_url=args.sglang_url,
@@ -236,7 +270,7 @@ def main() -> int:
         device_map=args.device_map,
         trust_remote_code=args.trust_remote_code,
     )
-    count = write_jsonl(args.output, outputs)
+    count = write_jsonl(args.output, outputs, flush=True)
     print(f"Wrote {count} verbalization rows to {args.output}")
     return 0
 

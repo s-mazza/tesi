@@ -49,12 +49,14 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
         return [json.loads(line) for line in f if line.strip()]
 
 
-def write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> int:
+def write_jsonl(path: Path, rows: Iterable[dict[str, Any]], *, flush: bool = False) -> int:
     ensure_parent(path)
     count = 0
     with path.open("w", encoding="utf-8") as f:
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+            if flush:
+                f.flush()
             count += 1
     return count
 
