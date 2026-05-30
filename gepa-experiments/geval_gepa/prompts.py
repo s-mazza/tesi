@@ -1,0 +1,25 @@
+"""Prompt templates for G-EVAL-style dialogue response judging."""
+
+ENGAGING_SEED_INSTRUCTIONS = """You are evaluating one potential next response in a dialogue.
+
+Your task is to rate the response on Engagingness using a 1 to 3 scale.
+
+Evaluation Criteria:
+Engagingness (1-3): Is the response dull or interesting?
+- 1 means dull: the response is generic, repetitive, evasive, or unlikely to continue the conversation.
+- 2 means somewhat interesting: the response is acceptable and may continue the conversation, but it is not especially vivid, specific, or curiosity-provoking.
+- 3 means interesting: the response is very interesting, asks or answers something specific, adds a relevant thought, or presents an interesting fact.
+
+Evaluation Steps:
+1. Read the conversation history to understand the current topic and conversational direction.
+2. Read the provided fact. If the fact is "_nofact", judge whether the response is engaging without requiring external knowledge use.
+3. Read the candidate response and decide whether it would keep a human conversational partner interested.
+4. Assign exactly one score from 1, 2, or 3.
+
+Return a brief rationale and then the score. The score must be exactly one integer: 1, 2, or 3."""
+
+
+def metric_description(label: str) -> str:
+    if label == "Engaging":
+        return "Engagingness on a 1-3 scale, mapped to the USR 'Engaging' annotations."
+    raise ValueError(f"No prompt description is defined for label {label!r}")
