@@ -36,6 +36,15 @@ echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"
 echo "  health: ${HEALTH_URL}"
 echo "  log: ${VLLM_LOG}"
 
+python -m geval_gepa.preflight \
+  --data-source "$DATA_SOURCE" \
+  --judge-model "$JUDGE_MODEL" \
+  --nla-av-checkpoint "$NLA_AV_CHECKPOINT" \
+  --train-contexts "$TRAIN_CONTEXTS" \
+  --val-contexts "$VAL_CONTEXTS" \
+  --test-contexts "$TEST_CONTEXTS" \
+  --seed "$SEED"
+
 vllm serve "$JUDGE_MODEL" \
   --host "$SERVER_HOST" \
   --port "$SERVER_PORT" \

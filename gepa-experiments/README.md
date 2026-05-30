@@ -33,8 +33,16 @@ On `faretra`, build from the thesis repo root:
 docker build -f gepa-experiments/docker/Dockerfile -t geval_gepa:latest .
 ```
 
+The exact Torch/CUDA version is not a research constraint for this v1. The
+required invariants are:
+
+- vLLM can serve `Qwen/Qwen2.5-7B-Instruct`;
+- DSPy/GEPA import and run;
+- `/llms` contains the base judge model and the future NLA AV checkpoint;
+- no source build of FlashAttention is attempted.
+
 If installing upstream `flash-attn`, pass only a prebuilt wheel URL matching the
-container Python/Torch/CUDA stack. Do not allow a source build:
+resolved container Python/Torch/CUDA stack. Do not allow a source build:
 
 ```bash
 docker build -f gepa-experiments/docker/Dockerfile -t geval_gepa:latest \
@@ -42,6 +50,16 @@ docker build -f gepa-experiments/docker/Dockerfile -t geval_gepa:latest \
 ```
 
 If no wheel is passed, vLLM's bundled attention backend is used.
+
+Run the preflight before submitting GPU work:
+
+```bash
+docker run --rm \
+  -v "$PWD:/workspace" -v /llms:/llms \
+  -e PYTHONPATH=/workspace/gepa-experiments \
+  -w /workspace geval_gepa:latest \
+  python -m geval_gepa.preflight
+```
 
 ## Submit Smoke Run
 
