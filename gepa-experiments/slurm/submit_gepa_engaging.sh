@@ -3,7 +3,7 @@ set -euo pipefail
 
 CONFIG_FILE="${CONFIG_FILE:-gepa-experiments/config/geval_gepa_engaging_qwen25.env}"
 GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
-SLURM_NODE="${SLURM_NODE:-faretra}"
+SLURM_NODE="${SLURM_NODE:-}"
 IMAGE_NAME="${IMAGE_NAME:-geval_gepa:latest}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-gepa-experiments/results/slurm}"
 

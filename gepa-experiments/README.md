@@ -6,7 +6,9 @@ experiment: optimize a G-EVAL-style LLM-as-judge prompt for Topical-Chat/USR.
 ## V1 Target
 
 - Task: LLM-as-judge scoring, not dialogue generation.
-- Dataset: `https://shikib.com/tc_usr_data.json`.
+- Dataset: `https://shikib.com/tc_usr_data.json`, cached at
+  `cache/tc_usr_data.json` so Slurm jobs do not depend on compute-node network
+  access.
 - First metric: USR `Engaging`, mapped to G-EVAL `Engagingness`.
 - Judge model: `Qwen/Qwen2.5-7B-Instruct`.
 - Future NLA hook: `kitft/nla-qwen2.5-7b-L20-av`, layer 20.
@@ -52,3 +54,6 @@ ssh faretra "cd ~/tesi && IMAGE_NAME=geval_gepa:latest bash gepa-experiments/slu
 
 Outputs are written under `gepa-experiments/results/`, which is intentionally
 ignored by the parent repository.
+
+Set `SLURM_NODE=faretra` only when the image/code has not been replicated to
+other nodes. Leaving it empty lets Slurm use any compatible GPU node.
