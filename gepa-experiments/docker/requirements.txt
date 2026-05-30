@@ -1,0 +1,5 @@
+dspy>=3.0.0
+gepa>=0.0.27
+datasets>=3.0.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.0

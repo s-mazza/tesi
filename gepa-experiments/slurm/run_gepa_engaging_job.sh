@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_FILE="${CONFIG_FILE:-gepa-experiments/config/geval_gepa_engaging_qwen25.env}"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "Missing config file: $CONFIG_FILE" >&2
+  exit 2
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$CONFIG_FILE"
+set +a
+
+SERVER_HOST="${SERVER_HOST:-127.0.0.1}"
+SERVER_PORT="${SERVER_PORT:-8000}"
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-4096}"
+GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
+OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
+LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
+mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
+
+VLLM_LOG="${LOG_DIR}/vllm_${SLURM_JOB_ID:-local}.log"
+HEALTH_URL="http://${SERVER_HOST}:${SERVER_PORT}/v1/models"
+
+cleanup() {
+  if [[ -n "${VLLM_PID:-}" ]] && kill -0 "$VLLM_PID" 2>/dev/null; then
+    kill "$VLLM_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+echo "Starting vLLM judge server"
+echo "  model: ${JUDGE_MODEL}"
+echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"
+echo "  health: ${HEALTH_URL}"
+echo "  log: ${VLLM_LOG}"
+
+vllm serve "$JUDGE_MODEL" \
+  --host "$SERVER_HOST" \
+  --port "$SERVER_PORT" \
+  --served-model-name "$JUDGE_MODEL" \
+  --max-model-len "$MAX_MODEL_LEN" \
+  --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
+  --dtype auto \
+  --download-dir /llms \
+  --trust-remote-code \
+  >"$VLLM_LOG" 2>&1 &
+VLLM_PID="$!"
+
+echo "Waiting for vLLM readiness..."
+for _ in $(seq 1 180); do
+  if ! kill -0 "$VLLM_PID" 2>/dev/null; then
+    echo "vLLM exited before readiness. Last log lines:" >&2
+    tail -100 "$VLLM_LOG" >&2 || true
+    exit 1
+  fi
+  if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+    echo "vLLM is ready."
+    break
+  fi
+  sleep 5
+done
+
+if ! curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+  echo "Timed out waiting for vLLM. Last log lines:" >&2
+  tail -100 "$VLLM_LOG" >&2 || true
+  exit 1
+fi
+
+BUDGET_ARGS=()
+if [[ -n "${GEPA_AUTO:-}" ]]; then
+  BUDGET_ARGS=(--gepa-auto "$GEPA_AUTO")
+elif [[ -n "${MAX_FULL_EVALS:-}" ]]; then
+  BUDGET_ARGS=(--max-full-evals "$MAX_FULL_EVALS")
+elif [[ -n "${MAX_METRIC_CALLS:-}" ]]; then
+  BUDGET_ARGS=(--max-metric-calls "$MAX_METRIC_CALLS")
+else
+  echo "Set one of GEPA_AUTO, MAX_FULL_EVALS, or MAX_METRIC_CALLS." >&2
+  exit 2
+fi
+
+python -m geval_gepa.runner \
+  --data-source "$DATA_SOURCE" \
+  --label "$LABEL" \
+  --train-contexts "$TRAIN_CONTEXTS" \
+  --val-contexts "$VAL_CONTEXTS" \
+  --test-contexts "$TEST_CONTEXTS" \
+  --seed "$SEED" \
+  --output-dir "$OUTPUT_DIR" \
+  --judge-model "$JUDGE_MODEL" \
+  --nla-av-checkpoint "$NLA_AV_CHECKPOINT" \
+  --nla-extraction-layer "$NLA_EXTRACTION_LAYER" \
+  --api-base "http://${SERVER_HOST}:${SERVER_PORT}/v1" \
+  --num-threads "$NUM_THREADS" \
+  "${BUDGET_ARGS[@]}"
