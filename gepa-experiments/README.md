@@ -65,6 +65,16 @@ docker run --rm \
   python -m geval_gepa.preflight
 ```
 
+For deeper CPU-only checks before a GPU is available, run:
+
+```bash
+ssh faretra "cd ~/tesi && IMAGE_NAME=geval_gepa:latest bash gepa-experiments/slurm/check_gepa_readiness.sh"
+```
+
+This validates the runtime pins, config budget, dataset splits, metric parsing,
+DSPy/GEPA prompt construction, local Hugging Face snapshots, and vLLM's Qwen2
+model import path without starting the vLLM server.
+
 ## Submit Smoke Run
 
 The default config runs roughly 100 response-level examples: 10 train contexts,
