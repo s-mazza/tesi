@@ -1,7 +1,9 @@
 ARG BASE_IMAGE=pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
 FROM ${BASE_IMAGE}
 
-ARG VLLM_PACKAGE=vllm
+ARG VLLM_PACKAGE=vllm==0.10.2
+ARG VLLM_EXTRA_INDEX_URL=https://wheels.vllm.ai/0.10.2/
+ARG UV_TORCH_BACKEND=cu128
 ARG FLASH_ATTN_WHEEL_URL=
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,8 +17,10 @@ RUN apt-get update \
 
 COPY gepa-experiments/docker/requirements.txt /tmp/geval-gepa-requirements.txt
 
-RUN python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install "${VLLM_PACKAGE}" \
+RUN python -m pip install --upgrade pip setuptools wheel uv \
+    && uv pip install --system "${VLLM_PACKAGE}" \
+        --torch-backend="${UV_TORCH_BACKEND}" \
+        --extra-index-url "${VLLM_EXTRA_INDEX_URL}" \
     && python -m pip install -r /tmp/geval-gepa-requirements.txt \
     && if [ -n "${FLASH_ATTN_WHEEL_URL}" ]; then \
         python -m pip install "${FLASH_ATTN_WHEEL_URL}"; \

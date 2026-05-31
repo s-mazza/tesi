@@ -41,6 +41,10 @@ required invariants are:
 - `/llms` contains the base judge model and the future NLA AV checkpoint;
 - no source build of FlashAttention is attempted.
 
+The default image pins `vllm==0.10.2` on the CUDA 12.8/Torch 2.8 backend. This
+avoids the observed `vllm 0.22.0` + `torch 2.11.0/cu130` startup crash during
+Qwen2 model inspection while still using prebuilt vLLM CUDA binaries.
+
 If installing upstream `flash-attn`, pass only a prebuilt wheel URL matching the
 resolved container Python/Torch/CUDA stack. Do not allow a source build:
 
