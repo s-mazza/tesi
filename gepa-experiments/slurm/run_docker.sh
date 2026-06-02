@@ -19,6 +19,9 @@ docker run \
   -v "$PROJECT_DIR:/workspace" \
   -v "$LLM_CACHE_DIR:/llms" \
   -e "HF_HOME=/llms" \
+  -e "HF_HUB_OFFLINE=1" \
+  -e "TRANSFORMERS_OFFLINE=1" \
+  -e "HF_HUB_DISABLE_TELEMETRY=1" \
   -e "HF_TOKEN=${HF_TOKEN:-}" \
   -e "OPENAI_API_KEY=${OPENAI_API_KEY:-EMPTY}" \
   -e "PYTHONPATH=/workspace/gepa-experiments:${PYTHONPATH:-}" \

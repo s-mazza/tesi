@@ -22,6 +22,15 @@ mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
 
 VLLM_LOG="${LOG_DIR}/vllm_${SLURM_JOB_ID:-local}.log"
 HEALTH_URL="http://${SERVER_HOST}:${SERVER_PORT}/v1/models"
+MODEL_CACHE_DIR="/llms/hub/models--${JUDGE_MODEL//\//--}"
+VLLM_MODEL_ARG="${JUDGE_MODEL}"
+
+if [[ -d "${MODEL_CACHE_DIR}/snapshots" ]]; then
+  MODEL_SNAPSHOT="$(find "${MODEL_CACHE_DIR}/snapshots" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
+  if [[ -n "$MODEL_SNAPSHOT" ]]; then
+    VLLM_MODEL_ARG="$MODEL_SNAPSHOT"
+  fi
+fi
 
 cleanup() {
   if [[ -n "${VLLM_PID:-}" ]] && kill -0 "$VLLM_PID" 2>/dev/null; then
@@ -32,6 +41,7 @@ trap cleanup EXIT INT TERM
 
 echo "Starting vLLM judge server"
 echo "  model: ${JUDGE_MODEL}"
+echo "  vLLM model path: ${VLLM_MODEL_ARG}"
 echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"
 echo "  health: ${HEALTH_URL}"
 echo "  log: ${VLLM_LOG}"
@@ -45,7 +55,7 @@ python -m geval_gepa.preflight \
   --test-contexts "$TEST_CONTEXTS" \
   --seed "$SEED"
 
-vllm serve "$JUDGE_MODEL" \
+vllm serve "$VLLM_MODEL_ARG" \
   --host "$SERVER_HOST" \
   --port "$SERVER_PORT" \
   --served-model-name "$JUDGE_MODEL" \
