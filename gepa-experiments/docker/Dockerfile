@@ -10,9 +10,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE
 ENV HF_HOME=/llms
 ENV PYTHONUNBUFFERED=1
+ENV CC=gcc
+ENV CXX=g++
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates git \
+    && apt-get install -y --no-install-recommends build-essential curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY gepa-experiments/docker/requirements.txt /tmp/geval-gepa-requirements.txt

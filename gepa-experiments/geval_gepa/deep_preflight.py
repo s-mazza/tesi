@@ -9,6 +9,7 @@ import importlib.util
 import inspect
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +73,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 
     modules = _runtime_module_report()
     report.update(modules)
+    report.update(_compiler_report())
     report["ok_version_pin"] = (
         str(modules.get("torch_version", "")).startswith(args.expected_torch_prefix)
         and modules.get("vllm_version") == args.expected_vllm
@@ -158,6 +160,20 @@ def _runtime_module_report() -> dict[str, Any]:
             report["gepa_version"] = "unknown"
     report["flash_attn_available"] = importlib.util.find_spec("flash_attn") is not None
     return report
+
+
+def _compiler_report() -> dict[str, Any]:
+    cc = os.environ.get("CC", "gcc")
+    cxx = os.environ.get("CXX", "g++")
+    cc_path = shutil.which(cc)
+    cxx_path = shutil.which(cxx)
+    return {
+        "ok_c_compiler": cc_path is not None and cxx_path is not None,
+        "cc": cc,
+        "cc_path": cc_path,
+        "cxx": cxx,
+        "cxx_path": cxx_path,
+    }
 
 
 def _metric_report(label: str) -> dict[str, Any]:
