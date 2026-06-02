@@ -2,6 +2,16 @@
 set -euo pipefail
 
 CONFIG_FILE="${CONFIG_FILE:-gepa-experiments/config/geval_gepa_engaging_qwen25.env}"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "Missing config file: $CONFIG_FILE" >&2
+  exit 2
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$CONFIG_FILE"
+set +a
+
 GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
 SLURM_NODE="${SLURM_NODE:-}"
 IMAGE_NAME="${IMAGE_NAME:-geval_gepa:latest}"
