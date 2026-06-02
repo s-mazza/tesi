@@ -213,6 +213,7 @@ def _model_cache_report(hf_home: Path, config: dict[str, str]) -> dict[str, Any]
     model_config = AutoConfig.from_pretrained(hf_path, local_files_only=True, trust_remote_code=True)
     tokenizer = AutoTokenizer.from_pretrained(hf_path, local_files_only=True, trust_remote_code=True)
     architectures = getattr(model_config, "architectures", []) or []
+    has_vllm_tokenizer_attrs = hasattr(tokenizer, "all_special_tokens_extended")
     report.update(
         {
             "judge_model_type": getattr(model_config, "model_type", ""),
@@ -221,6 +222,8 @@ def _model_cache_report(hf_home: Path, config: dict[str, str]) -> dict[str, Any]
                 getattr(model_config, "model_type", "") == "qwen2" and "Qwen2ForCausalLM" in architectures
             ),
             "ok_tokenizer_local": tokenizer is not None,
+            "ok_tokenizer_vllm_attrs": has_vllm_tokenizer_attrs,
+            "tokenizer_class": tokenizer.__class__.__name__,
         }
     )
     return report
