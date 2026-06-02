@@ -15,6 +15,7 @@ set +a
 SERVER_HOST="${SERVER_HOST:-127.0.0.1}"
 SERVER_PORT="${SERVER_PORT:-8000}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-4096}"
+MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
@@ -60,6 +61,7 @@ vllm serve "$VLLM_MODEL_ARG" \
   --port "$SERVER_PORT" \
   --served-model-name "$JUDGE_MODEL" \
   --max-model-len "$MAX_MODEL_LEN" \
+  --max-num-seqs "$MAX_NUM_SEQS" \
   --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
   --dtype auto \
   --download-dir /llms \
