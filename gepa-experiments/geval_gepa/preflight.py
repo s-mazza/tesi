@@ -72,6 +72,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             seed=args.seed,
         )
     ]
+    expected_split_sizes = [args.train_contexts * 6, args.val_contexts * 6, args.test_contexts * 6]
 
     hf_home = Path(args.hf_home)
     model_cache = hf_home / "hub" / f"models--{args.judge_model.replace('/', '--')}"
@@ -85,9 +86,18 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "vllm_version": vllm_version,
         "dspy_version": dspy_version,
         "flash_attn_available": importlib.util.find_spec("flash_attn") is not None,
-        "ok_dataset": len(rows) == 360 and split_sizes == [60, 18, 24],
+        "ok_dataset": len(rows) == 360 and split_sizes == expected_split_sizes,
         "dataset_rows": len(rows),
-        "split_sizes": split_sizes,
+        "split_sizes": {
+            "gepa_train": split_sizes[0],
+            "gepa_validation": split_sizes[1],
+            "final_test": split_sizes[2],
+        },
+        "expected_split_sizes": {
+            "gepa_train": expected_split_sizes[0],
+            "gepa_validation": expected_split_sizes[1],
+            "final_test": expected_split_sizes[2],
+        },
         "ok_judge_model_cache": model_cache.exists(),
         "judge_model_cache": str(model_cache),
         "ok_nla_av_cache": nla_cache.exists(),

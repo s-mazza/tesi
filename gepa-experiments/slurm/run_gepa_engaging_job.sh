@@ -18,6 +18,7 @@ MAX_MODEL_LEN="${MAX_MODEL_LEN:-4096}"
 MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
 MAX_TOKENS="${MAX_TOKENS:-512}"
+INSTRUCTION_PROPOSER="${INSTRUCTION_PROPOSER:-default}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
@@ -147,4 +148,5 @@ python -m geval_gepa.runner \
   --api-base "http://${SERVER_HOST}:${SERVER_PORT}/v1" \
   --max-tokens "$MAX_TOKENS" \
   --num-threads "$NUM_THREADS" \
+  --instruction-proposer "$INSTRUCTION_PROPOSER" \
   "${BUDGET_ARGS[@]}"

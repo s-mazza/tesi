@@ -34,6 +34,7 @@ REQUIRED_CONFIG_KEYS = {
     "GPU_MEMORY_UTILIZATION",
     "NUM_THREADS",
     "MAX_TOKENS",
+    "INSTRUCTION_PROPOSER",
     "OUTPUT_DIR",
 }
 BUDGET_KEYS = ("GEPA_AUTO", "MAX_FULL_EVALS", "MAX_METRIC_CALLS")
@@ -97,6 +98,8 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         seed=seed,
     )
     selected_rows = train_rows + val_rows + test_rows
+    expected_split_sizes = [train_contexts * 6, val_contexts * 6, test_contexts * 6]
+    expected_selected_rows = sum(expected_split_sizes)
     split_contexts = [_context_ids(split) for split in (train_rows, val_rows, test_rows)]
     context_overlaps = [
         sorted(split_contexts[0] & split_contexts[1]),
@@ -108,13 +111,24 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             "ok_label": label == "Engaging" and label in LABEL_SCALES,
             "ok_dataset": len(rows) == 360,
             "dataset_rows": len(rows),
-            "ok_split_sizes": [len(train_rows), len(val_rows), len(test_rows)] == [60, 18, 24],
-            "split_sizes": [len(train_rows), len(val_rows), len(test_rows)],
-            "ok_split_volume": 80 <= len(selected_rows) <= 120,
+            "ok_split_sizes": [len(train_rows), len(val_rows), len(test_rows)] == expected_split_sizes,
+            "split_sizes": {
+                "gepa_train": len(train_rows),
+                "gepa_validation": len(val_rows),
+                "final_test": len(test_rows),
+            },
+            "expected_split_sizes": {
+                "gepa_train": expected_split_sizes[0],
+                "gepa_validation": expected_split_sizes[1],
+                "final_test": expected_split_sizes[2],
+            },
+            "ok_split_volume": len(selected_rows) == expected_selected_rows and len(selected_rows) <= len(rows),
             "selected_rows": len(selected_rows),
             "ok_context_disjoint": not any(context_overlaps),
             "context_overlaps": context_overlaps,
             "ok_response_ids_unique": len({row.response_id for row in rows}) == len(rows),
+            "ok_instruction_proposer": config.get("INSTRUCTION_PROPOSER") in {"default", "generalizing"},
+            "instruction_proposer": config.get("INSTRUCTION_PROPOSER", ""),
         }
     )
 

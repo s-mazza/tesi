@@ -75,10 +75,31 @@ This validates the runtime pins, config budget, dataset splits, metric parsing,
 DSPy/GEPA prompt construction, local Hugging Face snapshots, and vLLM's Qwen2
 model import path without starting the vLLM server.
 
+## Split Semantics
+
+`tc_usr_data.json` contains 60 Topical-Chat/USR contexts with 6 annotated
+candidate responses each, for 360 response-level examples. The runner splits by
+context id, not by response row, so responses from the same dialogue never cross
+split boundaries.
+
+- `TRAIN_CONTEXTS` becomes GEPA's train set.
+- `VAL_CONTEXTS` becomes GEPA's validation/dev set for prompt proposal and
+  selection.
+- `TEST_CONTEXTS` is the final held-out test set. It is not passed to GEPA and
+  is evaluated only after the final prompt has been selected.
+
+The longer configs use all 360 examples as 40 train contexts, 10 validation
+contexts, and 10 final-test contexts.
+
 ## Submit Smoke Run
 
 The default config runs roughly 100 response-level examples: 10 train contexts,
 3 validation contexts, and 4 test contexts.
+
+The longer configs enable the generalizing proposer from the notebook-derived
+workflow. It gives GEPA feedback to the proposer while redacting raw
+conversation text and filtering labels/metric artifacts so the final prompt does
+not overfit by copying validation examples.
 
 ```bash
 ssh faretra "cd ~/tesi && IMAGE_NAME=geval_gepa:latest bash gepa-experiments/slurm/submit_gepa_engaging.sh"

@@ -13,6 +13,7 @@ from typing import Any, Callable
 from .data import DEFAULT_USR_URL, LABEL_SCALES, UsrResponseExample, load_usr_examples, split_by_context
 from .metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
 from .prompts import ENGAGING_SEED_INSTRUCTIONS, metric_description
+from .proposers import make_instruction_proposer
 
 
 def make_program(instructions: str) -> Any:
@@ -225,6 +226,12 @@ def parse_args() -> argparse.Namespace:
     budget.add_argument("--max-full-evals", type=int)
     budget.add_argument("--max-metric-calls", type=int)
     parser.add_argument("--num-threads", type=int, default=2)
+    parser.add_argument(
+        "--instruction-proposer",
+        default="default",
+        choices=("default", "generalizing"),
+        help="GEPA proposer mode. 'generalizing' avoids copying validation feedback into the prompt.",
+    )
     parser.add_argument("--skip-gepa", action="store_true", help="Only evaluate the seed prompt.")
     return parser.parse_args()
 
@@ -244,12 +251,15 @@ def main() -> None:
         test_contexts=args.test_contexts,
         seed=args.seed,
     )
+    print(
+        "Split rows: "
+        f"gepa_train={len(train_rows)}, gepa_validation={len(val_rows)}, final_test={len(test_rows)}. "
+        "GEPA compile uses only gepa_train/gepa_validation; final_test is evaluated only after optimization.",
+        flush=True,
+    )
 
     lm = configure_lm(args)
     seed_program = make_program(ENGAGING_SEED_INSTRUCTIONS)
-    baseline_metrics = evaluate_program(seed_program, test_rows, args.label, output_dir / f"baseline_predictions_{timestamp}.jsonl")
-
-    summary_rows = [{"program": "baseline", **baseline_metrics}]
     optimized_program = seed_program
     optimized_instructions = ENGAGING_SEED_INSTRUCTIONS
 
@@ -264,6 +274,9 @@ def main() -> None:
             "add_format_failure_as_feedback": True,
             "reflection_lm": lm,
         }
+        proposer = make_instruction_proposer(args.instruction_proposer, fallback_instruction=ENGAGING_SEED_INSTRUCTIONS)
+        if proposer is not None:
+            gepa_kwargs["instruction_proposer"] = proposer
         if args.gepa_auto:
             gepa_kwargs["auto"] = args.gepa_auto
         elif args.max_full_evals is not None:
@@ -279,6 +292,10 @@ def main() -> None:
         except TypeError:
             optimized_program = optimizer.compile(seed_program, trainset=trainset, valset=valset)
         optimized_instructions = extract_instructions(optimized_program)
+
+    baseline_metrics = evaluate_program(seed_program, test_rows, args.label, output_dir / f"baseline_predictions_{timestamp}.jsonl")
+    summary_rows = [{"program": "baseline", **baseline_metrics}]
+    if not args.skip_gepa:
         optimized_metrics = evaluate_program(
             optimized_program,
             test_rows,
@@ -301,10 +318,16 @@ def main() -> None:
                 "nla_av_checkpoint": args.nla_av_checkpoint,
                 "nla_extraction_layer": args.nla_extraction_layer,
                 "max_tokens": args.max_tokens,
+                "instruction_proposer": args.instruction_proposer,
+                "split_semantics": {
+                    "gepa_train": "Used by GEPA during prompt search.",
+                    "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+                    "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected.",
+                },
                 "rows": {
-                    "train": len(train_rows),
-                    "val": len(val_rows),
-                    "test": len(test_rows),
+                    "gepa_train": len(train_rows),
+                    "gepa_validation": len(val_rows),
+                    "final_test": len(test_rows),
                 },
             },
             indent=2,
