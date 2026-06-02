@@ -4,6 +4,7 @@ import unittest
 
 from geval_gepa.data import load_usr_examples, split_by_context
 from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
+from geval_gepa.proposers import sanitize_proposed_instruction, sanitize_reflection_feedback
 
 
 FIXTURE = [
@@ -94,6 +95,38 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertAlmostEqual(metrics.pearson, 1.0)
         self.assertAlmostEqual(metrics.spearman, 1.0)
         self.assertAlmostEqual(metrics.mae, 0.0)
+
+    def test_sanitizes_optimizer_feedback_from_proposed_instruction(self) -> None:
+        fallback = "Rate Engagingness from 1 to 3 and return Score: <1, 2, or 3>."
+        proposed = "\n".join(
+            [
+                "Rate the candidate response for Engagingness on a 1 to 3 scale.",
+                "Human mean Engaging score: 2.33; predicted score: 2.",
+                "Use specific, conversation-advancing content to separate 2 from 3.",
+                "Return a final line formatted as Score: <1, 2, or 3>.",
+            ]
+        )
+
+        cleaned = sanitize_proposed_instruction(proposed, fallback=fallback)
+
+        self.assertIn("conversation-advancing", cleaned)
+        self.assertNotIn("Human mean", cleaned)
+        self.assertNotIn("predicted score", cleaned)
+
+    def test_sanitizes_reflection_feedback_for_proposer(self) -> None:
+        feedback = "\n".join(
+            [
+                "Human mean Engaging score: 2.33; predicted score: 2; normalized agreement: 0.83.",
+                "Metric definition: Engagingness on a 1-3 scale.",
+                "The response was underrated. Revise the judging instructions to reward specific follow-up questions.",
+            ]
+        )
+
+        cleaned = sanitize_reflection_feedback(feedback)
+
+        self.assertIn("underrated", cleaned)
+        self.assertNotIn("Human mean", cleaned)
+        self.assertNotIn("Metric definition", cleaned)
 
 
 def load_usr_examples_from_fixture():
