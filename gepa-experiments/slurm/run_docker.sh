@@ -13,9 +13,11 @@ if [[ "$#" -eq 0 ]]; then
 fi
 
 cleanup() {
-  docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
+  docker stop --time 10 "$CONTAINER_NAME" >/dev/null 2>&1 || true
+  docker kill "$CONTAINER_NAME" >/dev/null 2>&1 || true
 }
-trap cleanup EXIT INT TERM
+trap 'cleanup; exit 143' INT TERM
+trap cleanup EXIT
 
 docker run \
   --rm \
@@ -36,4 +38,7 @@ docker run \
   -e "CONFIG_FILE=${CONFIG_FILE:-}" \
   -w /workspace \
   "$IMAGE_NAME" \
-  bash -lc "$*"
+  bash -lc "$*" &
+
+docker_pid=$!
+wait "$docker_pid"
