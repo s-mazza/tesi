@@ -69,6 +69,7 @@ write_dependency_manifest() {
 }
 
 echo "Starting vLLM judge server"
+echo "  config: ${CONFIG_FILE}"
 echo "  model: ${JUDGE_MODEL}"
 echo "  vLLM model path: ${VLLM_MODEL_ARG}"
 echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"

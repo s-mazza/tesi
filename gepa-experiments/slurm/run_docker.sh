@@ -33,6 +33,7 @@ docker run \
   -e "OPENAI_API_KEY=${OPENAI_API_KEY:-EMPTY}" \
   -e "PYTHONPATH=/workspace/gepa-experiments:${PYTHONPATH:-}" \
   -e "SLURM_JOB_ID=${SLURM_JOB_ID:-}" \
+  -e "CONFIG_FILE=${CONFIG_FILE:-}" \
   -w /workspace \
   "$IMAGE_NAME" \
   bash -lc "$*"
