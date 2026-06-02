@@ -16,7 +16,10 @@ Evaluation Steps:
 3. Read the candidate response and decide whether it would keep a human conversational partner interested.
 4. Assign exactly one score from 1, 2, or 3.
 
-Return a brief rationale and then the score. The score must be exactly one integer: 1, 2, or 3."""
+Return a brief rationale and then a final line in this exact format:
+Score: <1, 2, or 3>
+
+Do not output scores outside this scale. Never output 0, 4, or 5 for Engagingness."""
 
 
 def metric_description(label: str) -> str:

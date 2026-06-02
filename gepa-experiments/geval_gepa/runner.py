@@ -124,6 +124,7 @@ def evaluate_program(program: Any, rows: list[UsrResponseExample], label: str, o
     min_score, max_score = LABEL_SCALES[label]
     predictions: list[float] = []
     targets: list[float] = []
+    agreement_scores: list[float] = []
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with output_path.open("w", encoding="utf-8") as handle:
@@ -135,6 +136,9 @@ def evaluate_program(program: Any, rows: list[UsrResponseExample], label: str, o
             if parsed is not None:
                 predictions.append(prediction)
                 targets.append(target)
+                agreement_scores.append(normalized_absolute_score(prediction, target, min_score=min_score, max_score=max_score))
+            else:
+                agreement_scores.append(0.0)
             handle.write(
                 json.dumps(
                     {
@@ -152,9 +156,19 @@ def evaluate_program(program: Any, rows: list[UsrResponseExample], label: str, o
                 + "\n"
             )
 
+    total = len(rows)
+    parsed_count = len(predictions)
+    coverage = parsed_count / total if total else 0.0
+    agreement = sum(agreement_scores) / total if total else 0.0
+    common_metrics: dict[str, Any] = {
+        "total": total,
+        "parsed": parsed_count,
+        "coverage": coverage,
+        "agreement": agreement,
+    }
     if predictions:
-        return compute_regression_metrics(predictions, targets).as_dict()
-    return {"n": 0, "pearson": 0.0, "spearman": 0.0, "mae": float("nan")}
+        return {**common_metrics, **compute_regression_metrics(predictions, targets).as_dict()}
+    return {**common_metrics, "n": 0, "pearson": 0.0, "spearman": 0.0, "mae": float("nan")}
 
 
 def extract_instructions(program: Any) -> str:
@@ -282,6 +296,7 @@ def main() -> None:
                 "judge_model": args.judge_model,
                 "nla_av_checkpoint": args.nla_av_checkpoint,
                 "nla_extraction_layer": args.nla_extraction_layer,
+                "max_tokens": args.max_tokens,
                 "rows": {
                     "train": len(train_rows),
                     "val": len(val_rows),

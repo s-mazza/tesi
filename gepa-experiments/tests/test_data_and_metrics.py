@@ -82,6 +82,7 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(parse_discrete_score("Score: 3", min_score=1, max_score=3), 3)
         self.assertEqual(parse_discrete_score("2", min_score=1, max_score=3), 2)
         self.assertIsNone(parse_discrete_score("Score: 4", min_score=1, max_score=3))
+        self.assertIsNone(parse_discrete_score("Score: 0", min_score=1, max_score=3))
         self.assertIsNone(parse_discrete_score("Scores 1 and 3", min_score=1, max_score=3))
 
     def test_normalized_score_and_correlations(self) -> None:

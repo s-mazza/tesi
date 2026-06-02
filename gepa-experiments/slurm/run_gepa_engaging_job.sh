@@ -17,6 +17,7 @@ SERVER_PORT="${SERVER_PORT:-8000}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-4096}"
 MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
+MAX_TOKENS="${MAX_TOKENS:-512}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
@@ -40,12 +41,42 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+write_dependency_manifest() {
+  local manifest_dir="${LOG_DIR}/dependency_manifest_${SLURM_JOB_ID:-local}"
+  mkdir -p "$manifest_dir"
+
+  python --version >"${manifest_dir}/python_version.txt" 2>&1
+  python -m pip freeze --all >"${manifest_dir}/pip_freeze.txt" 2>&1
+  set +e
+  python -m pip check >"${manifest_dir}/pip_check.txt" 2>&1
+  echo "$?" >"${manifest_dir}/pip_check.exit"
+  set -e
+
+  if command -v dpkg-query >/dev/null 2>&1; then
+    dpkg-query -W >"${manifest_dir}/apt_packages.txt" 2>&1
+  fi
+  if command -v gcc >/dev/null 2>&1; then
+    gcc --version >"${manifest_dir}/gcc_version.txt" 2>&1
+  fi
+  if command -v g++ >/dev/null 2>&1; then
+    g++ --version >"${manifest_dir}/gxx_version.txt" 2>&1
+  fi
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi >"${manifest_dir}/nvidia_smi.txt" 2>&1 || true
+  fi
+
+  echo "Dependency manifest: ${manifest_dir}"
+}
+
 echo "Starting vLLM judge server"
 echo "  model: ${JUDGE_MODEL}"
 echo "  vLLM model path: ${VLLM_MODEL_ARG}"
 echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"
 echo "  health: ${HEALTH_URL}"
 echo "  log: ${VLLM_LOG}"
+echo "  max tokens: ${MAX_TOKENS}"
+
+write_dependency_manifest
 
 python -m geval_gepa.preflight \
   --data-source "$DATA_SOURCE" \
@@ -113,5 +144,6 @@ python -m geval_gepa.runner \
   --nla-av-checkpoint "$NLA_AV_CHECKPOINT" \
   --nla-extraction-layer "$NLA_EXTRACTION_LAYER" \
   --api-base "http://${SERVER_HOST}:${SERVER_PORT}/v1" \
+  --max-tokens "$MAX_TOKENS" \
   --num-threads "$NUM_THREADS" \
   "${BUDGET_ARGS[@]}"
