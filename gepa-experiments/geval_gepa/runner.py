@@ -18,13 +18,17 @@ from .prompts import ENGAGING_SEED_INSTRUCTIONS, metric_description
 def make_program(instructions: str) -> Any:
     import dspy
 
+    class JudgeSignature(dspy.Signature):
+        context: str = dspy.InputField(desc="Dialogue history before the candidate response.")
+        fact: str = dspy.InputField(desc='Relevant knowledge sentence, or "_nofact" when no fact is provided.')
+        response: str = dspy.InputField(desc="Candidate next response to evaluate.")
+        rationale: str = dspy.OutputField(desc="Brief explanation of the Engagingness score.")
+        score: str = dspy.OutputField(desc="Exactly one integer from 1, 2, or 3.")
+
     class TopicalChatJudge(dspy.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.judge = dspy.ChainOfThought(
-                "context, fact, response -> rationale, score",
-                instructions=instructions,
-            )
+            self.judge = dspy.ChainOfThought(JudgeSignature.with_instructions(instructions))
 
         def forward(self, context: str, fact: str, response: str) -> Any:
             return self.judge(context=context, fact=fact, response=response)
