@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -132,13 +133,14 @@ def _format_reflection_examples(examples: list[Any]) -> str:
     chunks = []
     for index, example in enumerate(examples, start=1):
         inputs = _mapping_get(example, "Inputs", {})
+        output = _mapping_get(example, "Generated_Outputs", "")
         feedback = _mapping_get(example, "Feedback", "No feedback")
         chunks.append(
             "\n".join(
                 [
                     f"--- Reflection {index} ---",
                     f"Input summary: {_summarize_inputs(inputs)}",
-                    "Generated output text omitted to avoid copying example-specific wording.",
+                    f"Judge output summary: {_summarize_judge_output(output)}",
                     f"Generic feedback: {sanitize_reflection_feedback(feedback)}",
                 ]
             )
@@ -157,6 +159,49 @@ def _summarize_inputs(inputs: Any) -> str:
         else:
             parts.append(f"{key}=redacted")
     return ", ".join(parts) or "no inputs"
+
+
+def _summarize_judge_output(output: Any) -> str:
+    raw_output = str(output)
+    score_text = str(_mapping_get(output, "score", raw_output))
+    rationale_text = str(_mapping_get(output, "rationale", ""))
+    parsed_score = _parse_score(score_text) or _parse_score(raw_output)
+    fields = {
+        "score_parse": "ok" if parsed_score is not None else "missing_or_ambiguous",
+        "score_bucket": _score_bucket(parsed_score),
+        "output_length": _length_bucket(_word_count(raw_output)),
+        "rationale_length": _length_bucket(_word_count(rationale_text)) if rationale_text else "unknown",
+    }
+    return "; ".join(f"{key}={value}" for key, value in fields.items())
+
+
+def _parse_score(text: str) -> int | None:
+    matches = [int(match) for match in re.findall(r"(?<!\d)([1-3])(?!\d)", text)]
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
+def _score_bucket(score: int | None) -> str:
+    if score is None:
+        return "unknown"
+    if score <= 1:
+        return "low"
+    if score >= 3:
+        return "high"
+    return "middle"
+
+
+def _word_count(text: str) -> int:
+    return len(re.findall(r"\b\w+\b", text))
+
+
+def _length_bucket(count: int) -> str:
+    if count <= 8:
+        return "short"
+    if count <= 40:
+        return "medium"
+    return "long"
 
 
 def _mapping_get(value: Any, key: str, default: Any) -> Any:

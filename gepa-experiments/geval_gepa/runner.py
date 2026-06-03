@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -77,12 +78,20 @@ def create_metric_fn(label: str) -> Callable[..., Any]:
 
         score = normalized_absolute_score(parsed, target, min_score=min_score, max_score=max_score)
         delta = parsed - target
+        direction = _error_direction(delta)
         feedback = [
             f"Human mean {label} score: {target:.2f}; predicted score: {parsed}; normalized agreement: {score:.3f}.",
             f"Metric definition: {metric_description(label)}",
+            (
+                "Abstract error summary: "
+                f"target_bucket={_score_bucket(target, min_score=min_score, max_score=max_score)}; "
+                f"judge_bucket={_score_bucket(parsed, min_score=min_score, max_score=max_score)}; "
+                f"error_direction={direction}; "
+                f"agreement_bucket={_agreement_bucket(score)}."
+            ),
+            f"Rubric signals: {_abstract_rubric_signals(example)}",
         ]
         if abs(delta) >= 1.0:
-            direction = "overrated" if delta > 0 else "underrated"
             feedback.append(
                 f"The response was {direction}. Revise the judging instructions to better distinguish generic replies "
                 "from responses that add specific, conversation-advancing content."
@@ -93,6 +102,95 @@ def create_metric_fn(label: str) -> Callable[..., Any]:
         return dspy.Prediction(score=score, feedback="\n".join(feedback))
 
     return metric_fn
+
+
+def _score_bucket(score: float, *, min_score: int, max_score: int) -> str:
+    if max_score == min_score:
+        return "single"
+    normalized = (score - min_score) / (max_score - min_score)
+    if normalized <= 0.25:
+        return "low"
+    if normalized >= 0.75:
+        return "high"
+    return "middle"
+
+
+def _agreement_bucket(score: float) -> str:
+    if score >= 0.85:
+        return "high"
+    if score >= 0.6:
+        return "medium"
+    return "low"
+
+
+def _error_direction(delta: float) -> str:
+    if abs(delta) < 0.5:
+        return "close"
+    return "overrated" if delta > 0 else "underrated"
+
+
+def _abstract_rubric_signals(example: Any) -> str:
+    response = str(getattr(example, "response", ""))
+    context = str(getattr(example, "context", ""))
+    fact = str(getattr(example, "fact", ""))
+    response_words = _word_count(response)
+    context_turns = sum(1 for line in context.splitlines() if line.strip())
+    generic_ack = _looks_like_generic_acknowledgement(response)
+    signals = {
+        "candidate_length": _length_bucket(response_words),
+        "context_depth": _length_bucket(context_turns, short=4, medium=10),
+        "asks_question": _yes_no("?" in response),
+        "fact_available": _yes_no(fact.strip() != "_nofact"),
+        "generic_acknowledgement_only": _yes_no(generic_ack),
+        "has_concrete_surface_detail": _yes_no(_has_concrete_surface_detail(response)),
+    }
+    return "; ".join(f"{key}={value}" for key, value in signals.items())
+
+
+def _word_count(text: str) -> int:
+    return len(re.findall(r"\b\w+\b", text))
+
+
+def _length_bucket(count: int, *, short: int = 8, medium: int = 24) -> str:
+    if count <= short:
+        return "short"
+    if count <= medium:
+        return "medium"
+    return "long"
+
+
+def _yes_no(value: bool) -> str:
+    return "yes" if value else "no"
+
+
+def _looks_like_generic_acknowledgement(text: str) -> bool:
+    words = re.findall(r"\b[a-z]+\b", text.lower())
+    if len(words) > 10:
+        return False
+    generic_terms = {
+        "ok",
+        "okay",
+        "yes",
+        "yeah",
+        "sure",
+        "cool",
+        "nice",
+        "great",
+        "interesting",
+        "thanks",
+        "wow",
+        "haha",
+    }
+    return bool(words) and sum(word in generic_terms for word in words) >= max(1, len(words) - 2)
+
+
+def _has_concrete_surface_detail(text: str) -> bool:
+    tokens = re.findall(r"\b[\w'-]+\b", text)
+    if any(token[:1].isupper() and token.lower() not in {"i"} for token in tokens):
+        return True
+    if any(char.isdigit() for char in text):
+        return True
+    return _word_count(text) >= 12
 
 
 def configure_lm(args: argparse.Namespace) -> Any:
