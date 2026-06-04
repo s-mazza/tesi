@@ -18,6 +18,22 @@ FORBIDDEN_PROMPT_SUBSTRINGS = (
     "example ",
     "context_",
     "response_",
+    "perplexity",
+    "mean_nll",
+    "response_token_count",
+)
+
+FORBIDDEN_REFLECTION_SUBSTRINGS = (
+    "human mean",
+    "predicted score",
+    "normalized agreement",
+    "metric definition",
+    "feedback:",
+    "generated_outputs",
+    "generated output",
+    "inputs:",
+    "example ",
+    "context_",
 )
 
 
@@ -52,7 +68,7 @@ def sanitize_reflection_feedback(feedback: Any) -> str:
         normalized = line.strip().lower()
         if not normalized:
             continue
-        if any(token in normalized for token in FORBIDDEN_PROMPT_SUBSTRINGS):
+        if any(token in normalized for token in FORBIDDEN_REFLECTION_SUBSTRINGS):
             continue
         cleaned_lines.append(line.strip())
     return "\n".join(cleaned_lines) or "No generic feedback available."

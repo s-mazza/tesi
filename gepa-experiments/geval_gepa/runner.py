@@ -13,6 +13,7 @@ from typing import Any, Callable
 
 from .data import DEFAULT_USR_URL, LABEL_SCALES, UsrResponseExample, load_usr_examples, split_by_context
 from .metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
+from .perplexity import VllmPerplexityScorer, format_perplexity_feedback
 from .prompts import ENGAGING_SEED_INSTRUCTIONS, metric_description
 from .proposers import make_instruction_proposer
 
@@ -57,7 +58,7 @@ def make_dspy_examples(rows: list[UsrResponseExample], label: str) -> list[Any]:
     return examples
 
 
-def create_metric_fn(label: str) -> Callable[..., Any]:
+def create_metric_fn(label: str, perplexity_scorer: Any | None = None) -> Callable[..., Any]:
     import dspy
 
     min_score, max_score = LABEL_SCALES[label]
@@ -91,6 +92,16 @@ def create_metric_fn(label: str) -> Callable[..., Any]:
             ),
             f"Rubric signals: {_abstract_rubric_signals(example)}",
         ]
+        if perplexity_scorer is not None:
+            try:
+                perplexity = perplexity_scorer.score_example(example)
+            except Exception as exc:
+                context_id = getattr(example, "context_id", "unknown_context")
+                response_id = getattr(example, "response_id", "unknown_response")
+                raise RuntimeError(
+                    f"Perplexity feedback failed for {context_id}/{response_id}: {type(exc).__name__}: {exc}"
+                ) from exc
+            feedback.append(format_perplexity_feedback(perplexity))
         if abs(delta) >= 1.0:
             feedback.append(
                 f"The response was {direction}. Revise the judging instructions to better distinguish generic replies "
@@ -318,6 +329,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--api-base", default="http://127.0.0.1:8000/v1")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=256)
+    parser.add_argument("--perplexity-feedback", action="store_true")
+    parser.add_argument("--perplexity-hf-home", default="/llms")
+    parser.add_argument("--perplexity-prompt-logprobs", type=int, default=20)
+    parser.add_argument("--perplexity-timeout-seconds", type=float, default=120.0)
 
     budget = parser.add_mutually_exclusive_group(required=True)
     budget.add_argument("--gepa-auto", choices=["light", "medium", "heavy"])
@@ -357,13 +372,33 @@ def main() -> None:
     )
 
     lm = configure_lm(args)
+    perplexity_scorer = None
+    if args.perplexity_feedback:
+        perplexity_scorer = VllmPerplexityScorer(
+            api_base=args.api_base,
+            model=args.judge_model,
+            tokenizer_model=args.judge_model,
+            hf_home=args.perplexity_hf_home,
+            prompt_logprobs=args.perplexity_prompt_logprobs,
+            timeout_seconds=args.perplexity_timeout_seconds,
+        )
+        examples_for_feedback = make_dspy_examples(train_rows + val_rows, args.label)
+        print(
+            f"Precomputing response-only perplexity feedback for {len(examples_for_feedback)} GEPA train/validation rows.",
+            flush=True,
+        )
+        for index, example in enumerate(examples_for_feedback, start=1):
+            perplexity_scorer.score_example(example)
+            if index % 25 == 0 or index == len(examples_for_feedback):
+                print(f"Perplexity feedback cache: {index}/{len(examples_for_feedback)} rows scored.", flush=True)
+
     seed_program = make_program(ENGAGING_SEED_INSTRUCTIONS)
     optimized_program = seed_program
     optimized_instructions = ENGAGING_SEED_INSTRUCTIONS
 
     if not args.skip_gepa:
         GEPA = get_gepa_class()
-        metric_fn = create_metric_fn(args.label)
+        metric_fn = create_metric_fn(args.label, perplexity_scorer=perplexity_scorer)
         gepa_kwargs: dict[str, Any] = {
             "metric": metric_fn,
             "num_threads": args.num_threads,
@@ -417,6 +452,17 @@ def main() -> None:
                 "nla_extraction_layer": args.nla_extraction_layer,
                 "max_tokens": args.max_tokens,
                 "instruction_proposer": args.instruction_proposer,
+                "perplexity_feedback": args.perplexity_feedback,
+                "perplexity_model": args.judge_model if args.perplexity_feedback else "",
+                "perplexity_scope": (
+                    "response_only_conditioned_on_context_fact" if args.perplexity_feedback else ""
+                ),
+                "perplexity_numeric_fields": (
+                    ["response_mean_nll", "response_perplexity", "response_token_count"]
+                    if args.perplexity_feedback
+                    else []
+                ),
+                "perplexity_prompt_logprobs": args.perplexity_prompt_logprobs if args.perplexity_feedback else 0,
                 "split_semantics": {
                     "gepa_train": "Used by GEPA during prompt search.",
                     "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",

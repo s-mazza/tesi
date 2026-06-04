@@ -19,6 +19,8 @@ MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
 MAX_TOKENS="${MAX_TOKENS:-512}"
 INSTRUCTION_PROPOSER="${INSTRUCTION_PROPOSER:-default}"
+PERPLEXITY_FEEDBACK="${PERPLEXITY_FEEDBACK:-0}"
+PERPLEXITY_PROMPT_LOGPROBS="${PERPLEXITY_PROMPT_LOGPROBS:-20}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
@@ -77,6 +79,7 @@ echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"
 echo "  health: ${HEALTH_URL}"
 echo "  log: ${VLLM_LOG}"
 echo "  max tokens: ${MAX_TOKENS}"
+echo "  perplexity feedback: ${PERPLEXITY_FEEDBACK}"
 
 write_dependency_manifest
 
@@ -134,6 +137,15 @@ else
   exit 2
 fi
 
+PERPLEXITY_ARGS=()
+if [[ "$PERPLEXITY_FEEDBACK" == "1" || "$PERPLEXITY_FEEDBACK" == "true" ]]; then
+  PERPLEXITY_ARGS=(
+    --perplexity-feedback
+    --perplexity-hf-home /llms
+    --perplexity-prompt-logprobs "$PERPLEXITY_PROMPT_LOGPROBS"
+  )
+fi
+
 python -m geval_gepa.runner \
   --data-source "$DATA_SOURCE" \
   --label "$LABEL" \
@@ -149,4 +161,5 @@ python -m geval_gepa.runner \
   --max-tokens "$MAX_TOKENS" \
   --num-threads "$NUM_THREADS" \
   --instruction-proposer "$INSTRUCTION_PROPOSER" \
+  "${PERPLEXITY_ARGS[@]}" \
   "${BUDGET_ARGS[@]}"

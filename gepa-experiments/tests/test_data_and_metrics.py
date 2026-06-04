@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from geval_gepa.data import load_usr_examples, split_by_context
 from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
+from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
-from geval_gepa.runner import _abstract_rubric_signals
+from geval_gepa.runner import _abstract_rubric_signals, create_metric_fn
 
 
 FIXTURE = [
@@ -132,6 +134,65 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("asks_question=yes", cleaned)
         self.assertNotIn("Human mean", cleaned)
         self.assertNotIn("Metric definition", cleaned)
+
+    def test_perplexity_feedback_reaches_reflection_but_not_prompt(self) -> None:
+        feedback = "\n".join(
+            [
+                "Perplexity signals: response_mean_nll=2.7310; response_perplexity=15.3500; response_token_count=18.",
+                "Rubric signals: candidate_length=medium; asks_question=yes.",
+            ]
+        )
+
+        cleaned_feedback = sanitize_reflection_feedback(feedback)
+
+        self.assertIn("response_mean_nll=2.7310", cleaned_feedback)
+        self.assertIn("response_perplexity=15.3500", cleaned_feedback)
+
+        cleaned_prompt = sanitize_proposed_instruction(
+            "\n".join(
+                [
+                    "Rate Engagingness from 1 to 3.",
+                    "Use response_perplexity=15.3500 to decide the score.",
+                    "Return a final line formatted as Score: <1, 2, or 3>.",
+                ]
+            ),
+            fallback="Rate Engagingness from 1 to 3 and return Score: <1, 2, or 3>.",
+        )
+
+        self.assertNotIn("response_perplexity", cleaned_prompt)
+
+    def test_metric_feedback_can_include_numeric_perplexity(self) -> None:
+        class FakeScorer:
+            def score_example(self, example):
+                return PerplexityResult(mean_nll=2.731, perplexity=15.35, token_count=18)
+
+        class FakeDspy:
+            class Prediction:
+                def __init__(self, **kwargs):
+                    self.__dict__.update(kwargs)
+
+        example = load_usr_examples_from_fixture()[0]
+        with patch.dict("sys.modules", {"dspy": FakeDspy}):
+            metric_fn = create_metric_fn("Engaging", perplexity_scorer=FakeScorer())
+            result = metric_fn(
+                type(
+                    "Example",
+                    (),
+                    {
+                        "human_score": example.human_score("Engaging"),
+                        "context": example.context,
+                        "fact": example.fact,
+                        "response": example.response,
+                        "context_id": example.context_id,
+                        "response_id": example.response_id,
+                    },
+                )(),
+                type("Pred", (), {"score": "2"})(),
+            )
+
+        self.assertIn("response_mean_nll=2.7310", result.feedback)
+        self.assertIn("response_perplexity=15.3500", result.feedback)
+        self.assertIn("response_token_count=18", result.feedback)
 
     def test_reflection_examples_use_abstract_trace_summaries(self) -> None:
         reflection_text = _format_reflection_examples(
