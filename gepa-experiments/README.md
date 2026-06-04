@@ -105,6 +105,19 @@ not overfit by copying validation examples.
 ssh faretra "cd ~/tesi && IMAGE_NAME=geval_gepa:latest bash gepa-experiments/slurm/submit_gepa_engaging.sh"
 ```
 
+`submit_gepa_engaging.sh` starts a detached Telegram monitor automatically for
+each submitted Slurm job when `~/.telegram_credentials` exists on the cluster.
+The monitor watches the Slurm state and the matching Slurm log for crash
+patterns. Monitor pid/log files are written to
+`gepa-experiments/results/monitor/`.
+
+Useful overrides:
+
+- `TELEGRAM_MONITOR=0` disables automatic monitoring.
+- `TELEGRAM_MONITOR_POLL_SECONDS=30` changes polling frequency.
+- `TELEGRAM_MONITOR_LABEL="..."` changes the Telegram message prefix.
+- `TELEGRAM_MONITOR_CREDENTIALS=/path/to/credentials` changes credential file.
+
 Outputs are written under `gepa-experiments/results/`, which is intentionally
 ignored by the parent repository.
 
