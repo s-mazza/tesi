@@ -77,7 +77,7 @@ class VllmPerplexityScorer:
         payload = {
             "model": self.model,
             "prompt": full_text,
-            "max_tokens": 0,
+            "max_tokens": 1,
             "temperature": 0,
             "prompt_logprobs": self.prompt_logprobs,
         }
