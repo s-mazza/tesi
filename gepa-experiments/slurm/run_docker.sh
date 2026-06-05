@@ -52,6 +52,28 @@ wait_for_http() {
   return 1
 }
 
+wait_for_sidecar_http() {
+  local url="$1"
+  local label="$2"
+  local attempts="${3:-180}"
+  local sleep_seconds="${4:-5}"
+  local log_path="$5"
+  for _ in $(seq 1 "$attempts"); do
+    if ! docker inspect -f '{{.State.Running}}' "$SIDECAR_NAME" >/dev/null 2>&1; then
+      echo "${label} container exited before readiness. Last log lines:" >&2
+      tail -100 "$log_path" >&2 || true
+      return 1
+    fi
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      echo "${label} is ready: ${url}"
+      return 0
+    fi
+    sleep "$sleep_seconds"
+  done
+  echo "Timed out waiting for ${label}: ${url}" >&2
+  return 1
+}
+
 start_llamacpp_sidecar() {
   IFS=',' read -r -a allocated_gpus <<< "$VISIBLE_DEVICES"
   if [[ "${#allocated_gpus[@]}" -lt 2 ]]; then
@@ -124,10 +146,11 @@ start_llamacpp_sidecar() {
   docker logs -f "$SIDECAR_NAME" >"$sidecar_log" 2>&1 &
   SIDECAR_LOG_PID="$!"
 
-  wait_for_http "${PROPOSER_API_BASE%/}/models" \
+  wait_for_sidecar_http "${PROPOSER_API_BASE%/}/models" \
     "llama.cpp proposer" \
     "$LLAMACPP_READY_ATTEMPTS" \
-    "$LLAMACPP_READY_SLEEP_SECONDS" || {
+    "$LLAMACPP_READY_SLEEP_SECONDS" \
+    "$sidecar_log" || {
     echo "Last llama.cpp log lines:" >&2
     tail -100 "$sidecar_log" >&2 || true
     exit 1
