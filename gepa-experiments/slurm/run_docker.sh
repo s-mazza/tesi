@@ -77,6 +77,8 @@ start_llamacpp_sidecar() {
   LLAMACPP_BATCH_SIZE="${LLAMACPP_BATCH_SIZE:-512}"
   LLAMACPP_N_GPU_LAYERS="${LLAMACPP_N_GPU_LAYERS:-999}"
   LLAMACPP_FLASH_ATTN="${LLAMACPP_FLASH_ATTN:-on}"
+  LLAMACPP_READY_ATTEMPTS="${LLAMACPP_READY_ATTEMPTS:-2160}"
+  LLAMACPP_READY_SLEEP_SECONDS="${LLAMACPP_READY_SLEEP_SECONDS:-5}"
   PROPOSER_MODEL="${PROPOSER_MODEL:-local-llamacpp}"
   PROPOSER_API_BASE="${PROPOSER_API_BASE:-http://${LLAMACPP_HOST}:${PROPOSER_PORT}/v1}"
   PROPOSER_API_KEY="${PROPOSER_API_KEY:-$LLAMA_API_KEY}"
@@ -122,7 +124,10 @@ start_llamacpp_sidecar() {
   docker logs -f "$SIDECAR_NAME" >"$sidecar_log" 2>&1 &
   SIDECAR_LOG_PID="$!"
 
-  wait_for_http "${PROPOSER_API_BASE%/}/models" "llama.cpp proposer" 240 5 || {
+  wait_for_http "${PROPOSER_API_BASE%/}/models" \
+    "llama.cpp proposer" \
+    "$LLAMACPP_READY_ATTEMPTS" \
+    "$LLAMACPP_READY_SLEEP_SECONDS" || {
     echo "Last llama.cpp log lines:" >&2
     tail -100 "$sidecar_log" >&2 || true
     exit 1
