@@ -13,6 +13,9 @@ RUN apt-get update \
     libssl-dev \
   && rm -rf /var/lib/apt/lists/*
 
+RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
+ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
+
 WORKDIR /src/llama.cpp
 RUN git clone --depth 1 --branch "${LLAMA_CPP_REF}" https://github.com/ggml-org/llama.cpp.git .
 RUN cmake -B build -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DCMAKE_BUILD_TYPE=Release \
