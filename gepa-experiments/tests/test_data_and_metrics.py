@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import unittest
+from argparse import Namespace
 from unittest.mock import patch
 
 from geval_gepa.data import load_usr_examples, split_by_context
 from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
-from geval_gepa.runner import _abstract_rubric_signals, create_metric_fn
+from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_metric_fn
 
 
 FIXTURE = [
@@ -193,6 +194,44 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("response_mean_nll=2.7310", result.feedback)
         self.assertIn("response_perplexity=15.3500", result.feedback)
         self.assertIn("response_token_count=18", result.feedback)
+
+    def test_configure_lms_keeps_judge_global_and_returns_separate_proposer(self) -> None:
+        configured = {}
+
+        class FakeLM:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class FakeDspy:
+            LM = FakeLM
+
+            @staticmethod
+            def configure(**kwargs):
+                configured.update(kwargs)
+
+        args = Namespace(
+            judge_model="Qwen/Qwen2.5-7B-Instruct",
+            api_base="http://127.0.0.1:8000/v1",
+            max_tokens=512,
+            temperature=0.0,
+            proposer_model="local-llamacpp",
+            proposer_api_base="http://127.0.0.1:8080/v1",
+            proposer_api_key="local-llamacpp-key",
+            proposer_api_key_env="LLAMA_API_KEY",
+            proposer_max_tokens=4096,
+            proposer_temperature=0.7,
+        )
+
+        with patch.dict("sys.modules", {"dspy": FakeDspy}):
+            judge_lm, proposer_lm = configure_lms(args)
+
+        self.assertIs(configured["lm"], judge_lm)
+        self.assertIsNot(judge_lm, proposer_lm)
+        self.assertEqual(judge_lm.kwargs["model"], "openai/Qwen/Qwen2.5-7B-Instruct")
+        self.assertEqual(judge_lm.kwargs["api_base"], "http://127.0.0.1:8000/v1")
+        self.assertEqual(proposer_lm.kwargs["model"], "openai/local-llamacpp")
+        self.assertEqual(proposer_lm.kwargs["api_base"], "http://127.0.0.1:8080/v1")
+        self.assertEqual(proposer_lm.kwargs["api_key"], "local-llamacpp-key")
 
     def test_reflection_examples_use_abstract_trace_summaries(self) -> None:
         reflection_text = _format_reflection_examples(

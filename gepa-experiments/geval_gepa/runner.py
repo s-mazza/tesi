@@ -204,21 +204,52 @@ def _has_concrete_surface_detail(text: str) -> bool:
     return _word_count(text) >= 12
 
 
-def configure_lm(args: argparse.Namespace) -> Any:
+def make_openai_lm(
+    *,
+    model: str,
+    api_base: str,
+    api_key: str,
+    max_tokens: int,
+    temperature: float,
+) -> Any:
     import dspy
 
-    lm = dspy.LM(
-        model=f"openai/{args.judge_model}",
+    return dspy.LM(
+        model=f"openai/{model}",
+        api_base=api_base,
+        api_key=api_key,
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+
+
+def configure_lms(args: argparse.Namespace) -> tuple[Any, Any]:
+    import dspy
+
+    judge_lm = make_openai_lm(
+        model=args.judge_model,
         api_base=args.api_base,
         api_key=os.getenv("OPENAI_API_KEY", "EMPTY"),
         max_tokens=args.max_tokens,
         temperature=args.temperature,
     )
     if hasattr(dspy, "configure"):
-        dspy.configure(lm=lm)
+        dspy.configure(lm=judge_lm)
     else:
-        dspy.settings.configure(lm=lm)
-    return lm
+        dspy.settings.configure(lm=judge_lm)
+
+    proposer_lm = judge_lm
+    if args.proposer_api_base:
+        proposer_key = args.proposer_api_key or os.getenv(args.proposer_api_key_env, "EMPTY")
+        proposer_lm = make_openai_lm(
+            model=args.proposer_model,
+            api_base=args.proposer_api_base,
+            api_key=proposer_key,
+            max_tokens=args.proposer_max_tokens,
+            temperature=args.proposer_temperature,
+        )
+
+    return judge_lm, proposer_lm
 
 
 def get_gepa_class() -> Any:
@@ -329,6 +360,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--api-base", default="http://127.0.0.1:8000/v1")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=256)
+    parser.add_argument("--proposer-model", default="local-llamacpp")
+    parser.add_argument("--proposer-api-base", default="")
+    parser.add_argument("--proposer-api-key", default="")
+    parser.add_argument("--proposer-api-key-env", default="LLAMA_API_KEY")
+    parser.add_argument("--proposer-temperature", type=float, default=0.7)
+    parser.add_argument("--proposer-max-tokens", type=int, default=4096)
     parser.add_argument("--perplexity-feedback", action="store_true")
     parser.add_argument("--perplexity-hf-home", default="/llms")
     parser.add_argument("--perplexity-prompt-logprobs", type=int, default=20)
@@ -371,7 +408,7 @@ def main() -> None:
         flush=True,
     )
 
-    lm = configure_lm(args)
+    judge_lm, proposer_lm = configure_lms(args)
     perplexity_scorer = None
     if args.perplexity_feedback:
         perplexity_scorer = VllmPerplexityScorer(
@@ -405,7 +442,7 @@ def main() -> None:
             "track_stats": True,
             "track_best_outputs": True,
             "add_format_failure_as_feedback": True,
-            "reflection_lm": lm,
+            "reflection_lm": proposer_lm,
         }
         proposer = make_instruction_proposer(args.instruction_proposer, fallback_instruction=ENGAGING_SEED_INSTRUCTIONS)
         if proposer is not None:
@@ -448,9 +485,20 @@ def main() -> None:
                 "val_contexts": args.val_contexts,
                 "test_contexts": args.test_contexts,
                 "judge_model": args.judge_model,
+                "judge_api_base": args.api_base,
+                "judge_temperature": args.temperature,
                 "nla_av_checkpoint": args.nla_av_checkpoint,
                 "nla_extraction_layer": args.nla_extraction_layer,
                 "max_tokens": args.max_tokens,
+                "proposer_model": args.proposer_model if args.proposer_api_base else args.judge_model,
+                "proposer_api_base": args.proposer_api_base if args.proposer_api_base else args.api_base,
+                "proposer_temperature": (
+                    args.proposer_temperature if args.proposer_api_base else args.temperature
+                ),
+                "proposer_max_tokens": (
+                    args.proposer_max_tokens if args.proposer_api_base else args.max_tokens
+                ),
+                "proposer_is_separate_lm": bool(args.proposer_api_base),
                 "instruction_proposer": args.instruction_proposer,
                 "perplexity_feedback": args.perplexity_feedback,
                 "perplexity_model": args.judge_model if args.perplexity_feedback else "",

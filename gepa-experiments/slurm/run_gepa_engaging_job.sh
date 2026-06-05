@@ -21,6 +21,11 @@ MAX_TOKENS="${MAX_TOKENS:-512}"
 INSTRUCTION_PROPOSER="${INSTRUCTION_PROPOSER:-default}"
 PERPLEXITY_FEEDBACK="${PERPLEXITY_FEEDBACK:-0}"
 PERPLEXITY_PROMPT_LOGPROBS="${PERPLEXITY_PROMPT_LOGPROBS:-20}"
+PROPOSER_MODEL="${PROPOSER_MODEL:-local-llamacpp}"
+PROPOSER_API_BASE="${PROPOSER_API_BASE:-}"
+PROPOSER_API_KEY="${PROPOSER_API_KEY:-}"
+PROPOSER_TEMPERATURE="${PROPOSER_TEMPERATURE:-0.7}"
+PROPOSER_MAX_TOKENS="${PROPOSER_MAX_TOKENS:-4096}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
@@ -80,6 +85,14 @@ echo "  health: ${HEALTH_URL}"
 echo "  log: ${VLLM_LOG}"
 echo "  max tokens: ${MAX_TOKENS}"
 echo "  perplexity feedback: ${PERPLEXITY_FEEDBACK}"
+if [[ -n "$PROPOSER_API_BASE" ]]; then
+  echo "  proposer model: ${PROPOSER_MODEL}"
+  echo "  proposer api: ${PROPOSER_API_BASE}"
+  echo "  proposer max tokens: ${PROPOSER_MAX_TOKENS}"
+  echo "  proposer temperature: ${PROPOSER_TEMPERATURE}"
+else
+  echo "  proposer model: same as judge"
+fi
 
 write_dependency_manifest
 
@@ -125,6 +138,23 @@ if ! curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
   exit 1
 fi
 
+PROPOSER_ARGS=()
+if [[ -n "$PROPOSER_API_BASE" ]]; then
+  PROPOSER_HEALTH_URL="${PROPOSER_API_BASE%/}/models"
+  echo "Checking proposer readiness at ${PROPOSER_HEALTH_URL}..."
+  if ! curl -fsS "$PROPOSER_HEALTH_URL" >/dev/null 2>&1; then
+    echo "Proposer endpoint is not ready: ${PROPOSER_HEALTH_URL}" >&2
+    exit 1
+  fi
+  PROPOSER_ARGS=(
+    --proposer-model "$PROPOSER_MODEL"
+    --proposer-api-base "$PROPOSER_API_BASE"
+    --proposer-api-key "$PROPOSER_API_KEY"
+    --proposer-temperature "$PROPOSER_TEMPERATURE"
+    --proposer-max-tokens "$PROPOSER_MAX_TOKENS"
+  )
+fi
+
 BUDGET_ARGS=()
 if [[ -n "${GEPA_AUTO:-}" ]]; then
   BUDGET_ARGS=(--gepa-auto "$GEPA_AUTO")
@@ -161,5 +191,6 @@ python -m geval_gepa.runner \
   --max-tokens "$MAX_TOKENS" \
   --num-threads "$NUM_THREADS" \
   --instruction-proposer "$INSTRUCTION_PROPOSER" \
+  "${PROPOSER_ARGS[@]}" \
   "${PERPLEXITY_ARGS[@]}" \
   "${BUDGET_ARGS[@]}"
