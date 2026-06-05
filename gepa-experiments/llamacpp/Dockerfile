@@ -30,6 +30,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+ENV LD_LIBRARY_PATH=/app
+COPY --from=build /src/llama.cpp/build/bin/*.so* /app/
 COPY --from=build /src/llama.cpp/build/bin/llama-server /app/llama-server
 
 EXPOSE 8080
