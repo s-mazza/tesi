@@ -162,7 +162,6 @@ if [[ "$PROPOSER_BACKEND" == "llamacpp" ]]; then
 fi
 
 docker run \
-  --rm \
   --name "$CONTAINER_NAME" \
   --init \
   --ipc=host \
@@ -182,6 +181,8 @@ docker run \
   -e "PROPOSER_API_KEY=${PROPOSER_API_KEY:-}" \
   -e "PROPOSER_TEMPERATURE=${PROPOSER_TEMPERATURE:-}" \
   -e "PROPOSER_MAX_TOKENS=${PROPOSER_MAX_TOKENS:-}" \
+  -e "PYTHONUNBUFFERED=1" \
+  -e "PYTHONFAULTHANDLER=1" \
   -e "PYTHONPATH=/workspace/gepa-experiments:${PYTHONPATH:-}" \
   -e "SLURM_JOB_ID=${SLURM_JOB_ID:-}" \
   -e "CONFIG_FILE=${CONFIG_FILE:-}" \
@@ -190,4 +191,19 @@ docker run \
   bash -lc "$*" &
 
 docker_pid=$!
+set +e
 wait "$docker_pid"
+docker_status=$?
+set -e
+
+if [[ "$docker_status" -ne 0 ]]; then
+  echo "Main GEPA container exited with status ${docker_status}" >&2
+  echo "Last main container log lines:" >&2
+  docker logs "$CONTAINER_NAME" 2>&1 | tail -120 >&2 || true
+fi
+
+if [[ "${KEEP_MAIN_CONTAINER_ON_FAIL:-0}" != "1" || "$docker_status" -eq 0 ]]; then
+  docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+fi
+
+exit "$docker_status"
