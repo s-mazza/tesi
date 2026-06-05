@@ -126,16 +126,16 @@ start_llamacpp_sidecar() {
     --detach \
     --name "$SIDECAR_NAME" \
     --init \
-    --network=host \
     --ipc=host \
     --gpus "device=${PROPOSER_GPU_DEVICE}" \
+    -p "${LLAMACPP_HOST}:${PROPOSER_PORT}:8080" \
     -v "${LLAMACPP_MODEL_DIR}:/models:ro" \
     -v "${LLAMACPP_HF_CACHE_DIR}:/root/.cache/llama.cpp" \
     "$LLAMACPP_IMAGE" \
     "${model_args[@]}" \
     --api-key "$LLAMA_API_KEY" \
-    --host "$LLAMACPP_HOST" \
-    --port "$PROPOSER_PORT" \
+    --host 0.0.0.0 \
+    --port 8080 \
     --n-gpu-layers "$LLAMACPP_N_GPU_LAYERS" \
     --ctx-size "$LLAMACPP_CTX_SIZE" \
     --parallel "$LLAMACPP_PARALLEL" \
