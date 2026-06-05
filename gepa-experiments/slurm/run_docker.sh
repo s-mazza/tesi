@@ -68,7 +68,7 @@ start_llamacpp_sidecar() {
   LLAMACPP_MODEL_DIR="${LLAMACPP_MODEL_DIR:-$LLM_CACHE_DIR}"
   LLAMACPP_MODEL_NAME="${LLAMACPP_MODEL_NAME:-}"
   LLAMACPP_HF_MODEL="${LLAMACPP_HF_MODEL:-opensota/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_M}"
-  LLAMACPP_HF_CACHE_DIR="${LLAMACPP_HF_CACHE_DIR:-${LLM_CACHE_DIR}/llamacpp-hf-cache}"
+  LLAMACPP_HF_CACHE_DIR="${LLAMACPP_HF_CACHE_DIR:-${LLM_CACHE_DIR}/llamacpp-cache}"
   LLAMACPP_HOST="${LLAMACPP_HOST:-127.0.0.1}"
   PROPOSER_PORT="${PROPOSER_PORT:-8080}"
   LLAMA_API_KEY="${LLAMA_API_KEY:-local-llamacpp-key}"
@@ -106,7 +106,7 @@ start_llamacpp_sidecar() {
     --ipc=host \
     --gpus "device=${PROPOSER_GPU_DEVICE}" \
     -v "${LLAMACPP_MODEL_DIR}:/models:ro" \
-    -v "${LLAMACPP_HF_CACHE_DIR}:/root/.cache/huggingface" \
+    -v "${LLAMACPP_HF_CACHE_DIR}:/root/.cache/llama.cpp" \
     "$LLAMACPP_IMAGE" \
     "${model_args[@]}" \
     --api-key "$LLAMA_API_KEY" \

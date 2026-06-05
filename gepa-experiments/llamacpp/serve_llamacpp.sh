@@ -5,7 +5,7 @@ IMAGE="${IMAGE:-llama.cpp:localcuda}"
 MODEL_DIR="${MODEL_DIR:-/llms}"
 MODEL_NAME="${MODEL_NAME:-}"
 HF_MODEL="${HF_MODEL:-opensota/Qwen3.6-35B-A3B-GGUF:UD-Q4_K_M}"
-HF_CACHE_DIR="${HF_CACHE_DIR:-${MODEL_DIR}/llamacpp-hf-cache}"
+HF_CACHE_DIR="${HF_CACHE_DIR:-${MODEL_DIR}/llamacpp-cache}"
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-8080}"
 GPU_DEVICE="${GPU_DEVICE:-${CUDA_VISIBLE_DEVICES:-0}}"
@@ -31,7 +31,7 @@ docker run --rm \
   --network=host \
   --ipc=host \
   -v "${MODEL_DIR}:/models:ro" \
-  -v "${HF_CACHE_DIR}:/root/.cache/huggingface" \
+  -v "${HF_CACHE_DIR}:/root/.cache/llama.cpp" \
   "${IMAGE}" \
   "${MODEL_ARGS[@]}" \
   --api-key "${LLAMA_API_KEY}" \
