@@ -13,8 +13,9 @@ RUN apt-get update \
     libssl-dev \
   && rm -rf /var/lib/apt/lists/*
 
-RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
-ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
+RUN ln -sf /usr/local/cuda-12.4/compat/libcuda.so /usr/lib/x86_64-linux-gnu/libcuda.so \
+  && ln -sf /usr/local/cuda-12.4/compat/libcuda.so.1 /usr/lib/x86_64-linux-gnu/libcuda.so.1
+ENV LIBRARY_PATH=/usr/local/cuda-12.4/compat:/usr/local/cuda-12.4/targets/x86_64-linux/lib/stubs
 
 WORKDIR /src/llama.cpp
 RUN git clone --depth 1 --branch "${LLAMA_CPP_REF}" https://github.com/ggml-org/llama.cpp.git .
