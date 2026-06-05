@@ -10,6 +10,10 @@ cd gepa-experiments/llamacpp
 docker build -t llama.cpp:localcuda .
 ```
 
+The Dockerfile pins `ghcr.io/ggml-org/llama.cpp:server-cuda12-b9191`
+because `faretra` currently exposes CUDA 12.4 through driver 550. The floating
+`server-cuda` tag has required newer CUDA runtimes in recent builds.
+
 Launch a standalone server:
 
 ```bash
