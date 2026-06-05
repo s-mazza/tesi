@@ -42,7 +42,7 @@ wait_for_http() {
   local attempts="${3:-180}"
   local sleep_seconds="${4:-5}"
   for _ in $(seq 1 "$attempts"); do
-    if curl -fsS "$url" >/dev/null 2>&1; then
+    if curl -fsS -H "Authorization: Bearer ${PROPOSER_API_KEY:-${LLAMA_API_KEY:-}}" "$url" >/dev/null 2>&1; then
       echo "${label} is ready: ${url}"
       return 0
     fi

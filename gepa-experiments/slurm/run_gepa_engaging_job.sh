@@ -142,7 +142,7 @@ PROPOSER_ARGS=()
 if [[ -n "$PROPOSER_API_BASE" ]]; then
   PROPOSER_HEALTH_URL="${PROPOSER_API_BASE%/}/models"
   echo "Checking proposer readiness at ${PROPOSER_HEALTH_URL}..."
-  if ! curl -fsS "$PROPOSER_HEALTH_URL" >/dev/null 2>&1; then
+  if ! curl -fsS -H "Authorization: Bearer ${PROPOSER_API_KEY}" "$PROPOSER_HEALTH_URL" >/dev/null 2>&1; then
     echo "Proposer endpoint is not ready: ${PROPOSER_HEALTH_URL}" >&2
     exit 1
   fi
