@@ -12,6 +12,7 @@ from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
 from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_metric_fn
 from geval_gepa.tasks import get_task, split_examples
+from geval_gepa.trajectory import export_prompt_trajectory
 
 
 FIXTURE = [
@@ -300,6 +301,33 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(proposer_lm.kwargs["model"], "openai/local-llamacpp")
         self.assertEqual(proposer_lm.kwargs["api_base"], "http://127.0.0.1:8080/v1")
         self.assertEqual(proposer_lm.kwargs["api_key"], "local-llamacpp-key")
+
+    def test_exports_prompt_trajectory_from_gepa_viz_schema(self) -> None:
+        payload = {
+            "examples": [{"source_text": "x"}],
+            "candidates": {
+                "0": {"prompt": "Seed prompt", "parent": None, "score": 0.5, "predictions": [], "minibatch": None},
+                "1": {
+                    "prompt": "Better prompt",
+                    "parent": "0",
+                    "score": 0.75,
+                    "predictions": [{"score": 1.0}],
+                    "minibatch": [{"feedback": "Reward concrete details."}],
+                },
+            },
+        }
+        with TemporaryDirectory() as tmpdir:
+            run_path = Path(tmpdir) / "run.json"
+            out_path = Path(tmpdir) / "trajectory.jsonl"
+            run_path.write_text(json_dump(payload), encoding="utf-8")
+            count = export_prompt_trajectory(run_path, out_path)
+            rows = [line for line in out_path.read_text(encoding="utf-8").splitlines() if line]
+
+        self.assertEqual(count, 2)
+        self.assertEqual(len(rows), 2)
+        self.assertIn('"candidate_id": "1"', rows[1])
+        self.assertIn("Reward concrete details", rows[1])
+        self.assertIn("Better prompt", rows[1])
 
     def test_reflection_examples_use_abstract_trace_summaries(self) -> None:
         reflection_text = _format_reflection_examples(

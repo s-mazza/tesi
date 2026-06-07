@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
 import csv
 import json
 import os
@@ -18,6 +19,7 @@ from .perplexity import VllmPerplexityScorer, format_perplexity_feedback
 from .prompts import ENGAGING_SEED_INSTRUCTIONS, metric_description, seed_instructions
 from .proposers import make_instruction_proposer
 from .tasks import EvalExample, get_task, split_examples, write_split_manifest
+from .trajectory import export_prompt_trajectory, write_fallback_gepa_viz_run
 
 
 def make_program(instructions: str) -> Any:
@@ -497,6 +499,8 @@ def main() -> None:
     seed_program = make_program(seed_prompt)
     optimized_program = seed_program
     optimized_instructions = seed_prompt
+    gepa_viz_path = output_dir / f"gepa_viz_run_{timestamp}.json"
+    prompt_trajectory_path = output_dir / f"prompt_trajectory_{timestamp}.jsonl"
 
     if not args.skip_gepa:
         GEPA = get_gepa_class()
@@ -524,14 +528,25 @@ def main() -> None:
         elif args.max_metric_calls is not None:
             gepa_kwargs["max_metric_calls"] = args.max_metric_calls
 
-        optimizer = GEPA(**gepa_kwargs)
         trainset = make_dspy_examples(train_rows)
         valset = make_dspy_examples(val_rows)
-        try:
-            optimized_program = optimizer.compile(student=seed_program, trainset=trainset, valset=valset)
-        except TypeError:
-            optimized_program = optimizer.compile(seed_program, trainset=trainset, valset=valset)
+        callback_cm, callback = _make_gepa_viz_callback(
+            gepa_viz_path=gepa_viz_path,
+            trainset=trainset,
+            valset=valset,
+        )
+        if callback is not None:
+            gepa_kwargs["gepa_kwargs"] = {"callbacks": [callback]}
+        with callback_cm:
+            optimizer = GEPA(**gepa_kwargs)
+            try:
+                optimized_program = optimizer.compile(student=seed_program, trainset=trainset, valset=valset)
+            except TypeError:
+                optimized_program = optimizer.compile(seed_program, trainset=trainset, valset=valset)
         optimized_instructions = extract_instructions(optimized_program)
+    else:
+        trainset = make_dspy_examples(train_rows)
+        valset = make_dspy_examples(val_rows)
 
     baseline_metrics = evaluate_program(seed_program, test_rows, output_dir / f"baseline_predictions_{timestamp}.jsonl")
     summary_rows = [{"program": "baseline", **baseline_metrics}]
@@ -546,6 +561,17 @@ def main() -> None:
     write_summary(output_dir / f"metrics_{timestamp}.csv", summary_rows)
     (output_dir / f"optimized_prompt_{timestamp}.txt").write_text(optimized_instructions, encoding="utf-8")
     (output_dir / f"seed_prompt_{timestamp}.txt").write_text(seed_prompt, encoding="utf-8")
+    optimized_score = summary_rows[-1].get("agreement") if len(summary_rows) > 1 else None
+    if not gepa_viz_path.exists():
+        write_fallback_gepa_viz_run(
+            gepa_viz_path,
+            trainset=trainset,
+            valset=valset,
+            seed_prompt=seed_prompt,
+            optimized_prompt=optimized_instructions,
+            optimized_score=float(optimized_score) if isinstance(optimized_score, (int, float)) else None,
+        )
+    trajectory_count = export_prompt_trajectory(gepa_viz_path, prompt_trajectory_path)
     finished_at = datetime.now(timezone.utc)
     (output_dir / f"run_config_{timestamp}.json").write_text(
         json.dumps(
@@ -600,6 +626,11 @@ def main() -> None:
                     "gepa_validation": len({row.group_id for row in val_rows}),
                     "final_test": len({row.group_id for row in test_rows}),
                 },
+                "artifacts": {
+                    "gepa_viz_run": str(gepa_viz_path),
+                    "prompt_trajectory": str(prompt_trajectory_path),
+                    "prompt_trajectory_candidates": trajectory_count,
+                },
             },
             indent=2,
             ensure_ascii=False,
@@ -624,6 +655,22 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
+
+
+def _make_gepa_viz_callback(*, gepa_viz_path: Path, trainset: list[Any], valset: list[Any]) -> tuple[Any, Any | None]:
+    try:
+        from gepa_viz import GepaVizCallback
+    except Exception as exc:
+        print(f"gepa-viz callback unavailable; writing fallback trajectory only: {type(exc).__name__}: {exc}", flush=True)
+        return nullcontext(), None
+
+    callback = GepaVizCallback(
+        valset=valset,
+        trainset=trainset,
+        live=False,
+        path=str(gepa_viz_path),
+    )
+    return callback, callback
 
 
 if __name__ == "__main__":
