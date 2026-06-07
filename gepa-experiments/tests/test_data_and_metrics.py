@@ -141,6 +141,24 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(examples[0].min_score, 1)
         self.assertEqual(examples[0].max_score, 5)
 
+    def test_task_registry_loads_summeval_nested_scores(self) -> None:
+        records = [
+            {
+                "doc_id": "doc1",
+                "source": "Article text",
+                "system_output": "Candidate summary",
+                "reference": "Reference summary",
+                "system_id": "sysA",
+                "scores": {"consistency": 2.5, "coherence": 3.0},
+            }
+        ]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "summeval.json"
+            path.write_text(json_dump(records), encoding="utf-8")
+            examples = get_task("summeval").load(path, "consistency")
+
+        self.assertAlmostEqual(examples[0].human_score, 2.5)
+
     def test_task_registry_loads_qags_fixture(self) -> None:
         records = [
             {
@@ -159,6 +177,33 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(examples[0].dataset, "qags_cnn")
         self.assertEqual(examples[0].dimension, "consistency")
         self.assertAlmostEqual(examples[0].human_score, 4.0)
+
+    def test_task_registry_loads_qags_mturk_jsonl_fixture(self) -> None:
+        records = [
+            {
+                "article": "Article text",
+                "summary_sentences": [
+                    {
+                        "sentence": "Sentence one.",
+                        "responses": [
+                            {"worker_id": 0, "response": "yes"},
+                            {"worker_id": 1, "response": "no"},
+                        ],
+                    },
+                    {
+                        "sentence": "Sentence two.",
+                        "responses": [{"worker_id": 2, "response": "yes"}],
+                    },
+                ],
+            }
+        ]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "qags_cnn.jsonl"
+            path.write_text("\n".join(json_dump(record) for record in records) + "\n", encoding="utf-8")
+            examples = get_task("qags-cnn").load(path, "consistency")
+
+        self.assertEqual(examples[0].candidate_output, "Sentence one. Sentence two.")
+        self.assertAlmostEqual(examples[0].human_score, 1.0 + 4.0 * (2 / 3))
 
     def test_parse_discrete_score(self) -> None:
         self.assertEqual(parse_discrete_score("Score: 3", min_score=1, max_score=3), 3)

@@ -13,8 +13,8 @@ from .data import DEFAULT_USR_URL, LABEL_SCALES as USR_LABEL_SCALES, load_usr_ex
 
 
 SUMMEVAL_URL = "https://raw.githubusercontent.com/nlpyang/geval/main/data/summeval.json"
-QAGS_CNN_URL = "https://raw.githubusercontent.com/nlpyang/geval/main/data/qags_cnndm.json"
-QAGS_XSUM_URL = "https://raw.githubusercontent.com/nlpyang/geval/main/data/qags_xsum.json"
+QAGS_CNN_URL = "https://raw.githubusercontent.com/W4ngatang/qags/master/data/mturk_cnndm.jsonl"
+QAGS_XSUM_URL = "https://raw.githubusercontent.com/W4ngatang/qags/master/data/mturk_xsum.jsonl"
 
 
 @dataclass(frozen=True)
@@ -231,10 +231,13 @@ def _load_qags(source: str | Path, dimension: str) -> list[EvalExample]:
     examples: list[EvalExample] = []
     for index, record in enumerate(rows):
         source_text = _first_str(record, ("source", "source_article", "article", "document", "text"))
-        candidate = _first_str(record, ("summary", "candidate_summary", "system_output", "decoded", "output"))
+        candidate = _qags_candidate(record) or _first_str(
+            record,
+            ("summary", "candidate_summary", "system_output", "decoded", "output"),
+        )
         reference = _first_str(record, ("reference", "reference_summary", "ref_summary", "gold_summary"), default="")
         system_id = _first_str(record, ("system_id", "model_id", "model", "system"), default="")
-        score = _extract_score(record, "consistency")
+        score = _qags_consistency_score(record)
         group_id = _first_str(record, ("doc_id", "document_id", "source_id", "id"), default=f"qags_{index:05d}")
         example_id = _first_str(
             record,
@@ -264,9 +267,16 @@ def _read_json(source: str | Path) -> Any:
     source_text = str(source)
     if source_text.startswith(("http://", "https://")):
         with urllib.request.urlopen(source_text, timeout=60) as response:
-            return json.loads(response.read().decode("utf-8"))
+            text = response.read().decode("utf-8")
+            return _parse_json_or_jsonl(text, source_text)
     with Path(source).open(encoding="utf-8") as handle:
-        return json.load(handle)
+        return _parse_json_or_jsonl(handle.read(), source_text)
+
+
+def _parse_json_or_jsonl(text: str, source_name: str) -> Any:
+    if source_name.endswith(".jsonl"):
+        return [json.loads(line) for line in text.splitlines() if line.strip()]
+    return json.loads(text)
 
 
 def _coerce_records(records: Any) -> list[dict[str, Any]]:
@@ -312,7 +322,54 @@ def _extract_score(record: dict[str, Any], dimension: str) -> float:
             numeric_values = [float(item) for item in value.values() if isinstance(item, (int, float))]
             if numeric_values:
                 return sum(numeric_values) / len(numeric_values)
+    scores = record.get("scores")
+    if isinstance(scores, dict):
+        value = scores.get(dimension) or scores.get(dimension.lower()) or scores.get(dimension.capitalize())
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, list) and value and all(isinstance(item, (int, float)) for item in value):
+            return sum(float(item) for item in value) / len(value)
     raise ValueError(f"Record is missing a numeric human score for dimension {dimension!r}")
+
+
+def _qags_candidate(record: dict[str, Any]) -> str:
+    summary_sentences = record.get("summary_sentences")
+    if not isinstance(summary_sentences, list):
+        return ""
+    sentences = []
+    for item in summary_sentences:
+        if isinstance(item, dict) and isinstance(item.get("sentence"), str):
+            sentences.append(item["sentence"])
+    return " ".join(sentences)
+
+
+def _qags_consistency_score(record: dict[str, Any]) -> float:
+    try:
+        return _extract_score(record, "consistency")
+    except ValueError:
+        pass
+
+    labels = []
+    summary_sentences = record.get("summary_sentences")
+    if isinstance(summary_sentences, list):
+        for sentence in summary_sentences:
+            if not isinstance(sentence, dict):
+                continue
+            responses = sentence.get("responses")
+            if not isinstance(responses, list):
+                continue
+            for response in responses:
+                if not isinstance(response, dict):
+                    continue
+                label = str(response.get("response", "")).strip().lower()
+                if label in {"yes", "y", "true", "1"}:
+                    labels.append(1.0)
+                elif label in {"no", "n", "false", "0"}:
+                    labels.append(0.0)
+    if not labels:
+        raise ValueError("QAGS record is missing yes/no consistency annotations")
+    yes_rate = sum(labels) / len(labels)
+    return 1.0 + 4.0 * yes_rate
 
 
 TASK_REGISTRY.update(
