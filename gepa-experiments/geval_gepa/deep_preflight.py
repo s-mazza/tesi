@@ -265,11 +265,20 @@ def _model_cache_report(hf_home: Path, config: dict[str, str]) -> dict[str, Any]
     nla_checkpoint = config.get("NLA_AV_CHECKPOINT", "")
     judge_cache = hf_home / "hub" / f"models--{judge_model.replace('/', '--')}"
     nla_cache = hf_home / "hub" / f"models--{nla_checkpoint.replace('/', '--')}"
+    nla_snapshot = _safe_latest_snapshot(nla_cache)
     report: dict[str, Any] = {
         "ok_judge_model_cache": judge_cache.exists(),
         "judge_model_cache": str(judge_cache),
         "ok_nla_av_cache": nla_cache.exists(),
         "nla_av_cache": str(nla_cache),
+        "ok_nla_av_snapshot": nla_snapshot is not None,
+        "nla_av_snapshot": str(nla_snapshot) if nla_snapshot else "",
+        "ok_nla_av_metadata": bool(nla_snapshot and (nla_snapshot / "nla_meta.yaml").exists()),
+        "ok_nla_av_weights": bool(
+            nla_snapshot
+            and (nla_snapshot / "model.safetensors.index.json").exists()
+            and any(nla_snapshot.glob("*.safetensors"))
+        ),
         "ok_nla_model_family": "qwen2.5-7b" in nla_checkpoint.lower() and "Qwen2.5-7B" in judge_model,
         "ok_nla_layer": _as_int(config.get("NLA_EXTRACTION_LAYER"), "NLA_EXTRACTION_LAYER") == 20,
     }
@@ -313,6 +322,14 @@ def _latest_snapshot(model_cache: Path) -> Path:
     if not snapshots:
         raise ValueError(f"No Hugging Face snapshots found under {snapshots_dir}")
     return snapshots[-1]
+
+
+def _safe_latest_snapshot(model_cache: Path) -> Path | None:
+    snapshots_dir = model_cache / "snapshots"
+    if not snapshots_dir.exists():
+        return None
+    snapshots = sorted(path for path in snapshots_dir.iterdir() if path.is_dir())
+    return snapshots[-1] if snapshots else None
 
 
 def _context_ids(rows: list[Any]) -> set[str]:
