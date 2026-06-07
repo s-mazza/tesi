@@ -15,6 +15,11 @@ from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_me
 from geval_gepa.tasks import get_task, split_examples
 from geval_gepa.trajectory import export_prompt_trajectory
 
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from aggregate_results import build_rows  # noqa: E402
+
 
 FIXTURE = [
     {
@@ -427,6 +432,42 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn('"candidate_id": "1"', rows[1])
         self.assertIn("Reward concrete details", rows[1])
         self.assertIn("Better prompt", rows[1])
+
+    def test_aggregate_results_computes_metric_improvements(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            run_dir = root / "run"
+            run_dir.mkdir()
+            (run_dir / "metrics_20260101T000000Z.csv").write_text(
+                "\n".join(
+                    [
+                        "program,total,parsed,coverage,agreement,n,pearson,spearman,mae",
+                        "baseline,10,10,1.0,0.5,10,0.2,0.3,0.6",
+                        "optimized,10,10,1.0,0.75,10,0.4,0.5,0.3",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (run_dir / "run_config_20260101T000000Z.json").write_text(
+                json_dump(
+                    {
+                        "dataset": "summeval",
+                        "dimension": "consistency",
+                        "perplexity_feedback": True,
+                        "nla_feedback": True,
+                        "rows": {"gepa_train": 8, "gepa_validation": 4, "final_test": 10},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            rows = build_rows(root)
+
+        optimized = [row for row in rows if row["program"] == "optimized"][0]
+        self.assertEqual(optimized["dataset"], "summeval")
+        self.assertAlmostEqual(optimized["agreement_improvement"], 0.25)
+        self.assertAlmostEqual(optimized["mae_improvement"], 0.3)
 
     def test_reflection_examples_use_abstract_trace_summaries(self) -> None:
         reflection_text = _format_reflection_examples(

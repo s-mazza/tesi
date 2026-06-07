@@ -16,6 +16,8 @@ GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
 SLURM_NODE="${SLURM_NODE:-}"
 IMAGE_NAME="${IMAGE_NAME:-geval_gepa:latest}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-gepa-experiments/results/slurm}"
+JOB_SLUG="${JOB_SLUG:-geval-gepa-${DATASET:-topical_chat}-${DIMENSION:-${LABEL:-run}}}"
+JOB_SLUG="${JOB_SLUG// /_}"
 SLURM_TIME="${SLURM_TIME:-}"
 SLURM_MEM="${SLURM_MEM:-}"
 TELEGRAM_MONITOR="${TELEGRAM_MONITOR:-1}"
@@ -48,7 +50,7 @@ SBATCH_OUTPUT="$(sbatch \
   "${NODE_ARGS[@]}" \
   "${TIME_ARGS[@]}" \
   "${MEM_ARGS[@]}" \
-  --output="${OUTPUT_ROOT}/slurm-%j-geval-gepa-engaging.out" \
+  --output="${OUTPUT_ROOT}/slurm-%j-${JOB_SLUG}.out" \
   --export=ALL,IMAGE_NAME="$IMAGE_NAME",CONFIG_FILE="$CONFIG_FILE" \
   gepa-experiments/slurm/run_docker.sh \
   "bash gepa-experiments/slurm/run_gepa_engaging_job.sh")"
@@ -71,11 +73,11 @@ start_telegram_monitor() {
   fi
 
   mkdir -p "$TELEGRAM_MONITOR_ROOT"
-  local monitor_label="${TELEGRAM_MONITOR_LABEL:-GEPA ${LABEL:-run} ${JOB_ID}}"
+  local monitor_label="${TELEGRAM_MONITOR_LABEL:-GEPA ${DATASET:-topical_chat}/${DIMENSION:-${LABEL:-run}} ${JOB_ID}}"
   local monitor_log="${TELEGRAM_MONITOR_ROOT}/telegram_monitor_${JOB_ID}.out"
   local monitor_pid="${TELEGRAM_MONITOR_ROOT}/telegram_monitor_${JOB_ID}.pid"
   local monitor_state="${TELEGRAM_MONITOR_ROOT}/.state_${JOB_ID}"
-  local slurm_log="${OUTPUT_ROOT}/slurm-${JOB_ID}-geval-gepa-engaging.out"
+  local slurm_log="${OUTPUT_ROOT}/slurm-${JOB_ID}-${JOB_SLUG}.out"
 
   nohup python3 "$TELEGRAM_MONITOR_SCRIPT" "$JOB_ID" \
     --label "$monitor_label" \
