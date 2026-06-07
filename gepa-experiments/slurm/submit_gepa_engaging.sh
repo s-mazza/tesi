@@ -20,6 +20,7 @@ JOB_SLUG="${JOB_SLUG:-geval-gepa-${DATASET:-topical_chat}-${DIMENSION:-${LABEL:-
 JOB_SLUG="${JOB_SLUG// /_}"
 SLURM_TIME="${SLURM_TIME:-}"
 SLURM_MEM="${SLURM_MEM:-}"
+SLURM_DEPENDENCY="${SLURM_DEPENDENCY:-}"
 TELEGRAM_MONITOR="${TELEGRAM_MONITOR:-1}"
 TELEGRAM_MONITOR_SCRIPT="${TELEGRAM_MONITOR_SCRIPT:-gepa-experiments/slurm/telegram_monitor.py}"
 TELEGRAM_MONITOR_ROOT="${TELEGRAM_MONITOR_ROOT:-gepa-experiments/results/monitor}"
@@ -43,6 +44,11 @@ if [[ -n "$SLURM_MEM" ]]; then
   MEM_ARGS=(--mem="$SLURM_MEM")
 fi
 
+DEPENDENCY_ARGS=()
+if [[ -n "$SLURM_DEPENDENCY" ]]; then
+  DEPENDENCY_ARGS=(--dependency="$SLURM_DEPENDENCY")
+fi
+
 SBATCH_OUTPUT="$(sbatch \
   --parsable \
   -N 1 \
@@ -50,6 +56,7 @@ SBATCH_OUTPUT="$(sbatch \
   "${NODE_ARGS[@]}" \
   "${TIME_ARGS[@]}" \
   "${MEM_ARGS[@]}" \
+  "${DEPENDENCY_ARGS[@]}" \
   --output="${OUTPUT_ROOT}/slurm-%j-${JOB_SLUG}.out" \
   --export=ALL,IMAGE_NAME="$IMAGE_NAME",CONFIG_FILE="$CONFIG_FILE" \
   gepa-experiments/slurm/run_docker.sh \
