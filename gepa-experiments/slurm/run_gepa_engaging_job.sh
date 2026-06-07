@@ -14,6 +14,8 @@ set +a
 
 SERVER_HOST="${SERVER_HOST:-127.0.0.1}"
 SERVER_PORT="${SERVER_PORT:-8000}"
+DATASET="${DATASET:-topical_chat}"
+DIMENSION="${DIMENSION:-}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-4096}"
 MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
@@ -79,6 +81,8 @@ write_dependency_manifest() {
 echo "Starting vLLM judge server"
 echo "  config: ${CONFIG_FILE}"
 echo "  model: ${JUDGE_MODEL}"
+echo "  dataset: ${DATASET}"
+echo "  dimension: ${DIMENSION:-${LABEL:-legacy-label}}"
 echo "  vLLM model path: ${VLLM_MODEL_ARG}"
 echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"
 echo "  health: ${HEALTH_URL}"
@@ -176,8 +180,14 @@ if [[ "$PERPLEXITY_FEEDBACK" == "1" || "$PERPLEXITY_FEEDBACK" == "true" ]]; then
   )
 fi
 
+TASK_ARGS=(--dataset "$DATASET")
+if [[ -n "$DIMENSION" ]]; then
+  TASK_ARGS+=(--dimension "$DIMENSION")
+fi
+
 python -m geval_gepa.runner \
   --data-source "$DATA_SOURCE" \
+  "${TASK_ARGS[@]}" \
   --label "$LABEL" \
   --train-contexts "$TRAIN_CONTEXTS" \
   --val-contexts "$VAL_CONTEXTS" \

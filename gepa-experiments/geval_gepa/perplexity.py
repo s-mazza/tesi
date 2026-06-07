@@ -47,12 +47,12 @@ class VllmPerplexityScorer:
         self._lock = threading.Lock()
 
     def score_example(self, example: Any) -> PerplexityResult:
-        context = str(getattr(example, "context", ""))
-        fact = str(getattr(example, "fact", ""))
-        response = str(getattr(example, "response", ""))
+        context = str(getattr(example, "context", "") or getattr(example, "source_text", ""))
+        fact = str(getattr(example, "fact", "") or getattr(example, "reference", "") or "_nofact")
+        response = str(getattr(example, "response", "") or getattr(example, "candidate_output", ""))
         cache_key = (
-            str(getattr(example, "context_id", "")),
-            str(getattr(example, "response_id", "")),
+            str(getattr(example, "context_id", "") or getattr(example, "group_id", "")),
+            str(getattr(example, "response_id", "") or getattr(example, "example_id", "")),
             response,
         )
         with self._lock:
