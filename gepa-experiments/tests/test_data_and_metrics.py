@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 from argparse import Namespace
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from geval_gepa.data import load_usr_examples, split_by_context
@@ -9,6 +11,7 @@ from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_s
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
 from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_metric_fn
+from geval_gepa.tasks import get_task, split_examples
 
 
 FIXTURE = [
@@ -82,6 +85,71 @@ class DataAndMetricsTest(unittest.TestCase):
         val_ids = {row.context_id for row in val}
         self.assertFalse(train_ids & val_ids)
         self.assertEqual(len(train) + len(val) + len(test), 3)
+
+    def test_task_registry_loads_topical_chat_dimensions(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "tc.json"
+            path.write_text(json_dump(FIXTURE), encoding="utf-8")
+
+            task = get_task("Topical-Chat")
+            examples = task.load(path, "groundedness")
+
+        self.assertEqual(task.task_type, "dialogue")
+        self.assertEqual(examples[0].dimension, "groundedness")
+        self.assertEqual(examples[0].min_score, 0)
+        self.assertEqual(examples[0].max_score, 1)
+        self.assertAlmostEqual(examples[0].human_score, 2 / 3)
+
+    def test_task_split_keeps_groups_disjoint(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "tc.json"
+            path.write_text(json_dump(FIXTURE), encoding="utf-8")
+            examples = get_task("usr").load(path, "engagingness")
+
+        train, val, test = split_examples(examples, train_groups=1, val_groups=1, test_groups=0, seed=7)
+        self.assertFalse({row.group_id for row in train} & {row.group_id for row in val})
+        self.assertEqual(len(train) + len(val) + len(test), len(examples))
+
+    def test_task_registry_loads_summeval_fixture(self) -> None:
+        records = [
+            {
+                "doc_id": "doc1",
+                "source_article": "Article text",
+                "candidate_summary": "Candidate summary",
+                "reference_summary": "Reference summary",
+                "system_id": "sysA",
+                "coherence": [4, 5],
+            }
+        ]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "summeval.json"
+            path.write_text(json_dump(records), encoding="utf-8")
+            examples = get_task("summeval").load(path, "coherence")
+
+        self.assertEqual(examples[0].dataset, "summeval")
+        self.assertEqual(examples[0].group_id, "doc1")
+        self.assertAlmostEqual(examples[0].human_score, 4.5)
+        self.assertEqual(examples[0].min_score, 1)
+        self.assertEqual(examples[0].max_score, 5)
+
+    def test_task_registry_loads_qags_fixture(self) -> None:
+        records = [
+            {
+                "doc_id": "doc1",
+                "source": "Article text",
+                "summary": "Generated summary",
+                "system": "sysA",
+                "consistency": 4,
+            }
+        ]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "qags_cnn.json"
+            path.write_text(json_dump(records), encoding="utf-8")
+            examples = get_task("qags-cnn").load(path, "consistency")
+
+        self.assertEqual(examples[0].dataset, "qags_cnn")
+        self.assertEqual(examples[0].dimension, "consistency")
+        self.assertAlmostEqual(examples[0].human_score, 4.0)
 
     def test_parse_discrete_score(self) -> None:
         self.assertEqual(parse_discrete_score("Score: 3", min_score=1, max_score=3), 3)
@@ -279,6 +347,12 @@ def load_usr_examples_from_fixture():
         path = Path(tmpdir) / "fixture.json"
         path.write_text(json.dumps(FIXTURE), encoding="utf-8")
         return load_usr_examples(path)
+
+
+def json_dump(value):
+    import json
+
+    return json.dumps(value)
 
 
 if __name__ == "__main__":
