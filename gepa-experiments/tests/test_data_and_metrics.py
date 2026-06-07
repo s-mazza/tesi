@@ -9,6 +9,7 @@ from unittest.mock import patch
 from geval_gepa.data import load_usr_examples, split_by_context
 from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
 from geval_gepa.nla_feedback import NlaFeedbackProvider
+from geval_gepa.nla_precompute import SemanticTokenSelector, fake_activation_rows, iter_verbalization_rows
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
 from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_metric_fn
@@ -493,6 +494,82 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("example_id", rows[0])
         self.assertEqual(rows[0]["token_policy"], "semantic_multi")
         self.assertIn("Candidate output:", rows[0]["prompt"])
+
+    def test_export_nla_manifest_gepa_split_contains_train_and_validation(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "tc.json"
+            path.write_text(json_dump(FIXTURE), encoding="utf-8")
+            args = Namespace(
+                dataset="topical_chat",
+                dimension="engagingness",
+                data_source=str(path),
+                split="gepa",
+                train_groups=1,
+                val_groups=1,
+                test_groups=0,
+                seed=42,
+                limit=None,
+                token_policy="semantic_multi",
+            )
+            rows = build_manifest(args)
+
+        self.assertEqual(len(rows), 3)
+
+    def test_nla_precompute_selects_multiple_semantic_tokens(self) -> None:
+        row = {
+            "source_text": "Alice discusses astronomy with concrete comet details.",
+            "candidate_output": "The candidate asks about meteor showers and stars.",
+            "fact": "_nofact",
+        }
+        prompt = "\n".join([row["source_text"], row["candidate_output"]])
+        targets = SemanticTokenSelector(max_tokens_per_example=3).select(row, prompt)
+
+        self.assertGreaterEqual(len(targets), 2)
+        self.assertTrue(any(target.token_position.startswith("source_") for target in targets))
+        self.assertTrue(any(target.token_position.startswith("candidate_") for target in targets))
+
+    def test_nla_precompute_dry_run_writes_runner_compatible_rows(self) -> None:
+        manifest = [
+            {
+                "dataset": "topical_chat",
+                "dimension": "engagingness",
+                "example_id": "ex1",
+                "group_id": "ctx1",
+                "human_score": 2.0,
+                "source_text": "Alice discusses astronomy with concrete comet details.",
+                "candidate_output": "The candidate asks about meteor showers and stars.",
+                "fact": "_nofact",
+                "prompt": "Alice discusses astronomy with concrete comet details.\nThe candidate asks about meteor showers and stars.",
+            }
+        ]
+        activations = fake_activation_rows(
+            manifest,
+            model_id="Qwen/Qwen2.5-7B-Instruct",
+            layer=20,
+            max_tokens_per_example=2,
+            d_model=8,
+            limit=None,
+        )
+        rows = list(
+            iter_verbalization_rows(
+                activations,
+                checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                backend="transformers",
+                nla_root=Path("natural_language_autoencoders"),
+                dry_run=True,
+                temperature=0.0,
+                max_new_tokens=8,
+                injection_scale=None,
+                dtype_name="float16",
+                device_map="auto",
+                trust_remote_code=True,
+            )
+        )
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["example_id"], "ex1")
+        self.assertIn("verbalization", rows[0])
+        self.assertEqual(rows[0]["parse_status"], "ok")
 
     def test_reflection_examples_use_abstract_trace_summaries(self) -> None:
         reflection_text = _format_reflection_examples(

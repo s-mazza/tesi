@@ -27,6 +27,16 @@ NLA_FEEDBACK="${NLA_FEEDBACK:-0}"
 NLA_BACKEND="${NLA_BACKEND:-precomputed}"
 NLA_PRECOMPUTED_PATH="${NLA_PRECOMPUTED_PATH:-}"
 NLA_MAX_TOKENS_PER_EXAMPLE="${NLA_MAX_TOKENS_PER_EXAMPLE:-6}"
+NLA_PRECOMPUTED_AUTO="${NLA_PRECOMPUTED_AUTO:-0}"
+NLA_PRECOMPUTE_SPLIT="${NLA_PRECOMPUTE_SPLIT:-gepa}"
+NLA_PRECOMPUTE_LIMIT="${NLA_PRECOMPUTE_LIMIT:-}"
+NLA_PRECOMPUTE_DRY_RUN="${NLA_PRECOMPUTE_DRY_RUN:-0}"
+NLA_PRECOMPUTE_BACKEND="${NLA_PRECOMPUTE_BACKEND:-transformers}"
+NLA_PRECOMPUTE_MAX_NEW_TOKENS="${NLA_PRECOMPUTE_MAX_NEW_TOKENS:-200}"
+NLA_PRECOMPUTE_TEMPERATURE="${NLA_PRECOMPUTE_TEMPERATURE:-0.0}"
+NLA_ACTIVATION_DTYPE="${NLA_ACTIVATION_DTYPE:-float16}"
+NLA_VERBALIZER_DTYPE="${NLA_VERBALIZER_DTYPE:-float16}"
+NLA_DEVICE_MAP="${NLA_DEVICE_MAP:-auto}"
 PROPOSER_MODEL="${PROPOSER_MODEL:-local-llamacpp}"
 PROPOSER_API_BASE="${PROPOSER_API_BASE:-}"
 PROPOSER_API_KEY="${PROPOSER_API_KEY:-}"
@@ -103,6 +113,7 @@ if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
   echo "  nla backend: ${NLA_BACKEND}"
   echo "  nla precomputed path: ${NLA_PRECOMPUTED_PATH:-none}"
   echo "  nla max tokens/example: ${NLA_MAX_TOKENS_PER_EXAMPLE}"
+  echo "  nla precomputed auto: ${NLA_PRECOMPUTED_AUTO}"
 fi
 if [[ -n "$PROPOSER_API_BASE" ]]; then
   echo "  proposer model: ${PROPOSER_MODEL}"
@@ -128,6 +139,52 @@ python -m geval_gepa.preflight \
   --val-contexts "$VAL_CONTEXTS" \
   --test-contexts "$TEST_CONTEXTS" \
   --seed "$SEED"
+
+if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]] \
+  && [[ "$NLA_BACKEND" == "precomputed" ]] \
+  && [[ "$NLA_PRECOMPUTED_AUTO" == "1" || "$NLA_PRECOMPUTED_AUTO" == "true" ]]; then
+  NLA_MANIFEST_PATH="${OUTPUT_DIR}/nla_manifest_${SLURM_JOB_ID:-local}.jsonl"
+  if [[ -z "$NLA_PRECOMPUTED_PATH" ]]; then
+    NLA_PRECOMPUTED_PATH="${OUTPUT_DIR}/nla_precomputed_${SLURM_JOB_ID:-local}.jsonl"
+  fi
+  echo "Building NLA precomputed feedback before vLLM startup"
+  echo "  manifest: ${NLA_MANIFEST_PATH}"
+  echo "  output: ${NLA_PRECOMPUTED_PATH}"
+  python gepa-experiments/scripts/export_nla_manifest.py \
+    --dataset "$DATASET" \
+    --dimension "$DIMENSION" \
+    --data-source "$DATA_SOURCE" \
+    --split "$NLA_PRECOMPUTE_SPLIT" \
+    --train-groups "$TRAIN_CONTEXTS" \
+    --val-groups "$VAL_CONTEXTS" \
+    --test-groups "$TEST_CONTEXTS" \
+    --seed "$SEED" \
+    --output "$NLA_MANIFEST_PATH"
+
+  NLA_PRECOMPUTE_ARGS=()
+  if [[ -n "$NLA_PRECOMPUTE_LIMIT" ]]; then
+    NLA_PRECOMPUTE_ARGS+=(--limit "$NLA_PRECOMPUTE_LIMIT")
+  fi
+  if [[ "$NLA_PRECOMPUTE_DRY_RUN" == "1" || "$NLA_PRECOMPUTE_DRY_RUN" == "true" ]]; then
+    NLA_PRECOMPUTE_ARGS+=(--dry-run)
+  fi
+
+  python gepa-experiments/scripts/build_nla_precomputed.py \
+    --manifest "$NLA_MANIFEST_PATH" \
+    --output "$NLA_PRECOMPUTED_PATH" \
+    --activation-model "$JUDGE_MODEL" \
+    --nla-checkpoint "$NLA_AV_CHECKPOINT" \
+    --layer "$NLA_EXTRACTION_LAYER" \
+    --max-tokens-per-example "$NLA_MAX_TOKENS_PER_EXAMPLE" \
+    --backend "$NLA_PRECOMPUTE_BACKEND" \
+    --max-new-tokens "$NLA_PRECOMPUTE_MAX_NEW_TOKENS" \
+    --temperature "$NLA_PRECOMPUTE_TEMPERATURE" \
+    --activation-dtype "$NLA_ACTIVATION_DTYPE" \
+    --nla-dtype "$NLA_VERBALIZER_DTYPE" \
+    --device-map "$NLA_DEVICE_MAP" \
+    --trust-remote-code \
+    "${NLA_PRECOMPUTE_ARGS[@]}"
+fi
 
 vllm serve "$VLLM_MODEL_ARG" \
   --host "$SERVER_HOST" \

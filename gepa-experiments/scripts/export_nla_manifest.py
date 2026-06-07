@@ -38,7 +38,7 @@ def build_manifest(args: argparse.Namespace) -> list[dict[str, object]]:
         test_groups=args.test_groups,
         seed=args.seed,
     )
-    split_rows = {"train": train, "validation": val, "test": test}[args.split]
+    split_rows = {"train": train, "validation": val, "test": test, "gepa": train + val}[args.split]
     if not split_rows:
         return []
     min_score, max_score = split_rows[0].min_score, split_rows[0].max_score
@@ -80,7 +80,7 @@ def main() -> int:
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--dimension", default="")
     parser.add_argument("--data-source", default="")
-    parser.add_argument("--split", choices=("train", "validation", "test"), default="validation")
+    parser.add_argument("--split", choices=("train", "validation", "test", "gepa"), default="validation")
     parser.add_argument("--train-groups", type=int, default=40)
     parser.add_argument("--val-groups", type=int, default=10)
     parser.add_argument("--test-groups", type=int, default=10)
