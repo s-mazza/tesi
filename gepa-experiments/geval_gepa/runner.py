@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from .aux_judge import AuxJudgeFeedbackProvider
 from .data import DEFAULT_USR_URL, LABEL_SCALES
 from .metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
 from .nla_feedback import NlaFeedbackProvider
@@ -80,6 +81,7 @@ def create_metric_fn(
     min_score: int | None = None,
     max_score: int | None = None,
     nla_feedback_provider: Any | None = None,
+    aux_judge_provider: Any | None = None,
 ) -> Callable[..., Any]:
     import dspy
 
@@ -128,6 +130,17 @@ def create_metric_fn(
             feedback.append(format_perplexity_feedback(perplexity))
         if nla_feedback_provider is not None:
             feedback.append(nla_feedback_provider.feedback_for(example))
+        if aux_judge_provider is not None:
+            feedback.append(
+                aux_judge_provider.feedback_for(
+                    example=example,
+                    pred=pred,
+                    parsed=parsed,
+                    target=target,
+                    agreement=score,
+                    dimension=metric_label,
+                )
+            )
         if abs(delta) >= 1.0:
             feedback.append(
                 f"The output was {direction}. Revise the judging instructions to better distinguish weak outputs "
@@ -407,6 +420,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--nla-backend", default="precomputed", choices=("precomputed", "dry_run"))
     parser.add_argument("--nla-precomputed-path", default="")
     parser.add_argument("--nla-max-tokens-per-example", type=int, default=6)
+    parser.add_argument("--aux-judge-feedback", action="store_true")
+    parser.add_argument("--aux-judge-model", default="")
+    parser.add_argument("--aux-judge-api-base", default="")
+    parser.add_argument("--aux-judge-api-key", default="")
+    parser.add_argument("--aux-judge-timeout-seconds", type=float, default=120.0)
+    parser.add_argument("--aux-judge-max-tokens", type=int, default=512)
 
     budget = parser.add_mutually_exclusive_group(required=True)
     budget.add_argument("--gepa-auto", choices=["light", "medium", "heavy"])
@@ -486,6 +505,7 @@ def main() -> None:
     judge_lm, proposer_lm = configure_lms(args)
     perplexity_scorer = None
     nla_feedback_provider = None
+    aux_judge_provider = None
     if args.perplexity_feedback:
         perplexity_scorer = VllmPerplexityScorer(
             api_base=args.api_base,
@@ -512,6 +532,18 @@ def main() -> None:
             max_tokens_per_example=args.nla_max_tokens_per_example,
             precomputed_path=args.nla_precomputed_path,
         )
+    if args.aux_judge_feedback:
+        aux_api_base = args.aux_judge_api_base or args.proposer_api_base
+        if not aux_api_base:
+            raise ValueError("--aux-judge-feedback requires --aux-judge-api-base or --proposer-api-base")
+        aux_judge_provider = AuxJudgeFeedbackProvider(
+            api_base=aux_api_base,
+            model=args.aux_judge_model or args.proposer_model,
+            api_key=args.aux_judge_api_key or args.proposer_api_key or os.getenv(args.proposer_api_key_env, "EMPTY"),
+            timeout_seconds=args.aux_judge_timeout_seconds,
+            max_tokens=args.aux_judge_max_tokens,
+            temperature=0.0,
+        )
 
     seed_program = make_program(seed_prompt)
     optimized_program = seed_program
@@ -527,6 +559,7 @@ def main() -> None:
             min_score=min_score,
             max_score=max_score,
             nla_feedback_provider=nla_feedback_provider,
+            aux_judge_provider=aux_judge_provider,
         )
         gepa_kwargs: dict[str, Any] = {
             "metric": metric_fn,
@@ -594,6 +627,10 @@ def main() -> None:
     nla_artifact_count = 0
     if nla_feedback_provider is not None:
         nla_artifact_count = nla_feedback_provider.write_artifact(nla_artifact_path)
+    aux_judge_artifact_path = output_dir / f"aux_judge_feedback_{timestamp}.jsonl"
+    aux_judge_artifact_count = 0
+    if aux_judge_provider is not None:
+        aux_judge_artifact_count = aux_judge_provider.write_artifact(aux_judge_artifact_path)
     finished_at = datetime.now(timezone.utc)
     (output_dir / f"run_config_{timestamp}.json").write_text(
         json.dumps(
@@ -615,6 +652,10 @@ def main() -> None:
                 "nla_backend": args.nla_backend if args.nla_feedback else "",
                 "nla_precomputed_path": args.nla_precomputed_path if args.nla_feedback else "",
                 "nla_max_tokens_per_example": args.nla_max_tokens_per_example if args.nla_feedback else 0,
+                "aux_judge_feedback": args.aux_judge_feedback,
+                "aux_judge_model": (args.aux_judge_model or args.proposer_model) if args.aux_judge_feedback else "",
+                "aux_judge_api_base": (args.aux_judge_api_base or args.proposer_api_base) if args.aux_judge_feedback else "",
+                "aux_judge_max_tokens": args.aux_judge_max_tokens if args.aux_judge_feedback else 0,
                 "max_tokens": args.max_tokens,
                 "proposer_model": args.proposer_model if args.proposer_api_base else args.judge_model,
                 "proposer_api_base": args.proposer_api_base if args.proposer_api_base else args.api_base,
@@ -658,6 +699,8 @@ def main() -> None:
                     "prompt_trajectory_candidates": trajectory_count,
                     "nla_verbalizations": str(nla_artifact_path) if args.nla_feedback else "",
                     "nla_verbalization_rows": nla_artifact_count,
+                    "aux_judge_feedback": str(aux_judge_artifact_path) if args.aux_judge_feedback else "",
+                    "aux_judge_feedback_rows": aux_judge_artifact_count,
                 },
             },
             indent=2,

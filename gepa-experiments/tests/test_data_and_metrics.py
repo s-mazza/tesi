@@ -323,6 +323,46 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("NLA multi-token verbalizations", result.feedback)
         self.assertIn("concrete music topic", result.feedback)
 
+    def test_aux_judge_feedback_does_not_change_metric_score(self) -> None:
+        class FakeAuxJudge:
+            def feedback_for(self, **kwargs):
+                self.kwargs = kwargs
+                return "Auxiliary 35B judge feedback: reward topic-specific details."
+
+        class FakeDspy:
+            class Prediction:
+                def __init__(self, **kwargs):
+                    self.__dict__.update(kwargs)
+
+        example = load_usr_examples_from_fixture()[0]
+        provider = FakeAuxJudge()
+        with patch.dict("sys.modules", {"dspy": FakeDspy}):
+            metric_fn = create_metric_fn(
+                "Engaging",
+                min_score=1,
+                max_score=3,
+                aux_judge_provider=provider,
+            )
+            result = metric_fn(
+                type(
+                    "Example",
+                    (),
+                    {
+                        "human_score": example.human_score("Engaging"),
+                        "context": example.context,
+                        "fact": example.fact,
+                        "response": example.response,
+                        "context_id": example.context_id,
+                        "response_id": example.response_id,
+                    },
+                )(),
+                type("Pred", (), {"score": "2", "rationale": "It is acceptable."})(),
+            )
+
+        self.assertAlmostEqual(result.score, 1.0)
+        self.assertIn("Auxiliary 35B judge feedback", result.feedback)
+        self.assertEqual(provider.kwargs["parsed"], 2)
+
     def test_configure_lms_keeps_judge_global_and_returns_separate_proposer(self) -> None:
         configured = {}
 

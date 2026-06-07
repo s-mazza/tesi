@@ -32,6 +32,11 @@ PROPOSER_API_BASE="${PROPOSER_API_BASE:-}"
 PROPOSER_API_KEY="${PROPOSER_API_KEY:-}"
 PROPOSER_TEMPERATURE="${PROPOSER_TEMPERATURE:-0.7}"
 PROPOSER_MAX_TOKENS="${PROPOSER_MAX_TOKENS:-4096}"
+AUX_JUDGE_FEEDBACK="${AUX_JUDGE_FEEDBACK:-0}"
+AUX_JUDGE_MODEL="${AUX_JUDGE_MODEL:-$PROPOSER_MODEL}"
+AUX_JUDGE_API_BASE="${AUX_JUDGE_API_BASE:-}"
+AUX_JUDGE_API_KEY="${AUX_JUDGE_API_KEY:-$PROPOSER_API_KEY}"
+AUX_JUDGE_MAX_TOKENS="${AUX_JUDGE_MAX_TOKENS:-512}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
@@ -106,6 +111,11 @@ if [[ -n "$PROPOSER_API_BASE" ]]; then
   echo "  proposer temperature: ${PROPOSER_TEMPERATURE}"
 else
   echo "  proposer model: same as judge"
+fi
+echo "  aux judge feedback: ${AUX_JUDGE_FEEDBACK}"
+if [[ "$AUX_JUDGE_FEEDBACK" == "1" || "$AUX_JUDGE_FEEDBACK" == "true" ]]; then
+  echo "  aux judge model: ${AUX_JUDGE_MODEL}"
+  echo "  aux judge api: ${AUX_JUDGE_API_BASE:-${PROPOSER_API_BASE:-none}}"
 fi
 
 write_dependency_manifest
@@ -202,6 +212,21 @@ if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
   fi
 fi
 
+AUX_JUDGE_ARGS=()
+if [[ "$AUX_JUDGE_FEEDBACK" == "1" || "$AUX_JUDGE_FEEDBACK" == "true" ]]; then
+  AUX_JUDGE_ARGS=(
+    --aux-judge-feedback
+    --aux-judge-model "$AUX_JUDGE_MODEL"
+    --aux-judge-max-tokens "$AUX_JUDGE_MAX_TOKENS"
+  )
+  if [[ -n "$AUX_JUDGE_API_BASE" ]]; then
+    AUX_JUDGE_ARGS+=(--aux-judge-api-base "$AUX_JUDGE_API_BASE")
+  fi
+  if [[ -n "$AUX_JUDGE_API_KEY" ]]; then
+    AUX_JUDGE_ARGS+=(--aux-judge-api-key "$AUX_JUDGE_API_KEY")
+  fi
+fi
+
 TASK_ARGS=(--dataset "$DATASET")
 if [[ -n "$DIMENSION" ]]; then
   TASK_ARGS+=(--dimension "$DIMENSION")
@@ -226,4 +251,5 @@ python -m geval_gepa.runner \
   "${PROPOSER_ARGS[@]}" \
   "${PERPLEXITY_ARGS[@]}" \
   "${NLA_ARGS[@]}" \
+  "${AUX_JUDGE_ARGS[@]}" \
   "${BUDGET_ARGS[@]}"
