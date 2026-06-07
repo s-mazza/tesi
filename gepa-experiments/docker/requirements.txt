@@ -4,6 +4,7 @@ gepa-viz>=0.1.0
 datasets>=3.0.0
 transformers>=4.55.2,<5
 tokenizers>=0.21,<0.22
+accelerate>=1.0.0
 safetensors>=0.4.5
 httpx>=0.27.0
 orjson>=3.10.0

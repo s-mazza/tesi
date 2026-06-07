@@ -176,7 +176,7 @@ def _read_env_file(path: Path) -> dict[str, str]:
 
 
 def _runtime_module_report() -> dict[str, Any]:
-    modules = ["torch", "vllm", "dspy", "gepa", "datasets", "transformers"]
+    modules = ["torch", "vllm", "dspy", "gepa", "datasets", "transformers", "accelerate"]
     module_ok = {name: importlib.util.find_spec(name) is not None for name in modules}
     report: dict[str, Any] = {"ok_modules": all(module_ok.values()), "modules": module_ok}
 
