@@ -13,10 +13,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .data import LABEL_SCALES, load_usr_examples, split_by_context
+from .data import LABEL_SCALES
 from .metrics import normalized_absolute_score, parse_discrete_score
-from .prompts import ENGAGING_SEED_INSTRUCTIONS, metric_description
+from .prompts import metric_description, seed_instructions
 from .runner import create_metric_fn, get_gepa_class, make_dspy_examples, make_program
+from .tasks import get_task, split_examples
 
 
 REQUIRED_CONFIG_KEYS = {
@@ -83,57 +84,80 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     label = config.get("LABEL", "")
+    dataset = config.get("DATASET", "topical_chat")
+    dimension = config.get("DIMENSION", "")
     data_source = config.get("DATA_SOURCE", "")
     train_contexts = _as_int(config.get("TRAIN_CONTEXTS"), "TRAIN_CONTEXTS")
     val_contexts = _as_int(config.get("VAL_CONTEXTS"), "VAL_CONTEXTS")
     test_contexts = _as_int(config.get("TEST_CONTEXTS"), "TEST_CONTEXTS")
     seed = _as_int(config.get("SEED"), "SEED")
 
-    rows = load_usr_examples(data_source)
-    train_rows, val_rows, test_rows = split_by_context(
+    task = get_task(dataset)
+    dimension = dimension or task.default_dimension
+    rows = task.load(data_source, dimension)
+    train_rows, val_rows, test_rows = split_examples(
         rows,
-        train_contexts=train_contexts,
-        val_contexts=val_contexts,
-        test_contexts=test_contexts,
+        train_groups=train_contexts,
+        val_groups=val_contexts,
+        test_groups=test_contexts,
         seed=seed,
     )
     selected_rows = train_rows + val_rows + test_rows
-    expected_split_sizes = [train_contexts * 6, val_contexts * 6, test_contexts * 6]
-    expected_selected_rows = sum(expected_split_sizes)
     split_contexts = [_context_ids(split) for split in (train_rows, val_rows, test_rows)]
     context_overlaps = [
         sorted(split_contexts[0] & split_contexts[1]),
         sorted(split_contexts[0] & split_contexts[2]),
         sorted(split_contexts[1] & split_contexts[2]),
     ]
+    min_score, max_score = _same_scale(rows)
     report.update(
         {
-            "ok_label": label == "Engaging" and label in LABEL_SCALES,
-            "ok_dataset": len(rows) == 360,
+            "ok_label": not label or label in LABEL_SCALES,
+            "ok_dataset": len(rows) > 0,
+            "dataset": task.dataset,
+            "dimension": dimension,
             "dataset_rows": len(rows),
-            "ok_split_sizes": [len(train_rows), len(val_rows), len(test_rows)] == expected_split_sizes,
+            "ok_split_group_counts": [
+                len(split_contexts[0]),
+                len(split_contexts[1]),
+                len(split_contexts[2]),
+            ]
+            == [train_contexts, val_contexts, test_contexts],
             "split_sizes": {
                 "gepa_train": len(train_rows),
                 "gepa_validation": len(val_rows),
                 "final_test": len(test_rows),
             },
-            "expected_split_sizes": {
-                "gepa_train": expected_split_sizes[0],
-                "gepa_validation": expected_split_sizes[1],
-                "final_test": expected_split_sizes[2],
+            "split_group_counts": {
+                "gepa_train": len(split_contexts[0]),
+                "gepa_validation": len(split_contexts[1]),
+                "final_test": len(split_contexts[2]),
             },
-            "ok_split_volume": len(selected_rows) == expected_selected_rows and len(selected_rows) <= len(rows),
+            "expected_split_group_counts": {
+                "gepa_train": train_contexts,
+                "gepa_validation": val_contexts,
+                "final_test": test_contexts,
+            },
+            "ok_split_volume": len(selected_rows) <= len(rows),
             "selected_rows": len(selected_rows),
             "ok_context_disjoint": not any(context_overlaps),
             "context_overlaps": context_overlaps,
-            "ok_response_ids_unique": len({row.response_id for row in rows}) == len(rows),
+            "ok_response_ids_unique": len({row.example_id for row in rows}) == len(rows),
             "ok_instruction_proposer": config.get("INSTRUCTION_PROPOSER") in {"default", "generalizing"},
             "instruction_proposer": config.get("INSTRUCTION_PROPOSER", ""),
         }
     )
 
-    report.update(_metric_report(label))
-    report.update(_prompt_program_report(label, train_rows))
+    report.update(_metric_report(dimension, min_score=min_score, max_score=max_score))
+    report.update(
+        _prompt_program_report(
+            dataset=task.dataset,
+            dimension=dimension,
+            min_score=min_score,
+            max_score=max_score,
+            train_rows=train_rows,
+        )
+    )
     report.update(_model_cache_report(Path(args.hf_home), config))
     report.update(_vllm_architecture_report())
     return report
@@ -192,29 +216,43 @@ def _compiler_report() -> dict[str, Any]:
     }
 
 
-def _metric_report(label: str) -> dict[str, Any]:
-    min_score, max_score = LABEL_SCALES[label]
-    parsed_from_text = parse_discrete_score("Rationale...\nScore: 3", min_score=min_score, max_score=max_score)
-    parsed_invalid = parse_discrete_score("Score: 5", min_score=min_score, max_score=max_score)
-    perfect = normalized_absolute_score(2, 2.0, min_score=min_score, max_score=max_score)
-    off_by_one = normalized_absolute_score(1, 2.0, min_score=min_score, max_score=max_score)
+def _metric_report(metric_label: str, *, min_score: int, max_score: int) -> dict[str, Any]:
+    valid_score = max_score
+    invalid_score = max_score + 1
+    lower_score = max(min_score, valid_score - 1)
+    parsed_from_text = parse_discrete_score(
+        f"Rationale...\nScore: {valid_score}",
+        min_score=min_score,
+        max_score=max_score,
+    )
+    parsed_invalid = parse_discrete_score(f"Score: {invalid_score}", min_score=min_score, max_score=max_score)
+    perfect = normalized_absolute_score(valid_score, float(valid_score), min_score=min_score, max_score=max_score)
+    off_by_one = normalized_absolute_score(lower_score, float(valid_score), min_score=min_score, max_score=max_score)
     return {
-        "ok_metric_parser": parsed_from_text == 3 and parsed_invalid is None,
+        "ok_metric_parser": parsed_from_text == valid_score and parsed_invalid is None,
         "ok_metric_scale": perfect == 1.0 and 0.0 <= off_by_one < perfect,
-        "metric_description": metric_description(label),
+        "metric_description": metric_description(metric_label),
     }
 
 
-def _prompt_program_report(label: str, train_rows: list[Any]) -> dict[str, Any]:
-    program = make_program(ENGAGING_SEED_INSTRUCTIONS)
-    examples = make_dspy_examples(train_rows[:2], label)
-    metric_fn = create_metric_fn(label)
-    good_feedback = metric_fn(examples[0], type("Pred", (), {"score": "3"})())
+def _prompt_program_report(
+    *,
+    dataset: str,
+    dimension: str,
+    min_score: int,
+    max_score: int,
+    train_rows: list[Any],
+) -> dict[str, Any]:
+    prompt = seed_instructions(dataset=dataset, dimension=dimension, min_score=min_score, max_score=max_score)
+    program = make_program(prompt)
+    examples = make_dspy_examples(train_rows[:2])
+    metric_fn = create_metric_fn(dimension, min_score=min_score, max_score=max_score)
+    good_feedback = metric_fn(examples[0], type("Pred", (), {"score": str(max_score)})())
     bad_feedback = metric_fn(examples[0], type("Pred", (), {"score": "bad"})())
     GEPA = get_gepa_class()
     gepa_signature = inspect.signature(GEPA)
     return {
-        "ok_prompt_mentions_scale": "1 to 3" in ENGAGING_SEED_INSTRUCTIONS and "Engagingness" in ENGAGING_SEED_INSTRUCTIONS,
+        "ok_prompt_mentions_scale": f"{min_score} to {max_score}" in prompt and dimension in prompt.lower(),
         "ok_program_constructs": program is not None and len(examples) == 2,
         "ok_metric_feedback": hasattr(good_feedback, "score") and hasattr(bad_feedback, "feedback"),
         "ok_gepa_api": "metric" in gepa_signature.parameters,
@@ -278,7 +316,14 @@ def _latest_snapshot(model_cache: Path) -> Path:
 
 
 def _context_ids(rows: list[Any]) -> set[str]:
-    return {row.context_id for row in rows}
+    return {row.group_id for row in rows}
+
+
+def _same_scale(rows: list[Any]) -> tuple[int, int]:
+    scales = {(row.min_score, row.max_score) for row in rows}
+    if len(scales) != 1:
+        raise ValueError(f"Expected one score scale per run, found: {sorted(scales)}")
+    return next(iter(scales))
 
 
 def _as_int(value: str | None, key: str) -> int:
