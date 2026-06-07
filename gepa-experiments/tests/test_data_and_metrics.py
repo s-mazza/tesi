@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from geval_gepa.data import load_usr_examples, split_by_context
 from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
+from geval_gepa.nla_feedback import NlaFeedbackProvider
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
 from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_metric_fn
@@ -263,6 +264,64 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("response_mean_nll=2.7310", result.feedback)
         self.assertIn("response_perplexity=15.3500", result.feedback)
         self.assertIn("response_token_count=18", result.feedback)
+
+    def test_metric_feedback_can_include_precomputed_nla_verbalization(self) -> None:
+        example = load_usr_examples_from_fixture()[0]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "nla.jsonl"
+            path.write_text(
+                json_dump(
+                    {
+                        "example_id": example.response_id,
+                        "token_position": "candidate_3",
+                        "token_text": "jazz",
+                        "explanation": "The activation focuses on a concrete music topic.",
+                        "parse_status": "ok",
+                        "layer": 20,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            provider = NlaFeedbackProvider(
+                checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                layer=20,
+                backend="precomputed",
+                max_tokens_per_example=3,
+                precomputed_path=str(path),
+            )
+
+        class FakeDspy:
+            class Prediction:
+                def __init__(self, **kwargs):
+                    self.__dict__.update(kwargs)
+
+        with patch.dict("sys.modules", {"dspy": FakeDspy}):
+            metric_fn = create_metric_fn(
+                "Engaging",
+                min_score=1,
+                max_score=3,
+                nla_feedback_provider=provider,
+            )
+            result = metric_fn(
+                type(
+                    "Example",
+                    (),
+                    {
+                        "human_score": example.human_score("Engaging"),
+                        "context": example.context,
+                        "fact": example.fact,
+                        "response": example.response,
+                        "context_id": example.context_id,
+                        "response_id": example.response_id,
+                        "example_id": example.response_id,
+                    },
+                )(),
+                type("Pred", (), {"score": "2"})(),
+            )
+
+        self.assertIn("NLA multi-token verbalizations", result.feedback)
+        self.assertIn("concrete music topic", result.feedback)
 
     def test_configure_lms_keeps_judge_global_and_returns_separate_proposer(self) -> None:
         configured = {}

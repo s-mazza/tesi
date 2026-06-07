@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 from .data import DEFAULT_USR_URL, LABEL_SCALES
 from .metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
+from .nla_feedback import NlaFeedbackProvider
 from .perplexity import VllmPerplexityScorer, format_perplexity_feedback
 from .prompts import ENGAGING_SEED_INSTRUCTIONS, metric_description, seed_instructions
 from .proposers import make_instruction_proposer
@@ -78,6 +79,7 @@ def create_metric_fn(
     *,
     min_score: int | None = None,
     max_score: int | None = None,
+    nla_feedback_provider: Any | None = None,
 ) -> Callable[..., Any]:
     import dspy
 
@@ -124,6 +126,8 @@ def create_metric_fn(
                     f"Perplexity feedback failed for {context_id}/{response_id}: {type(exc).__name__}: {exc}"
                 ) from exc
             feedback.append(format_perplexity_feedback(perplexity))
+        if nla_feedback_provider is not None:
+            feedback.append(nla_feedback_provider.feedback_for(example))
         if abs(delta) >= 1.0:
             feedback.append(
                 f"The output was {direction}. Revise the judging instructions to better distinguish weak outputs "
@@ -399,6 +403,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--perplexity-hf-home", default="/llms")
     parser.add_argument("--perplexity-prompt-logprobs", type=int, default=20)
     parser.add_argument("--perplexity-timeout-seconds", type=float, default=120.0)
+    parser.add_argument("--nla-feedback", action="store_true")
+    parser.add_argument("--nla-backend", default="precomputed", choices=("precomputed", "dry_run"))
+    parser.add_argument("--nla-precomputed-path", default="")
+    parser.add_argument("--nla-max-tokens-per-example", type=int, default=6)
 
     budget = parser.add_mutually_exclusive_group(required=True)
     budget.add_argument("--gepa-auto", choices=["light", "medium", "heavy"])
@@ -477,6 +485,7 @@ def main() -> None:
 
     judge_lm, proposer_lm = configure_lms(args)
     perplexity_scorer = None
+    nla_feedback_provider = None
     if args.perplexity_feedback:
         perplexity_scorer = VllmPerplexityScorer(
             api_base=args.api_base,
@@ -495,6 +504,14 @@ def main() -> None:
             perplexity_scorer.score_example(example)
             if index % 25 == 0 or index == len(examples_for_feedback):
                 print(f"Perplexity feedback cache: {index}/{len(examples_for_feedback)} rows scored.", flush=True)
+    if args.nla_feedback:
+        nla_feedback_provider = NlaFeedbackProvider(
+            checkpoint=args.nla_av_checkpoint,
+            layer=args.nla_extraction_layer,
+            backend=args.nla_backend,
+            max_tokens_per_example=args.nla_max_tokens_per_example,
+            precomputed_path=args.nla_precomputed_path,
+        )
 
     seed_program = make_program(seed_prompt)
     optimized_program = seed_program
@@ -509,6 +526,7 @@ def main() -> None:
             perplexity_scorer=perplexity_scorer,
             min_score=min_score,
             max_score=max_score,
+            nla_feedback_provider=nla_feedback_provider,
         )
         gepa_kwargs: dict[str, Any] = {
             "metric": metric_fn,
@@ -572,6 +590,10 @@ def main() -> None:
             optimized_score=float(optimized_score) if isinstance(optimized_score, (int, float)) else None,
         )
     trajectory_count = export_prompt_trajectory(gepa_viz_path, prompt_trajectory_path)
+    nla_artifact_path = output_dir / f"nla_verbalizations_{timestamp}.jsonl"
+    nla_artifact_count = 0
+    if nla_feedback_provider is not None:
+        nla_artifact_count = nla_feedback_provider.write_artifact(nla_artifact_path)
     finished_at = datetime.now(timezone.utc)
     (output_dir / f"run_config_{timestamp}.json").write_text(
         json.dumps(
@@ -589,6 +611,10 @@ def main() -> None:
                 "judge_temperature": args.temperature,
                 "nla_av_checkpoint": args.nla_av_checkpoint,
                 "nla_extraction_layer": args.nla_extraction_layer,
+                "nla_feedback": args.nla_feedback,
+                "nla_backend": args.nla_backend if args.nla_feedback else "",
+                "nla_precomputed_path": args.nla_precomputed_path if args.nla_feedback else "",
+                "nla_max_tokens_per_example": args.nla_max_tokens_per_example if args.nla_feedback else 0,
                 "max_tokens": args.max_tokens,
                 "proposer_model": args.proposer_model if args.proposer_api_base else args.judge_model,
                 "proposer_api_base": args.proposer_api_base if args.proposer_api_base else args.api_base,
@@ -630,6 +656,8 @@ def main() -> None:
                     "gepa_viz_run": str(gepa_viz_path),
                     "prompt_trajectory": str(prompt_trajectory_path),
                     "prompt_trajectory_candidates": trajectory_count,
+                    "nla_verbalizations": str(nla_artifact_path) if args.nla_feedback else "",
+                    "nla_verbalization_rows": nla_artifact_count,
                 },
             },
             indent=2,

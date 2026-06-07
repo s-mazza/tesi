@@ -23,6 +23,10 @@ MAX_TOKENS="${MAX_TOKENS:-512}"
 INSTRUCTION_PROPOSER="${INSTRUCTION_PROPOSER:-default}"
 PERPLEXITY_FEEDBACK="${PERPLEXITY_FEEDBACK:-0}"
 PERPLEXITY_PROMPT_LOGPROBS="${PERPLEXITY_PROMPT_LOGPROBS:-20}"
+NLA_FEEDBACK="${NLA_FEEDBACK:-0}"
+NLA_BACKEND="${NLA_BACKEND:-precomputed}"
+NLA_PRECOMPUTED_PATH="${NLA_PRECOMPUTED_PATH:-}"
+NLA_MAX_TOKENS_PER_EXAMPLE="${NLA_MAX_TOKENS_PER_EXAMPLE:-6}"
 PROPOSER_MODEL="${PROPOSER_MODEL:-local-llamacpp}"
 PROPOSER_API_BASE="${PROPOSER_API_BASE:-}"
 PROPOSER_API_KEY="${PROPOSER_API_KEY:-}"
@@ -89,6 +93,12 @@ echo "  health: ${HEALTH_URL}"
 echo "  log: ${VLLM_LOG}"
 echo "  max tokens: ${MAX_TOKENS}"
 echo "  perplexity feedback: ${PERPLEXITY_FEEDBACK}"
+echo "  nla feedback: ${NLA_FEEDBACK}"
+if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
+  echo "  nla backend: ${NLA_BACKEND}"
+  echo "  nla precomputed path: ${NLA_PRECOMPUTED_PATH:-none}"
+  echo "  nla max tokens/example: ${NLA_MAX_TOKENS_PER_EXAMPLE}"
+fi
 if [[ -n "$PROPOSER_API_BASE" ]]; then
   echo "  proposer model: ${PROPOSER_MODEL}"
   echo "  proposer api: ${PROPOSER_API_BASE}"
@@ -180,6 +190,18 @@ if [[ "$PERPLEXITY_FEEDBACK" == "1" || "$PERPLEXITY_FEEDBACK" == "true" ]]; then
   )
 fi
 
+NLA_ARGS=()
+if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
+  NLA_ARGS=(
+    --nla-feedback
+    --nla-backend "$NLA_BACKEND"
+    --nla-max-tokens-per-example "$NLA_MAX_TOKENS_PER_EXAMPLE"
+  )
+  if [[ -n "$NLA_PRECOMPUTED_PATH" ]]; then
+    NLA_ARGS+=(--nla-precomputed-path "$NLA_PRECOMPUTED_PATH")
+  fi
+fi
+
 TASK_ARGS=(--dataset "$DATASET")
 if [[ -n "$DIMENSION" ]]; then
   TASK_ARGS+=(--dimension "$DIMENSION")
@@ -203,4 +225,5 @@ python -m geval_gepa.runner \
   --instruction-proposer "$INSTRUCTION_PROPOSER" \
   "${PROPOSER_ARGS[@]}" \
   "${PERPLEXITY_ARGS[@]}" \
+  "${NLA_ARGS[@]}" \
   "${BUDGET_ARGS[@]}"
