@@ -19,6 +19,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from aggregate_results import build_rows  # noqa: E402
+from export_nla_manifest import build_manifest  # noqa: E402
 
 
 FIXTURE = [
@@ -468,6 +469,30 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(optimized["dataset"], "summeval")
         self.assertAlmostEqual(optimized["agreement_improvement"], 0.25)
         self.assertAlmostEqual(optimized["mae_improvement"], 0.3)
+
+    def test_export_nla_manifest_contains_prompt_and_ids(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "tc.json"
+            path.write_text(json_dump(FIXTURE), encoding="utf-8")
+            args = Namespace(
+                dataset="topical_chat",
+                dimension="engagingness",
+                data_source=str(path),
+                split="validation",
+                train_groups=1,
+                val_groups=1,
+                test_groups=0,
+                seed=42,
+                limit=None,
+                token_policy="semantic_multi",
+            )
+            rows = build_manifest(args)
+
+        self.assertTrue(rows)
+        self.assertIn("prompt", rows[0])
+        self.assertIn("example_id", rows[0])
+        self.assertEqual(rows[0]["token_policy"], "semantic_multi")
+        self.assertIn("Candidate output:", rows[0]["prompt"])
 
     def test_reflection_examples_use_abstract_trace_summaries(self) -> None:
         reflection_text = _format_reflection_examples(
