@@ -393,7 +393,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-source", default=DEFAULT_USR_URL)
     parser.add_argument("--dataset", default="topical_chat")
     parser.add_argument("--dimension", default="")
-    parser.add_argument("--label", default="Engaging", choices=sorted(LABEL_SCALES), help="Legacy Topical-Chat label.")
+    parser.add_argument(
+        "--label",
+        default="Engaging",
+        help="Legacy Topical-Chat label. Non-Topical-Chat tasks may pass an arbitrary descriptive label.",
+    )
     parser.add_argument("--train-contexts", type=int, default=10)
     parser.add_argument("--val-contexts", type=int, default=3)
     parser.add_argument("--test-contexts", type=int, default=4)
