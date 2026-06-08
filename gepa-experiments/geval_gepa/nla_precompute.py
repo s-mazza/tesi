@@ -74,20 +74,23 @@ class SemanticTokenSelector:
     def select(self, manifest_row: dict[str, Any], rendered_prompt: str) -> list[TokenTarget]:
         targets: list[TokenTarget] = []
         field_specs = (
-            ("source", str(manifest_row.get("source_text") or "")),
             ("candidate", str(manifest_row.get("candidate_output") or "")),
+            ("source", str(manifest_row.get("source_text") or "")),
             ("reference", str(manifest_row.get("fact") or manifest_row.get("reference") or "")),
         )
-        per_field_budget = max(1, self.max_tokens_per_example // 2)
+        budgets = _semantic_token_budgets(self.max_tokens_per_example)
         for field_name, field_text in field_specs:
             if len(targets) >= self.max_tokens_per_example:
                 break
+            field_budget = budgets.get(field_name, 0)
+            if field_budget <= 0:
+                continue
             if not field_text or field_text == "_nofact":
                 continue
             base_offset = rendered_prompt.find(field_text)
             if base_offset < 0:
                 continue
-            for label, word, start, end in self._sample_words(field_text, limit=per_field_budget):
+            for label, word, start, end in self._sample_words(field_text, limit=field_budget):
                 targets.append(
                     TokenTarget(
                         token_position=f"{field_name}_{label}",
@@ -121,7 +124,7 @@ class SemanticTokenSelector:
     def _sample_matches(self, matches: list[re.Match[str]], *, limit: int) -> list[tuple[str, re.Match[str]]]:
         if not matches:
             return []
-        indexes = [0, len(matches) // 2, len(matches) - 1]
+        indexes = [len(matches) // 2, len(matches) - 1, 0]
         if limit > 3:
             step = max(1, len(matches) // limit)
             indexes.extend(range(0, len(matches), step))
@@ -131,8 +134,16 @@ class SemanticTokenSelector:
                 selected.append(index)
             if len(selected) >= limit:
                 break
-        labels = ("first", "middle", "last", "extra0", "extra1", "extra2", "extra3", "extra4")
+        labels = ("middle", "last", "first", "extra0", "extra1", "extra2", "extra3", "extra4")
         return [(labels[pos] if pos < len(labels) else f"extra{pos}", matches[index]) for pos, index in enumerate(selected)]
+
+
+def _semantic_token_budgets(max_tokens_per_example: int) -> dict[str, int]:
+    candidate = max(1, (max_tokens_per_example + 1) // 2)
+    remaining = max_tokens_per_example - candidate
+    source = 1 if remaining > 0 else 0
+    reference = max(0, remaining - source)
+    return {"candidate": candidate, "source": source, "reference": reference}
 
 
 class QwenActivationExtractor:
@@ -429,4 +440,3 @@ def iter_verbalization_rows(
             "parse_status": parse_status,
         }
         print(f"Verbalized NLA activation {index}/{len(activation_rows)}", flush=True)
-

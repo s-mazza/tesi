@@ -20,6 +20,7 @@ class NlaVerbalization:
     token_text: str
     verbalization: str
     parse_status: str
+    token_status: str
     layer: int
     checkpoint: str
     backend: str
@@ -137,6 +138,7 @@ class NlaFeedbackProvider:
                     token_text=str(row.get("token_text") or row.get("token") or ""),
                     verbalization=str(row.get("verbalization") or row.get("explanation") or row.get("raw_generation") or ""),
                     parse_status=str(row.get("parse_status") or "unknown"),
+                    token_status=str(row.get("token_status") or "unknown"),
                     layer=int(row.get("layer") or self.layer),
                     checkpoint=str(row.get("nla_model_id") or row.get("checkpoint") or self.checkpoint),
                     backend="precomputed",
@@ -161,6 +163,7 @@ class NlaFeedbackProvider:
                     "Do not use this backend for scientific results."
                 ),
                 parse_status="dry_run",
+                token_status="dry_run",
                 layer=self.layer,
                 checkpoint=self.checkpoint,
                 backend="dry_run",

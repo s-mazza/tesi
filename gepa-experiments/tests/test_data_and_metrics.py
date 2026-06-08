@@ -766,15 +766,17 @@ class DataAndMetricsTest(unittest.TestCase):
     def test_nla_precompute_selects_multiple_semantic_tokens(self) -> None:
         row = {
             "source_text": "Alice discusses astronomy with concrete comet details.",
-            "candidate_output": "The candidate asks about meteor showers and stars.",
+            "candidate_output": "The candidate asks about meteor showers and stars tonight.",
             "fact": "_nofact",
         }
         prompt = "\n".join([row["source_text"], row["candidate_output"]])
         targets = SemanticTokenSelector(max_tokens_per_example=3).select(row, prompt)
 
         self.assertGreaterEqual(len(targets), 2)
+        self.assertGreaterEqual(sum(target.token_position.startswith("candidate_") for target in targets), 2)
         self.assertTrue(any(target.token_position.startswith("source_") for target in targets))
-        self.assertTrue(any(target.token_position.startswith("candidate_") for target in targets))
+        self.assertFalse(any(target.token_position == "candidate_first" for target in targets))
+        self.assertIn("meteor", [target.token_text for target in targets])
 
     def test_nla_precompute_dry_run_writes_runner_compatible_rows(self) -> None:
         manifest = [
