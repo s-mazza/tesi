@@ -79,6 +79,7 @@ def collect_run(run_dir: Path) -> dict[str, Any]:
     config_path = run_dir / f"run_config_{suffix}.json" if suffix else latest_file(run_dir, "run_config_*.json")
     if config_path is not None and not config_path.exists():
         config_path = latest_file(run_dir, "run_config_*.json")
+    config = read_json(config_path)
     return {
         "run_dir": run_dir,
         "metrics_path": metrics_path,
@@ -89,12 +90,41 @@ def collect_run(run_dir: Path) -> dict[str, Any]:
         "nla_path": run_dir / f"nla_verbalizations_{suffix}.jsonl" if suffix else latest_file(run_dir, "nla_verbalizations_*.jsonl"),
         "prompt_path": run_dir / f"optimized_prompt_{suffix}.txt" if suffix else latest_file(run_dir, "optimized_prompt_*.txt"),
         "metrics": read_metrics(metrics_path),
-        "config": read_json(config_path),
+        "config": normalize_config(config),
     }
 
 
 def strip_prefix(text: str, prefix: str) -> str:
     return text[len(prefix) :] if text.startswith(prefix) else text
+
+
+def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+    output = dict(config)
+    label = str(output.get("legacy_label") or output.get("label") or "")
+    if not output.get("dataset") and label:
+        output["dataset"] = "topical_chat"
+    if not output.get("dimension") and label:
+        output["dimension"] = _legacy_label_to_dimension(label)
+    for new_key, old_key in (
+        ("train_groups", "train_contexts"),
+        ("val_groups", "val_contexts"),
+        ("test_groups", "test_contexts"),
+    ):
+        if new_key not in output and old_key in output:
+            output[new_key] = output[old_key]
+    return output
+
+
+def _legacy_label_to_dimension(label: str) -> str:
+    mapping = {
+        "Natural": "naturalness",
+        "Maintains Context": "coherence",
+        "Engaging": "engagingness",
+        "Uses Knowledge": "groundedness",
+        "Understandable": "naturalness",
+        "Overall": "engagingness",
+    }
+    return mapping.get(label, label.lower().replace(" ", "_"))
 
 
 def compare_configs(control: dict[str, Any], nla: dict[str, Any]) -> list[dict[str, Any]]:
@@ -179,7 +209,20 @@ def prediction_comparison(control_run: dict[str, Any], nla_run: dict[str, Any]) 
 
 
 def _prediction_by_example(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {str(row.get("example_id", "")): row for row in rows if row.get("example_id")}
+    output = {}
+    for row in rows:
+        example_id = str(row.get("example_id") or row.get("response_id") or "")
+        if not example_id:
+            group_id = str(row.get("group_id") or row.get("context_id") or "")
+            model = str(row.get("model") or "")
+            target = str(row.get("target") or "")
+            example_id = f"{group_id}|{model}|{target}" if group_id or model or target else ""
+        if example_id:
+            normalized = dict(row)
+            normalized["example_id"] = example_id
+            normalized["group_id"] = normalized.get("group_id") or normalized.get("context_id", "")
+            output[example_id] = normalized
+    return output
 
 
 def nla_quality(nla_run: dict[str, Any]) -> dict[str, Any]:
