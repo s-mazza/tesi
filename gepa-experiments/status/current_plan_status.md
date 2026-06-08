@@ -162,12 +162,24 @@ Step 4: if Topical-Chat diagnostics are positive, scale to paper-aligned dimensi
 
 Step 5: if NLA remains negative after the fixed selector.
 
-- Run candidate-only NLA.
-- Increase `NLA_MAX_TOKENS_PER_EXAMPLE` to 8 or 10.
-- Lower proposer temperature to 0.2 or 0.0.
-- Summarize/compress NLA feedback before giving it to the proposer.
+- Keep all creative NLA strategy experiments separate from the current main pipeline.
+- Do not change the default NLA selector, runner behavior, or production configs for these experiments.
+- Create separate experimental configs/scripts with explicit names such as `experimental_nla_candidate_only`, `experimental_nla_multi_position`, or `experimental_nla_compressed_feedback`.
+- Run candidate-only NLA as a separate experiment.
+- Increase `NLA_MAX_TOKENS_PER_EXAMPLE` to 8 or 10 only in separate experimental configs.
+- Lower proposer temperature to 0.2 or 0.0 only in matched experimental controls.
+- Test summarized/compressed NLA feedback before giving it to the proposer, but keep it isolated from the current runner path unless it clearly wins.
 - Test whether different NLA layers/checkpoints are available and compatible with Qwen2.5-7B.
+- Merge an experimental NLA strategy into the main pipeline only after it improves the task under a fair 1-to-1 comparison with enough evidence to remove reasonable doubt.
 - Only after these ablations decide whether NLA should be reported as negative/diagnostic rather than performance-improving.
+
+Experimental NLA strategy rules:
+
+- Every experimental strategy must keep the same dataset, dimension, seed, split, base 7B judge, proposer 35B, GEPA budget, and final metric computation as its matched control.
+- Each experiment must have a paired PPL-only or current fixed-NLA control.
+- Each experiment must save a diagnostic report with `diagnose_nla_run.py`.
+- Each experiment must report both final metrics and feedback-health metrics: token positions, duplicate verbalizations, parse status, token status, and prediction-level error movement.
+- A strategy is not allowed to replace the current pipeline just because it improves one smoke run; it needs at least one longer matched Topical-Chat run and one cross-dataset smoke before merge.
 
 ## Current Cluster Queue
 
