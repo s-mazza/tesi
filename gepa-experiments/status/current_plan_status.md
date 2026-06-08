@@ -220,6 +220,16 @@ Additional isolated experimental strategy jobs to queue after `11912918`:
 
 These jobs must remain outside the main pipeline. They answer only whether alternate NLA token selection makes the feedback condition healthier and whether that translates to better GEPA behavior on a matched smoke setting.
 
+Submission status:
+
+- Local implementation and validation completed.
+- Main scripts/configs/status were synced to `faretra` before SSH became unreachable.
+- Diagnostic report/CSV sync and Slurm submission were blocked by SSH timeout to both `faretra` and `moro232`.
+- Retry when SSH is reachable:
+  - `rsync -av gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/token_strategy_report.md gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/token_strategy_summary.csv faretra:/home/mazzacano/tesi/gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/`
+  - `ssh faretra 'cd /home/mazzacano/tesi && SLURM_DEPENDENCY=afterany:11912918 CONFIG_FILE=gepa-experiments/config/experimental_nla_candidate_content_6_topical_chat_smoke.env bash gepa-experiments/slurm/submit_experimental_nla_strategy.sh'`
+  - `ssh faretra 'cd /home/mazzacano/tesi && SLURM_DEPENDENCY=afterany:<candidate_content_6_jobid> CONFIG_FILE=gepa-experiments/config/experimental_nla_candidate_content_10_topical_chat_smoke.env bash gepa-experiments/slurm/submit_experimental_nla_strategy.sh'`
+
 ## Cluster Scheduling Rule
 
 Do not pin jobs to `moro232` unless there is a concrete node-specific reason. Prefer allowing Slurm to choose either `faretra` or `moro232` to exploit the first available compatible GPU.
