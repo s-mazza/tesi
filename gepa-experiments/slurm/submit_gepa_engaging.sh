@@ -14,6 +14,7 @@ set +a
 
 GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
 SLURM_NODE="${SLURM_NODE:-}"
+SLURM_EXCLUDE="${SLURM_EXCLUDE:-}"
 IMAGE_NAME="${IMAGE_NAME:-geval_gepa:latest}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-gepa-experiments/results/slurm}"
 JOB_SLUG="${JOB_SLUG:-geval-gepa-${DATASET:-topical_chat}-${DIMENSION:-${LABEL:-run}}}"
@@ -32,6 +33,11 @@ mkdir -p "$OUTPUT_ROOT"
 NODE_ARGS=()
 if [[ -n "$SLURM_NODE" ]]; then
   NODE_ARGS=(-w "$SLURM_NODE")
+fi
+
+EXCLUDE_ARGS=()
+if [[ -n "$SLURM_EXCLUDE" ]]; then
+  EXCLUDE_ARGS=(--exclude="$SLURM_EXCLUDE")
 fi
 
 TIME_ARGS=()
@@ -54,6 +60,7 @@ SBATCH_OUTPUT="$(sbatch \
   -N 1 \
   --gpus="$GPU_SPEC" \
   "${NODE_ARGS[@]}" \
+  "${EXCLUDE_ARGS[@]}" \
   "${TIME_ARGS[@]}" \
   "${MEM_ARGS[@]}" \
   "${DEPENDENCY_ARGS[@]}" \
