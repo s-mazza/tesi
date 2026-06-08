@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 
-METRIC_FIELDS = ("agreement", "pearson", "spearman", "mae", "coverage", "parsed", "total")
+METRIC_FIELDS = ("agreement", "pearson", "spearman", "kendall_tau", "mae", "coverage", "parsed", "total")
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
