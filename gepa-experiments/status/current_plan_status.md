@@ -202,7 +202,13 @@ Replacement chain submitted without a node pin, keeping `ExcNodeList=deeplearn2`
 - `11912915`: QAGS-CNN consistency smoke, PPL + real NLA, dependency `afterany:11912914`
 - `11912916`: QAGS-XSUM consistency smoke, PPL + real NLA, dependency `afterany:11912915`
 
-As of the latest check, `11912914` is pending for resources, and `11912915`/`11912916` are pending on dependencies.
+Latest status:
+
+- `11912914`, `11912915`, and `11912916` are no longer visible in `squeue` or `scontrol`.
+- `sacct` is currently unusable because SlurmDB returns `Connection refused`.
+- No Slurm stdout files or new result artifacts with job ids `11912914`, `11912915`, or `11912916` are visible under `gepa-experiments/results`.
+- Therefore these three dataset smoke jobs must not be counted as scientifically completed yet.
+- Next action: once SlurmDB/logging is stable, either recover their status from accounting or re-submit equivalent smoke jobs with confirmed stdout/artifact creation.
 
 Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain:
 
@@ -211,7 +217,11 @@ Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain
 
 These are intended to validate whether the NLA token-selection fix improves verbalization quality before launching another long NLA run.
 
-As of the latest check, `11912917` and `11912918` are pending on dependencies after the dataset smoke chain.
+Latest status:
+
+- `11912917`: pending, dependency satisfied, but blocked by `ReqNodeNotAvail,_UnavailableNodes:faretra`.
+- `11912918`: pending on dependency `afterany:11912917`.
+- Reason: `11912917` needs 2 x RTX 3090 for vLLM judge plus llama.cpp Qwen35B proposer. `faretra` has 4 x RTX 3090 but all 4 are currently allocated; `moro232` has only 1 x RTX 3090, so it cannot run this 2-GPU job.
 
 Additional isolated experimental strategy jobs to queue after `11912918`:
 
@@ -223,12 +233,11 @@ These jobs must remain outside the main pipeline. They answer only whether alter
 Submission status:
 
 - Local implementation and validation completed.
-- Main scripts/configs/status were synced to `faretra` before SSH became unreachable.
-- Diagnostic report/CSV sync and Slurm submission were blocked by SSH timeout to both `faretra` and `moro232`.
-- Retry when SSH is reachable:
-  - `rsync -av gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/token_strategy_report.md gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/token_strategy_summary.csv faretra:/home/mazzacano/tesi/gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/`
-  - `ssh faretra 'cd /home/mazzacano/tesi && SLURM_DEPENDENCY=afterany:11912918 CONFIG_FILE=gepa-experiments/config/experimental_nla_candidate_content_6_topical_chat_smoke.env bash gepa-experiments/slurm/submit_experimental_nla_strategy.sh'`
-  - `ssh faretra 'cd /home/mazzacano/tesi && SLURM_DEPENDENCY=afterany:<candidate_content_6_jobid> CONFIG_FILE=gepa-experiments/config/experimental_nla_candidate_content_10_topical_chat_smoke.env bash gepa-experiments/slurm/submit_experimental_nla_strategy.sh'`
+- Scripts/configs/status and token-strategy diagnostic report/CSV are synced to `faretra`.
+- `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, dependency `afterany:11912918`.
+- `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, dependency `afterany:11912947`.
+- These jobs are intentionally serial and outside the main pipeline.
+- A single-GPU smoke config exists, but it is not a matched scientific comparison for Qwen35B proposer runs. It was not launched because it would not answer the current NLA-vs-control question and `moro232` has only one GPU and low real free memory.
 
 ## Cluster Scheduling Rule
 
