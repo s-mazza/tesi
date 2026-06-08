@@ -86,16 +86,35 @@ Completed or in progress locally:
 - Added dry-run NLA guard for scientific runs.
 - Added pass-through Slurm variables for NLA minimum coverage and dry-run override.
 - Added reusable NLA-vs-control diagnostic script.
+- Generated first long-run NLA diagnostic report:
+  - `gepa-experiments/results/diagnostics/nla_vs_ppl_long_20260608.md`
+  - comparison: long PPL-only llama.cpp proposer run vs long PPL+NLA llama.cpp proposer run
+  - normalized config check is 1-to-1 except NLA-specific fields
+  - optimized Pearson dropped by 0.121668 with NLA
+  - optimized Spearman dropped by 0.129078 with NLA
+  - optimized MAE worsened by 0.194444 with NLA
+  - prediction-level test movement: 6 examples improved, 18 worsened, 36 unchanged
+  - NLA quality signal: 900 rows, 300 covered examples, but all parse statuses are `partial_tags`, token status is `unknown`, and 667 rows are duplicate repeated text rows
 
 Still required:
 
 - Run the updated tests locally.
 - Commit changes in small descriptive commits.
 - Sync updated files to the cluster.
-- Requeue pending jobs so they can run on either `faretra` or `moro232`, while excluding `deeplearn2`.
-- Pull complete artifacts for the previous long NLA and non-NLA runs.
-- Generate the first NLA diagnostic report.
+- Pull complete artifacts for any future long NLA and non-NLA reruns.
 - Launch diagnostic NLA ablations only after the report identifies the most likely failure mode.
+
+## Current Cluster Queue
+
+The old pinned jobs `11912818`, `11912819`, and `11912820` were cancelled because they had `ReqNodeList=moro232`.
+
+Replacement chain submitted without a node pin, keeping `ExcNodeList=deeplearn2`:
+
+- `11912914`: SummEval consistency smoke, PPL + real NLA
+- `11912915`: QAGS-CNN consistency smoke, PPL + real NLA, dependency `afterany:11912914`
+- `11912916`: QAGS-XSUM consistency smoke, PPL + real NLA, dependency `afterany:11912915`
+
+As of the latest check, `11912914` is pending for resources, and the other two are pending on dependencies.
 
 ## Cluster Scheduling Rule
 
