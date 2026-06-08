@@ -11,6 +11,7 @@ from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_s
 from geval_gepa.nla_feedback import NlaFeedbackProvider
 from geval_gepa.nla_precompute import SemanticTokenSelector, fake_activation_rows, iter_verbalization_rows
 from geval_gepa.perplexity import PerplexityResult
+from geval_gepa.preflight import build_report as build_preflight_report
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
 from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_metric_fn
 from geval_gepa.tasks import get_task, split_examples
@@ -204,6 +205,70 @@ class DataAndMetricsTest(unittest.TestCase):
 
         self.assertEqual(examples[0].candidate_output, "Sentence one. Sentence two.")
         self.assertAlmostEqual(examples[0].human_score, 1.0 + 4.0 * (2 / 3))
+
+    def test_light_preflight_uses_task_registry_for_summeval(self) -> None:
+        records = [
+            {
+                "doc_id": "doc1",
+                "source": "Article text",
+                "system_output": "Candidate summary",
+                "reference": "Reference summary",
+                "scores": {"consistency": 2.5},
+            }
+        ]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "summeval.json"
+            path.write_text(json_dump(records), encoding="utf-8")
+            report = build_preflight_report(
+                Namespace(
+                    data_source=str(path),
+                    dataset="summeval",
+                    dimension="consistency",
+                    judge_model="Qwen/Qwen2.5-7B-Instruct",
+                    nla_av_checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                    hf_home=tmpdir,
+                    train_contexts=1,
+                    val_contexts=0,
+                    test_contexts=0,
+                    seed=42,
+                )
+            )
+
+        self.assertEqual(report["dataset"], "summeval")
+        self.assertTrue(report["ok_dataset"])
+        self.assertTrue(report["ok_split_group_counts"])
+
+    def test_light_preflight_uses_task_registry_for_qags_jsonl(self) -> None:
+        record = {
+            "article": "Article text",
+            "summary_sentences": [
+                {
+                    "sentence": "Sentence one.",
+                    "responses": [{"worker_id": 0, "response": "yes"}],
+                }
+            ],
+        }
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "qags.jsonl"
+            path.write_text(json_dump(record) + "\n", encoding="utf-8")
+            report = build_preflight_report(
+                Namespace(
+                    data_source=str(path),
+                    dataset="qags_cnn",
+                    dimension="consistency",
+                    judge_model="Qwen/Qwen2.5-7B-Instruct",
+                    nla_av_checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                    hf_home=tmpdir,
+                    train_contexts=1,
+                    val_contexts=0,
+                    test_contexts=0,
+                    seed=42,
+                )
+            )
+
+        self.assertEqual(report["dataset"], "qags_cnn")
+        self.assertTrue(report["ok_dataset"])
+        self.assertTrue(report["ok_split_group_counts"])
 
     def test_parse_discrete_score(self) -> None:
         self.assertEqual(parse_discrete_score("Score: 3", min_score=1, max_score=3), 3)

@@ -8,12 +8,14 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .data import load_usr_examples, split_by_context
+from .tasks import get_task, split_examples
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-source", default="gepa-experiments/cache/tc_usr_data.json")
+    parser.add_argument("--dataset", default="topical_chat")
+    parser.add_argument("--dimension", default="")
     parser.add_argument("--judge-model", default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--nla-av-checkpoint", default="kitft/nla-qwen2.5-7b-L20-av")
     parser.add_argument("--hf-home", default="/llms")
@@ -61,18 +63,33 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 
         dspy_version = getattr(dspy, "__version__", "unknown")
 
-    rows = load_usr_examples(args.data_source)
-    split_sizes = [
-        len(split)
-        for split in split_by_context(
-            rows,
-            train_contexts=args.train_contexts,
-            val_contexts=args.val_contexts,
-            test_contexts=args.test_contexts,
-            seed=args.seed,
-        )
+    task = get_task(args.dataset)
+    dimension = args.dimension or task.default_dimension
+    rows = task.load(args.data_source, dimension)
+    train_rows, val_rows, test_rows = split_examples(
+        rows,
+        train_groups=args.train_contexts,
+        val_groups=args.val_contexts,
+        test_groups=args.test_contexts,
+        seed=args.seed,
+    )
+    split_sizes = [len(train_rows), len(val_rows), len(test_rows)]
+    split_groups = [
+        len({row.group_id for row in train_rows}),
+        len({row.group_id for row in val_rows}),
+        len({row.group_id for row in test_rows}),
     ]
-    expected_split_sizes = [args.train_contexts * 6, args.val_contexts * 6, args.test_contexts * 6]
+    expected_split_groups = [args.train_contexts, args.val_contexts, args.test_contexts]
+    split_group_sets = [
+        {row.group_id for row in train_rows},
+        {row.group_id for row in val_rows},
+        {row.group_id for row in test_rows},
+    ]
+    context_overlaps = [
+        sorted(split_group_sets[0] & split_group_sets[1]),
+        sorted(split_group_sets[0] & split_group_sets[2]),
+        sorted(split_group_sets[1] & split_group_sets[2]),
+    ]
 
     hf_home = Path(args.hf_home)
     model_cache = hf_home / "hub" / f"models--{args.judge_model.replace('/', '--')}"
@@ -86,18 +103,29 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "vllm_version": vllm_version,
         "dspy_version": dspy_version,
         "flash_attn_available": importlib.util.find_spec("flash_attn") is not None,
-        "ok_dataset": len(rows) == 360 and split_sizes == expected_split_sizes,
+        "dataset": task.dataset,
+        "dimension": dimension,
+        "ok_dataset": len(rows) > 0,
+        "ok_split_group_counts": split_groups == expected_split_groups,
+        "ok_context_disjoint": not any(context_overlaps),
+        "ok_response_ids_unique": len({row.example_id for row in rows}) == len(rows),
         "dataset_rows": len(rows),
         "split_sizes": {
             "gepa_train": split_sizes[0],
             "gepa_validation": split_sizes[1],
             "final_test": split_sizes[2],
         },
-        "expected_split_sizes": {
-            "gepa_train": expected_split_sizes[0],
-            "gepa_validation": expected_split_sizes[1],
-            "final_test": expected_split_sizes[2],
+        "split_group_counts": {
+            "gepa_train": split_groups[0],
+            "gepa_validation": split_groups[1],
+            "final_test": split_groups[2],
         },
+        "expected_split_group_counts": {
+            "gepa_train": expected_split_groups[0],
+            "gepa_validation": expected_split_groups[1],
+            "final_test": expected_split_groups[2],
+        },
+        "context_overlaps": context_overlaps,
         "ok_judge_model_cache": model_cache.exists(),
         "judge_model_cache": str(model_cache),
         "ok_nla_av_cache": nla_cache.exists(),

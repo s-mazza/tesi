@@ -133,6 +133,8 @@ write_dependency_manifest
 
 python -m geval_gepa.preflight \
   --data-source "$DATA_SOURCE" \
+  --dataset "$DATASET" \
+  --dimension "$DIMENSION" \
   --judge-model "$JUDGE_MODEL" \
   --nla-av-checkpoint "$NLA_AV_CHECKPOINT" \
   --train-contexts "$TRAIN_CONTEXTS" \
