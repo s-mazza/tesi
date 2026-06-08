@@ -75,7 +75,7 @@ def _float_or_nan(value: Any) -> float:
 
 def collect_run(run_dir: Path) -> dict[str, Any]:
     metrics_path = latest_file(run_dir, "metrics_*.csv")
-    suffix = metrics_path.stem.removeprefix("metrics_") if metrics_path else ""
+    suffix = strip_prefix(metrics_path.stem, "metrics_") if metrics_path else ""
     config_path = run_dir / f"run_config_{suffix}.json" if suffix else latest_file(run_dir, "run_config_*.json")
     if config_path is not None and not config_path.exists():
         config_path = latest_file(run_dir, "run_config_*.json")
@@ -91,6 +91,10 @@ def collect_run(run_dir: Path) -> dict[str, Any]:
         "metrics": read_metrics(metrics_path),
         "config": read_json(config_path),
     }
+
+
+def strip_prefix(text: str, prefix: str) -> str:
+    return text[len(prefix) :] if text.startswith(prefix) else text
 
 
 def compare_configs(control: dict[str, Any], nla: dict[str, Any]) -> list[dict[str, Any]]:

@@ -26,11 +26,15 @@ def latest_file(directory: Path, pattern: str) -> Path | None:
 def iter_runs(results_root: Path):
     for metrics_path in sorted(results_root.rglob("metrics_*.csv")):
         run_dir = metrics_path.parent
-        suffix = metrics_path.stem.removeprefix("metrics_")
+        suffix = strip_prefix(metrics_path.stem, "metrics_")
         config_path = run_dir / f"run_config_{suffix}.json"
         if not config_path.exists():
             config_path = latest_file(run_dir, "run_config_*.json")
         yield run_dir, metrics_path, config_path
+
+
+def strip_prefix(text: str, prefix: str) -> str:
+    return text[len(prefix) :] if text.startswith(prefix) else text
 
 
 def row_float(row: dict[str, str], key: str) -> float | None:
