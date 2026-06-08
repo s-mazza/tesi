@@ -95,6 +95,13 @@ Completed or in progress locally:
   - optimized MAE worsened by 0.194444 with NLA
   - prediction-level test movement: 6 examples improved, 18 worsened, 36 unchanged
   - NLA quality signal: 900 rows, 300 covered examples, but all parse statuses are `partial_tags`, token status is `unknown`, and 667 rows are duplicate repeated text rows
+- Completed root-cause analysis:
+  - `gepa-experiments/results/diagnostics/nla_root_cause_20260608.md`
+  - root cause: old NLA token selection used weak first semantic tokens from source/candidate/reference when budget was small
+  - this produced repeated, generic verbalizations and tested noisy NLA feedback rather than a strong NLA condition
+  - implemented candidate-prioritized middle/final token selection
+  - preserved `token_status` in emitted NLA artifacts
+  - increased real-NLA token and generation budgets
 
 Still required:
 
@@ -102,7 +109,7 @@ Still required:
 - Commit changes in small descriptive commits.
 - Sync updated files to the cluster.
 - Pull complete artifacts for any future long NLA and non-NLA reruns.
-- Launch diagnostic NLA ablations only after the report identifies the most likely failure mode.
+- After queued fixed-NLA diagnostics finish, run `diagnose_nla_run.py` on their outputs.
 
 ## Current Cluster Queue
 
@@ -115,6 +122,13 @@ Replacement chain submitted without a node pin, keeping `ExcNodeList=deeplearn2`
 - `11912916`: QAGS-XSUM consistency smoke, PPL + real NLA, dependency `afterany:11912915`
 
 As of the latest check, `11912914` is pending for resources, and the other two are pending on dependencies.
+
+Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain:
+
+- `11912917`: Topical-Chat engagingness smoke, PPL-only control, llama.cpp proposer
+- `11912918`: Topical-Chat engagingness smoke, PPL + fixed NLA, llama.cpp proposer
+
+These are intended to validate whether the NLA token-selection fix improves verbalization quality before launching another long NLA run.
 
 ## Cluster Scheduling Rule
 
