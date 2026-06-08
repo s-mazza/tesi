@@ -34,9 +34,9 @@ For each dataset/dimension target, run:
 
 The 35B llama.cpp model is used as GEPA proposer. The NLA and perplexity signals are computed on the base Qwen 7B model.
 
-## NLA Root-Cause Plan
+## NLA Root-Cause Findings
 
-Before scaling the full matrix, diagnose the long NLA run against the closest long non-NLA control. The intended control differs only by enabling NLA:
+Before scaling the full matrix, the long NLA run was diagnosed against the closest long non-NLA control. The intended control differs only by enabling NLA:
 
 - same dataset and dimension
 - same seed
@@ -63,16 +63,15 @@ Extra required artifact for NLA runs:
 
 - `nla_verbalizations_*.jsonl`
 
-The diagnostic report must answer:
+The diagnostic report answered:
 
-- Was the comparison truly 1-to-1?
-- Did NLA cover all GEPA train/validation examples?
-- Were verbalizations non-empty, parsed, non-placeholder, and semantically useful?
-- Which token positions were verbalized?
-- Did NLA improve or worsen prediction-level absolute error?
-- Did GEPA incorporate NLA feedback into prompt changes?
-- Did NLA cause validation overfit or longer less-general prompts?
-- Is the failure likely due to token selection, layer/checkpoint, proposer stochasticity, feedback length, or noisy verbalizations?
+- The comparison was 1-to-1 after normalizing legacy artifact keys, except for NLA-specific fields.
+- NLA covered the GEPA train/validation examples.
+- NLA worsened final-test metrics and prediction-level errors.
+- The failure is most likely caused by weak token selection and noisy/repetitive verbalizations, not by a definitive failure of the NLA idea.
+- The old selector used first semantic tokens from source/candidate/reference when the budget was small.
+- In the long run this produced weak tokens such as `reading`, `recently`, and `from`.
+- This means the run tested GEPA with noisy first-token NLA feedback, not a strong NLA condition.
 
 Use `gepa-experiments/scripts/diagnose_nla_run.py` for this comparison.
 
@@ -94,7 +93,8 @@ Completed or in progress locally:
   - optimized Spearman dropped by 0.129078 with NLA
   - optimized MAE worsened by 0.194444 with NLA
   - prediction-level test movement: 6 examples improved, 18 worsened, 36 unchanged
-  - NLA quality signal: 900 rows, 300 covered examples, but all parse statuses are `partial_tags`, token status is `unknown`, and 667 rows are duplicate repeated text rows
+  - NLA quality signal: 900 rows, 300 covered examples, all emitted parse statuses are `partial_tags`, and 667 rows are duplicate repeated text rows
+  - Important clarification: the first diagnostic artifact showed `token_status=unknown` because the runner-emitted NLA artifact did not preserve `token_status`; the raw precompute file had `900/900 token_status=ok`
 - Completed root-cause analysis:
   - `gepa-experiments/results/diagnostics/nla_root_cause_20260608.md`
   - root cause: old NLA token selection used weak first semantic tokens from source/candidate/reference when budget was small
@@ -102,14 +102,16 @@ Completed or in progress locally:
   - implemented candidate-prioritized middle/final token selection
   - preserved `token_status` in emitted NLA artifacts
   - increased real-NLA token and generation budgets
+  - removed the old `NLA_PRECOMPUTE_LIMIT=8` from the fixed-NLA smoke config so the coverage gate can validate full GEPA train/validation coverage
 
 Still required:
 
-- Run the updated tests locally.
-- Commit changes in small descriptive commits.
-- Sync updated files to the cluster.
-- Pull complete artifacts for any future long NLA and non-NLA reruns.
-- After queued fixed-NLA diagnostics finish, run `diagnose_nla_run.py` on their outputs.
+- Wait for the queued fixed-NLA diagnostics to finish.
+- Pull artifacts for `11912917` and `11912918`.
+- Run `diagnose_nla_run.py` on the PPL-only smoke control vs fixed-NLA smoke.
+- Check whether fixed NLA improves verbalization quality before launching another long NLA run.
+- If fixed smoke looks better, launch a longer Topical-Chat engagingness PPL+fixed-NLA run.
+- If fixed smoke still fails, isolate candidate-only NLA, larger token budgets, lower proposer temperature, and shorter/summarized NLA feedback.
 
 ## Current Cluster Queue
 
@@ -121,7 +123,7 @@ Replacement chain submitted without a node pin, keeping `ExcNodeList=deeplearn2`
 - `11912915`: QAGS-CNN consistency smoke, PPL + real NLA, dependency `afterany:11912914`
 - `11912916`: QAGS-XSUM consistency smoke, PPL + real NLA, dependency `afterany:11912915`
 
-As of the latest check, `11912914` is pending for resources, and the other two are pending on dependencies.
+As of the latest check, `11912914` is pending for resources, and `11912915`/`11912916` are pending on dependencies.
 
 Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain:
 
@@ -129,6 +131,8 @@ Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain
 - `11912918`: Topical-Chat engagingness smoke, PPL + fixed NLA, llama.cpp proposer
 
 These are intended to validate whether the NLA token-selection fix improves verbalization quality before launching another long NLA run.
+
+As of the latest check, `11912917` and `11912918` are pending on dependencies after the dataset smoke chain.
 
 ## Cluster Scheduling Rule
 
@@ -146,6 +150,14 @@ NLA can be considered thesis-ready only if at least one of these is true:
 
 - It improves paper-aligned metrics under a fair 1-to-1 comparison.
 - Or, if it does not improve, we have a reproducible diagnostic report explaining the bottleneck and next implementation step.
+
+Before launching another long fixed-NLA run, the fixed-NLA smoke comparison must show that the feedback condition itself is healthier:
+
+- NLA emitted artifacts preserve `token_status=ok`.
+- Verbalizations are not dominated by first-token source/reference activations.
+- Duplicate verbalization rows are substantially lower than the first long NLA run.
+- `partial_tags` are reduced, or at least the unclosed tag behavior is confirmed not to truncate semantic content.
+- The PPL-only smoke and fixed-NLA smoke are compared with `diagnose_nla_run.py`.
 
 The full experiment matrix is considered scientifically usable only when every dataset/dimension target has:
 
