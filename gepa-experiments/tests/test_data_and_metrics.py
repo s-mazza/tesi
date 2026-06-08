@@ -304,6 +304,20 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertNotIn("Human mean", cleaned)
         self.assertNotIn("predicted score", cleaned)
 
+    def test_sanitizes_proposed_instruction_with_wrong_dimension(self) -> None:
+        fallback = "Rate the candidate summary on consistency from 1 to 3 and return Score: <1, 2, or 3>."
+        proposed = "\n".join(
+            [
+                "Rate the candidate summary on engagingness using a 1 to 3 scale.",
+                "Reward vivid summaries that capture reader interest.",
+                "Return a final line formatted as Score: <1, 2, or 3>.",
+            ]
+        )
+
+        cleaned = sanitize_proposed_instruction(proposed, fallback=fallback, expected_dimension="consistency")
+
+        self.assertEqual(cleaned, fallback)
+
     def test_sanitizes_reflection_feedback_for_proposer(self) -> None:
         feedback = "\n".join(
             [

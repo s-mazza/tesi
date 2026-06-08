@@ -36,12 +36,31 @@ FORBIDDEN_REFLECTION_SUBSTRINGS = (
     "context_",
 )
 
+DIMENSION_KEYWORDS = {
+    "naturalness": ("naturalness", "natural"),
+    "coherence": ("coherence", "coherent"),
+    "engagingness": ("engagingness", "engaging"),
+    "groundedness": ("groundedness", "grounded", "uses knowledge"),
+    "fluency": ("fluency", "fluent"),
+    "consistency": ("consistency", "consistent", "factually consistent"),
+    "relevance": ("relevance", "relevant"),
+}
+DIMENSION_CONFLICT_TERMS = {
+    "naturalness": ("naturalness",),
+    "coherence": ("coherence",),
+    "engagingness": ("engagingness",),
+    "groundedness": ("groundedness",),
+    "fluency": ("fluency",),
+    "consistency": ("consistency",),
+    "relevance": ("relevance",),
+}
+
 
 class ProposerUnavailableError(RuntimeError):
     """Raised when the requested proposer cannot be constructed."""
 
 
-def sanitize_proposed_instruction(instruction: str, fallback: str) -> str:
+def sanitize_proposed_instruction(instruction: str, fallback: str, expected_dimension: str | None = None) -> str:
     """Remove optimizer-feedback artifacts that should never become judge policy."""
 
     cleaned_lines = []
@@ -56,6 +75,8 @@ def sanitize_proposed_instruction(instruction: str, fallback: str) -> str:
 
     cleaned = "\n".join(cleaned_lines).strip()
     if len(cleaned) < 80 or "score" not in cleaned.lower():
+        return fallback
+    if expected_dimension and _mentions_wrong_dimension(cleaned, expected_dimension):
         return fallback
     return cleaned
 
@@ -74,7 +95,7 @@ def sanitize_reflection_feedback(feedback: Any) -> str:
     return "\n".join(cleaned_lines) or "No generic feedback available."
 
 
-def make_instruction_proposer(mode: str, fallback_instruction: str) -> Any | None:
+def make_instruction_proposer(mode: str, fallback_instruction: str, *, dataset: str, dimension: str) -> Any | None:
     """Create the requested GEPA instruction proposer."""
 
     if mode == "default":
@@ -91,25 +112,27 @@ def make_instruction_proposer(mode: str, fallback_instruction: str) -> Any | Non
 
     class ProposeGeneralJudgeInstruction(dspy.Signature):
         """
-        You are an expert prompt engineer improving instructions for a dialogue-response judge.
+        You are an expert prompt engineer improving instructions for a G-EVAL-style judge.
 
-        The judge rates a candidate response's Engagingness on a 1 to 3 scale.
+        The judge rates generated outputs for one requested evaluation dimension.
         Review the current instruction plus recent inputs, outputs, and feedback.
 
         CRITICAL RULES:
-        1. Turn feedback into generic judging rules for Engagingness only.
+        1. Turn feedback into generic judging rules for the requested evaluation dimension only.
         2. Do not copy any conversation topic, fact, response text, entity, context id, example id, human score,
            predicted score, metric value, or feedback label into the new instruction.
         3. Do not mention training examples, validation examples, normalized agreement, Pearson, Spearman, MAE,
            or optimizer feedback.
-        4. Keep the instruction broadly applicable to unseen Topical-Chat responses.
+        4. Keep the instruction broadly applicable to unseen examples from the named dataset.
         5. Preserve the required output contract: a brief rationale and a final line formatted as
-           Score: <1, 2, or 3>.
+           Score: <allowed score>.
         """
 
+        dataset = dspy.InputField(desc="Dataset being evaluated.")
+        evaluation_dimension = dspy.InputField(desc="The only dimension the judge is allowed to evaluate.")
         current_instruction = dspy.InputField(desc="The instruction currently being used.")
         reflection_data = dspy.InputField(desc="Recent inputs, outputs, and feedback from GEPA.")
-        new_instruction = dspy.OutputField(desc="A generic, non-overfit Engagingness judge instruction.")
+        new_instruction = dspy.OutputField(desc="A generic, non-overfit judge instruction for the requested dimension.")
 
     class GeneralizingJudgeProposer(ProposalFn):
         """GEPA proposer that converts example feedback into generic rubric changes."""
@@ -131,6 +154,8 @@ def make_instruction_proposer(mode: str, fallback_instruction: str) -> Any | Non
                 current_instruction = candidate[component_name]
                 reflection_text = _format_reflection_examples(reflective_dataset[component_name])
                 result = self.instruction_improver(
+                    dataset=dataset,
+                    evaluation_dimension=dimension,
                     current_instruction=current_instruction,
                     reflection_data=reflection_text,
                 )
@@ -138,11 +163,24 @@ def make_instruction_proposer(mode: str, fallback_instruction: str) -> Any | Non
                 updated_components[component_name] = sanitize_proposed_instruction(
                     proposed,
                     fallback=current_instruction or fallback_instruction,
+                    expected_dimension=dimension,
                 )
 
             return updated_components
 
     return GeneralizingJudgeProposer()
+
+
+def _mentions_wrong_dimension(instruction: str, expected_dimension: str) -> bool:
+    normalized = instruction.lower()
+    expected = expected_dimension.strip().lower().replace("-", "_")
+    other_terms = [
+        term
+        for dimension, terms in DIMENSION_CONFLICT_TERMS.items()
+        if dimension != expected
+        for term in terms
+    ]
+    return any(term in normalized for term in other_terms)
 
 
 def _format_reflection_examples(examples: list[Any]) -> str:

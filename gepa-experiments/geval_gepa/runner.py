@@ -569,7 +569,12 @@ def main() -> None:
             "add_format_failure_as_feedback": True,
             "reflection_lm": proposer_lm,
         }
-        proposer = make_instruction_proposer(args.instruction_proposer, fallback_instruction=seed_prompt)
+        proposer = make_instruction_proposer(
+            args.instruction_proposer,
+            fallback_instruction=seed_prompt,
+            dataset=dataset,
+            dimension=dimension,
+        )
         if proposer is not None:
             gepa_kwargs["instruction_proposer"] = proposer
         if args.gepa_auto:
