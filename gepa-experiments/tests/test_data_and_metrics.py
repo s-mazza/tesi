@@ -13,7 +13,7 @@ from geval_gepa.nla_precompute import SemanticTokenSelector, fake_activation_row
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.preflight import build_report as build_preflight_report
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
-from geval_gepa.runner import _abstract_rubric_signals, configure_lms, create_metric_fn
+from geval_gepa.runner import _abstract_rubric_signals, _validate_nla_feedback_ready, configure_lms, create_metric_fn
 from geval_gepa.tasks import get_task, split_examples
 from geval_gepa.trajectory import export_prompt_trajectory
 
@@ -21,6 +21,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from aggregate_results import build_rows  # noqa: E402
+from diagnose_nla_run import build_report as build_nla_diagnostic_report  # noqa: E402
 from export_nla_manifest import build_manifest  # noqa: E402
 
 
@@ -285,7 +286,14 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(metrics.n, 3)
         self.assertAlmostEqual(metrics.pearson, 1.0)
         self.assertAlmostEqual(metrics.spearman, 1.0)
+        self.assertAlmostEqual(metrics.kendall_tau, 1.0)
         self.assertAlmostEqual(metrics.mae, 0.0)
+
+    def test_kendall_tau_b_handles_ties(self) -> None:
+        metrics = compute_regression_metrics([1, 1, 2, 3], [1, 2, 2, 3])
+
+        self.assertEqual(metrics.n, 4)
+        self.assertAlmostEqual(metrics.kendall_tau, 0.8)
 
     def test_sanitizes_optimizer_feedback_from_proposed_instruction(self) -> None:
         fallback = "Rate Engagingness from 1 to 3 and return Score: <1, 2, or 3>."
@@ -454,6 +462,53 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("NLA multi-token verbalizations", result.feedback)
         self.assertIn("concrete music topic", result.feedback)
 
+    def test_nla_precomputed_validation_rejects_missing_examples(self) -> None:
+        example = load_usr_examples_from_fixture()[0]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "nla.jsonl"
+            path.write_text("", encoding="utf-8")
+            provider = NlaFeedbackProvider(
+                checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                layer=20,
+                backend="precomputed",
+                max_tokens_per_example=3,
+                precomputed_path=str(path),
+            )
+
+        dspy_example = type("Example", (), {"example_id": example.response_id})()
+        with self.assertRaisesRegex(ValueError, "coverage is below threshold"):
+            _validate_nla_feedback_ready(provider, [dspy_example], min_coverage=0.95)
+
+    def test_nla_precomputed_validation_accepts_useful_rows(self) -> None:
+        example = load_usr_examples_from_fixture()[0]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "nla.jsonl"
+            path.write_text(
+                json_dump(
+                    {
+                        "example_id": example.response_id,
+                        "token_position": "candidate_3",
+                        "token_text": "jazz",
+                        "explanation": "The activation focuses on a concrete music topic.",
+                        "parse_status": "ok",
+                        "token_status": "ok",
+                        "layer": 20,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            provider = NlaFeedbackProvider(
+                checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                layer=20,
+                backend="precomputed",
+                max_tokens_per_example=3,
+                precomputed_path=str(path),
+            )
+
+        dspy_example = type("Example", (), {"example_id": example.response_id})()
+        _validate_nla_feedback_ready(provider, [dspy_example], min_coverage=0.95)
+
     def test_aux_judge_feedback_does_not_change_metric_score(self) -> None:
         class FakeAuxJudge:
             def feedback_for(self, **kwargs):
@@ -567,9 +622,9 @@ class DataAndMetricsTest(unittest.TestCase):
             (run_dir / "metrics_20260101T000000Z.csv").write_text(
                 "\n".join(
                     [
-                        "program,total,parsed,coverage,agreement,n,pearson,spearman,mae",
-                        "baseline,10,10,1.0,0.5,10,0.2,0.3,0.6",
-                        "optimized,10,10,1.0,0.75,10,0.4,0.5,0.3",
+                        "program,total,parsed,coverage,agreement,n,pearson,spearman,kendall_tau,mae",
+                        "baseline,10,10,1.0,0.5,10,0.2,0.3,0.1,0.6",
+                        "optimized,10,10,1.0,0.75,10,0.4,0.5,0.4,0.3",
                     ]
                 )
                 + "\n",
@@ -593,7 +648,76 @@ class DataAndMetricsTest(unittest.TestCase):
         optimized = [row for row in rows if row["program"] == "optimized"][0]
         self.assertEqual(optimized["dataset"], "summeval")
         self.assertAlmostEqual(optimized["agreement_improvement"], 0.25)
+        self.assertAlmostEqual(optimized["kendall_tau_improvement"], 0.3)
         self.assertAlmostEqual(optimized["mae_improvement"], 0.3)
+
+    def test_diagnose_nla_run_compares_control_and_nla_errors(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            control = root / "control"
+            nla = root / "nla"
+            control.mkdir()
+            nla.mkdir()
+            for run_dir, nla_enabled in ((control, False), (nla, True)):
+                (run_dir / "run_config_20260101T000000Z.json").write_text(
+                    json_dump(
+                        {
+                            "dataset": "topical_chat",
+                            "dimension": "engagingness",
+                            "seed": 42,
+                            "train_groups": 40,
+                            "val_groups": 10,
+                            "test_groups": 10,
+                            "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+                            "proposer_model": "local-llamacpp",
+                            "instruction_proposer": "generalizing",
+                            "perplexity_feedback": True,
+                            "nla_feedback": nla_enabled,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                (run_dir / "metrics_20260101T000000Z.csv").write_text(
+                    "\n".join(
+                        [
+                            "program,total,parsed,coverage,agreement,n,pearson,spearman,kendall_tau,mae",
+                            "baseline,1,1,1.0,0.5,1,0.0,0.0,0.0,1.0",
+                            "optimized,1,1,1.0,0.5,1,0.0,0.0,0.0,1.0",
+                        ]
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+            (control / "optimized_predictions_20260101T000000Z.jsonl").write_text(
+                json_dump({"example_id": "ex1", "group_id": "g1", "target": 3, "prediction": 1, "parse_status": "ok"})
+                + "\n",
+                encoding="utf-8",
+            )
+            (nla / "optimized_predictions_20260101T000000Z.jsonl").write_text(
+                json_dump({"example_id": "ex1", "group_id": "g1", "target": 3, "prediction": 2, "parse_status": "ok"})
+                + "\n",
+                encoding="utf-8",
+            )
+            (nla / "nla_verbalizations_20260101T000000Z.jsonl").write_text(
+                json_dump(
+                    {
+                        "example_id": "ex1",
+                        "token_position": "candidate_first",
+                        "token_status": "ok",
+                        "parse_status": "ok",
+                        "verbalization": "This activation highlights a specific candidate detail.",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            report = build_nla_diagnostic_report(control, nla)
+
+        self.assertEqual(report["prediction_summary"]["joined_examples"], 1)
+        self.assertEqual(report["prediction_summary"]["nla_improved_examples"], 1)
+        self.assertEqual(report["nla_quality"]["rows"], 1)
+        self.assertEqual(report["nla_quality"]["covered_examples"], 1)
 
     def test_export_nla_manifest_contains_prompt_and_ids(self) -> None:
         with TemporaryDirectory() as tmpdir:

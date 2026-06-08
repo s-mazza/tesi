@@ -78,6 +78,42 @@ class NlaFeedbackProvider:
             lines.append(f"- {item.token_position} token={item.token_text!r}: {text}")
         return "\n".join(lines)
 
+    def precomputed_stats_for(self, examples: list[Any]) -> dict[str, Any]:
+        if self.backend != "precomputed":
+            return {
+                "backend": self.backend,
+                "examples": len(examples),
+                "covered_examples": 0,
+                "coverage": 0.0,
+                "rows": 0,
+                "useful_rows": 0,
+                "missing_example_ids": [],
+            }
+
+        missing: list[str] = []
+        rows = 0
+        useful_rows = 0
+        covered_examples = 0
+        for example in examples:
+            example_id = str(getattr(example, "example_id", "") or getattr(example, "response_id", ""))
+            example_rows = self._precomputed.get(example_id, [])
+            if example_rows:
+                covered_examples += 1
+                rows += len(example_rows)
+                useful_rows += sum(1 for row in example_rows if _is_useful_precomputed_row(row))
+            else:
+                missing.append(example_id)
+        total = len(examples)
+        return {
+            "backend": self.backend,
+            "examples": total,
+            "covered_examples": covered_examples,
+            "coverage": covered_examples / total if total else 0.0,
+            "rows": rows,
+            "useful_rows": useful_rows,
+            "missing_example_ids": missing[:20],
+        }
+
     def write_artifact(self, path: Path) -> int:
         rows: list[NlaVerbalization] = []
         for items in self._emitted.values():
@@ -147,6 +183,17 @@ def _load_precomputed(path: str) -> dict[str, list[dict[str, Any]]]:
                 continue
             by_example.setdefault(example_id, []).append(row)
     return by_example
+
+
+def _is_useful_precomputed_row(row: dict[str, Any]) -> bool:
+    text = str(row.get("verbalization") or row.get("explanation") or row.get("raw_generation") or "").strip()
+    parse_status = str(row.get("parse_status") or "").strip().lower()
+    token_status = str(row.get("token_status") or "ok").strip().lower()
+    if not text:
+        return False
+    if token_status and token_status not in {"ok", "unknown"}:
+        return False
+    return parse_status in {"ok", "partial_tags", "unknown", ""}
 
 
 def _sample_semantic_tokens(*, source: str, candidate: str, limit: int) -> list[tuple[str, str]]:

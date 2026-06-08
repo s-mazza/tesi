@@ -424,6 +424,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--nla-backend", default="precomputed", choices=("precomputed", "dry_run"))
     parser.add_argument("--nla-precomputed-path", default="")
     parser.add_argument("--nla-max-tokens-per-example", type=int, default=6)
+    parser.add_argument("--nla-min-coverage", type=float, default=0.95)
+    parser.add_argument("--allow-dry-run-nla", action="store_true")
     parser.add_argument("--aux-judge-feedback", action="store_true")
     parser.add_argument("--aux-judge-model", default="")
     parser.add_argument("--aux-judge-api-base", default="")
@@ -529,6 +531,8 @@ def main() -> None:
             if index % 25 == 0 or index == len(examples_for_feedback):
                 print(f"Perplexity feedback cache: {index}/{len(examples_for_feedback)} rows scored.", flush=True)
     if args.nla_feedback:
+        if args.nla_backend == "dry_run" and not args.allow_dry_run_nla:
+            raise ValueError("--nla-feedback with --nla-backend=dry_run requires --allow-dry-run-nla")
         nla_feedback_provider = NlaFeedbackProvider(
             checkpoint=args.nla_av_checkpoint,
             layer=args.nla_extraction_layer,
@@ -590,6 +594,12 @@ def main() -> None:
 
         trainset = make_dspy_examples(train_rows)
         valset = make_dspy_examples(val_rows)
+        if nla_feedback_provider is not None:
+            _validate_nla_feedback_ready(
+                nla_feedback_provider,
+                trainset + valset,
+                min_coverage=args.nla_min_coverage,
+            )
         callback_cm, callback = _make_gepa_viz_callback(
             gepa_viz_path=gepa_viz_path,
             trainset=trainset,
@@ -661,6 +671,7 @@ def main() -> None:
                 "nla_backend": args.nla_backend if args.nla_feedback else "",
                 "nla_precomputed_path": args.nla_precomputed_path if args.nla_feedback else "",
                 "nla_max_tokens_per_example": args.nla_max_tokens_per_example if args.nla_feedback else 0,
+                "nla_min_coverage": args.nla_min_coverage if args.nla_feedback else 0,
                 "aux_judge_feedback": args.aux_judge_feedback,
                 "aux_judge_model": (args.aux_judge_model or args.proposer_model) if args.aux_judge_feedback else "",
                 "aux_judge_api_base": (args.aux_judge_api_base or args.proposer_api_base) if args.aux_judge_feedback else "",
@@ -751,6 +762,29 @@ def _make_gepa_viz_callback(*, gepa_viz_path: Path, trainset: list[Any], valset:
         path=str(gepa_viz_path),
     )
     return callback, callback
+
+
+def _validate_nla_feedback_ready(provider: Any, examples: list[Any], *, min_coverage: float) -> None:
+    stats = provider.precomputed_stats_for(examples)
+    coverage = float(stats["coverage"])
+    useful_rows = int(stats["useful_rows"])
+    print(
+        "NLA precomputed coverage: "
+        f"{stats['covered_examples']}/{stats['examples']} examples, "
+        f"rows={stats['rows']}, useful_rows={useful_rows}, coverage={coverage:.3f}.",
+        flush=True,
+    )
+    if coverage < min_coverage:
+        raise ValueError(
+            "NLA precomputed coverage is below threshold: "
+            f"{coverage:.3f} < {min_coverage:.3f}. "
+            f"Missing example ids sample: {stats['missing_example_ids']}"
+        )
+    if useful_rows < int(stats["covered_examples"]):
+        raise ValueError(
+            "NLA precomputed feedback has fewer useful rows than covered examples: "
+            f"useful_rows={useful_rows}, covered_examples={stats['covered_examples']}"
+        )
 
 
 if __name__ == "__main__":

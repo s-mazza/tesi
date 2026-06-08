@@ -27,6 +27,8 @@ NLA_FEEDBACK="${NLA_FEEDBACK:-0}"
 NLA_BACKEND="${NLA_BACKEND:-precomputed}"
 NLA_PRECOMPUTED_PATH="${NLA_PRECOMPUTED_PATH:-}"
 NLA_MAX_TOKENS_PER_EXAMPLE="${NLA_MAX_TOKENS_PER_EXAMPLE:-6}"
+NLA_MIN_COVERAGE="${NLA_MIN_COVERAGE:-0.95}"
+ALLOW_DRY_RUN_NLA="${ALLOW_DRY_RUN_NLA:-0}"
 NLA_PRECOMPUTED_AUTO="${NLA_PRECOMPUTED_AUTO:-0}"
 NLA_PRECOMPUTE_SPLIT="${NLA_PRECOMPUTE_SPLIT:-gepa}"
 NLA_PRECOMPUTE_LIMIT="${NLA_PRECOMPUTE_LIMIT:-}"
@@ -113,6 +115,7 @@ if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
   echo "  nla backend: ${NLA_BACKEND}"
   echo "  nla precomputed path: ${NLA_PRECOMPUTED_PATH:-none}"
   echo "  nla max tokens/example: ${NLA_MAX_TOKENS_PER_EXAMPLE}"
+  echo "  nla min coverage: ${NLA_MIN_COVERAGE}"
   echo "  nla precomputed auto: ${NLA_PRECOMPUTED_AUTO}"
 fi
 if [[ -n "$PROPOSER_API_BASE" ]]; then
@@ -265,7 +268,11 @@ if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
     --nla-feedback
     --nla-backend "$NLA_BACKEND"
     --nla-max-tokens-per-example "$NLA_MAX_TOKENS_PER_EXAMPLE"
+    --nla-min-coverage "$NLA_MIN_COVERAGE"
   )
+  if [[ "$ALLOW_DRY_RUN_NLA" == "1" || "$ALLOW_DRY_RUN_NLA" == "true" ]]; then
+    NLA_ARGS+=(--allow-dry-run-nla)
+  fi
   if [[ -n "$NLA_PRECOMPUTED_PATH" ]]; then
     NLA_ARGS+=(--nla-precomputed-path "$NLA_PRECOMPUTED_PATH")
   fi
