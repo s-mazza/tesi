@@ -34,6 +34,15 @@ For each dataset/dimension target, run:
 
 The 35B llama.cpp model is used as GEPA proposer. The NLA and perplexity signals are computed on the base Qwen 7B model.
 
+Auxiliary judge meaning:
+
+- The base trained/evaluated judge remains Qwen2.5-7B-Instruct.
+- Perplexity is computed on Qwen2.5-7B-Instruct.
+- NLA verbalizes activations from Qwen2.5-7B-Instruct.
+- The proposer remains Qwen 35B via llama.cpp.
+- When enabled, the auxiliary LLM-as-a-judge feedback is also produced by Qwen 35B via llama.cpp and is passed only as extra feedback to GEPA's proposer/reflection loop.
+- The auxiliary judge does not replace the base 7B judge and does not directly define final paper metrics.
+
 ## NLA Root-Cause Findings
 
 Before scaling the full matrix, the long NLA run was diagnosed against the closest long non-NLA control. The intended control differs only by enabling NLA:
@@ -113,6 +122,53 @@ Still required:
 - If fixed smoke looks better, launch a longer Topical-Chat engagingness PPL+fixed-NLA run.
 - If fixed smoke still fails, isolate candidate-only NLA, larger token budgets, lower proposer temperature, and shorter/summarized NLA feedback.
 
+## Future Step Roadmap
+
+Step 1: finish currently queued smoke diagnostics.
+
+- Wait for `11912914`, `11912915`, and `11912916` to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
+- Wait for `11912917` and `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
+- Generate a diagnostic report for `11912917` vs `11912918`.
+- Decision gate: continue with fixed-NLA only if artifacts show healthier NLA feedback than the first long NLA run.
+
+Step 2: launch one longer fixed-NLA Topical-Chat run.
+
+- Dataset/dimension: Topical-Chat engagingness.
+- Compare against the closest PPL-only control with same seed, split, proposer, and GEPA budget.
+- Use fixed candidate-prioritized NLA token selection.
+- Keep Qwen 35B as proposer.
+- Do not enable auxiliary judge yet.
+- Goal: verify whether fixed-NLA alone can recover or improve over the previous PPL-only result.
+
+Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
+
+- Run a matched Topical-Chat engagingness ablation:
+  - `ppl`
+  - `ppl_nla`
+  - `ppl_nla_auxjudge`
+- Keep the same seed, data split, GEPA budget, proposer model, and base 7B judge.
+- Only the third variant enables Qwen 35B LLM-as-a-judge feedback.
+- Goal: isolate whether auxiliary judge feedback adds useful semantic feedback beyond perplexity and NLA.
+
+Step 4: if Topical-Chat diagnostics are positive, scale to paper-aligned dimensions.
+
+- Start with one dimension per dataset family:
+  - SummEval consistency
+  - Topical-Chat engagingness
+  - QAGS-CNN consistency
+  - QAGS-XSUM consistency
+- Then expand to all G-Eval dimensions listed above.
+- For each target, preserve all prompt artifacts, NLA artifacts, diagnostic reports, and paper-aligned metrics.
+
+Step 5: if NLA remains negative after the fixed selector.
+
+- Run candidate-only NLA.
+- Increase `NLA_MAX_TOKENS_PER_EXAMPLE` to 8 or 10.
+- Lower proposer temperature to 0.2 or 0.0.
+- Summarize/compress NLA feedback before giving it to the proposer.
+- Test whether different NLA layers/checkpoints are available and compatible with Qwen2.5-7B.
+- Only after these ablations decide whether NLA should be reported as negative/diagnostic rather than performance-improving.
+
 ## Current Cluster Queue
 
 The old pinned jobs `11912818`, `11912819`, and `11912820` were cancelled because they had `ReqNodeList=moro232`.
@@ -158,6 +214,8 @@ Before launching another long fixed-NLA run, the fixed-NLA smoke comparison must
 - Duplicate verbalization rows are substantially lower than the first long NLA run.
 - `partial_tags` are reduced, or at least the unclosed tag behavior is confirmed not to truncate semantic content.
 - The PPL-only smoke and fixed-NLA smoke are compared with `diagnose_nla_run.py`.
+
+Before launching `ppl_nla_auxjudge`, the fixed-NLA run should have a valid diagnostic report. The auxiliary judge experiment should answer a separate question: whether Qwen 35B feedback helps the proposer use NLA/perplexity signals better, not whether the base judge model itself changes.
 
 The full experiment matrix is considered scientifically usable only when every dataset/dimension target has:
 
