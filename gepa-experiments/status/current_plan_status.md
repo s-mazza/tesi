@@ -164,8 +164,19 @@ Step 5: if NLA remains negative after the fixed selector.
 
 - Keep all creative NLA strategy experiments separate from the current main pipeline.
 - Do not change the default NLA selector, runner behavior, or production configs for these experiments.
-- Create separate experimental configs/scripts with explicit names such as `experimental_nla_candidate_only`, `experimental_nla_multi_position`, or `experimental_nla_compressed_feedback`.
-- Run candidate-only NLA as a separate experiment.
+- Separate experimental scripts/configs are now available for candidate-content token strategies:
+  - `gepa-experiments/scripts/experimental_nla_token_strategy_analysis.py`
+  - `gepa-experiments/scripts/experimental_build_nla_precomputed.py`
+  - `gepa-experiments/slurm/run_experimental_nla_strategy_job.sh`
+  - `gepa-experiments/slurm/submit_experimental_nla_strategy.sh`
+- Initial CPU-only token strategy analysis is saved in:
+  - `gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/token_strategy_report.md`
+  - `gepa-experiments/results/diagnostics/experimental_nla_token_strategies_20260608/token_strategy_summary.csv`
+- The two best isolated strategies from the CPU analysis are:
+  - `candidate_content_6`: candidate-only, weak token rows 0.00%, duplicate row pct 35.58%.
+  - `candidate_content_10`: candidate-only, weak token rows 0.00%, duplicate row pct 34.89%.
+- `candidate_source_content_8` remains a secondary cross-check, but it is not first priority because it has higher duplicate row pct 51.76%.
+- Run candidate-content NLA as separate smoke experiments before considering any merge into the main pipeline.
 - Increase `NLA_MAX_TOKENS_PER_EXAMPLE` to 8 or 10 only in separate experimental configs.
 - Lower proposer temperature to 0.2 or 0.0 only in matched experimental controls.
 - Test summarized/compressed NLA feedback before giving it to the proposer, but keep it isolated from the current runner path unless it clearly wins.
@@ -201,6 +212,13 @@ Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain
 These are intended to validate whether the NLA token-selection fix improves verbalization quality before launching another long NLA run.
 
 As of the latest check, `11912917` and `11912918` are pending on dependencies after the dataset smoke chain.
+
+Additional isolated experimental strategy jobs to queue after `11912918`:
+
+- Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer.
+- Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer.
+
+These jobs must remain outside the main pipeline. They answer only whether alternate NLA token selection makes the feedback condition healthier and whether that translates to better GEPA behavior on a matched smoke setting.
 
 ## Cluster Scheduling Rule
 
