@@ -112,7 +112,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     min_score, max_score = _same_scale(rows)
     report.update(
         {
-            "ok_label": not label or label in LABEL_SCALES,
+            "ok_label": task.dataset != "topical_chat" or not label or label in LABEL_SCALES,
             "ok_dataset": len(rows) > 0,
             "dataset": task.dataset,
             "dimension": dimension,
