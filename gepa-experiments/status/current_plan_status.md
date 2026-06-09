@@ -221,7 +221,10 @@ Latest status:
 
 - `11912917`: pending, dependency satisfied, but blocked by `ReqNodeNotAvail,_UnavailableNodes:faretra`.
 - `11912918`: pending on dependency `afterany:11912917`.
-- Reason: `11912917` needs 2 x RTX 3090 for vLLM judge plus llama.cpp Qwen35B proposer. `faretra` has 4 x RTX 3090 but all 4 are currently allocated; `moro232` has only 1 x RTX 3090, so it cannot run this 2-GPU job.
+- Latest check: 2026-06-09 09:50 CEST.
+- Reason: `11912917` needs 2 x RTX 3090 for vLLM judge plus llama.cpp Qwen35B proposer. `faretra` has 4 x RTX 3090 but all 4 are currently allocated; `moro232` has only 1 x RTX 3090 and is currently allocated, so it cannot run this 2-GPU job.
+- No new Slurm stdout or result artifact for jobs `11912917`, `11912918`, `11912947`, or `11912948` is visible yet.
+- Do not submit more matched Qwen35B proposer jobs until `11912917` starts or `faretra` frees GPUs, because they would queue behind the same 2-GPU bottleneck.
 
 Additional isolated experimental strategy jobs to queue after `11912918`:
 
@@ -238,6 +241,7 @@ Submission status:
 - `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, dependency `afterany:11912947`.
 - These jobs are intentionally serial and outside the main pipeline.
 - A single-GPU smoke config exists, but it is not a matched scientific comparison for Qwen35B proposer runs. It was not launched because it would not answer the current NLA-vs-control question and `moro232` has only one GPU and low real free memory.
+- Latest check: `moro232` is now allocated, so even non-comparable single-GPU smoke work should not be queued opportunistically right now.
 
 ## Cluster Scheduling Rule
 
