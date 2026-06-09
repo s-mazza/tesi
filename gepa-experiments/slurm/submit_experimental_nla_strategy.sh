@@ -28,7 +28,53 @@ TELEGRAM_MONITOR_ROOT="${TELEGRAM_MONITOR_ROOT:-gepa-experiments/results/monitor
 TELEGRAM_MONITOR_POLL_SECONDS="${TELEGRAM_MONITOR_POLL_SECONDS:-60}"
 TELEGRAM_MONITOR_CREDENTIALS="${TELEGRAM_MONITOR_CREDENTIALS:-$HOME/.telegram_credentials}"
 
+if [[ "$SLURM_NODE" == "auto" || "$SLURM_NODE" == "AUTO" ]]; then
+  SLURM_NODE=""
+fi
+
+gpu_count_from_spec() {
+  local spec="$1"
+  local count="${spec##*:}"
+  if [[ "$count" =~ ^[0-9]+$ ]]; then
+    echo "$count"
+  else
+    echo 1
+  fi
+}
+
+node_gpu_capacity() {
+  local node="$1"
+  scontrol show node="$node" 2>/dev/null | sed -n 's/.*CfgTRES=.*gres\/gpu=\([0-9][0-9]*\).*/\1/p' | head -1
+}
+
+validate_scheduling_request() {
+  local requested_gpus
+  requested_gpus="$(gpu_count_from_spec "$GPU_SPEC")"
+
+  if [[ "${PROPOSER_BACKEND:-}" == "llamacpp" && "$requested_gpus" -lt 2 ]]; then
+    echo "Invalid scheduling request: PROPOSER_BACKEND=llamacpp requires at least 2 GPUs; GPU_SPEC=${GPU_SPEC}." >&2
+    exit 2
+  fi
+
+  if [[ -z "$SLURM_NODE" ]]; then
+    echo "Slurm scheduling: flexible node selection; GPU_SPEC=${GPU_SPEC}; exclude=${SLURM_EXCLUDE:-none}."
+    if [[ "$requested_gpus" -gt 1 ]]; then
+      echo "  Multi-GPU jobs require a node with at least ${requested_gpus} matching GPUs; single-GPU nodes such as moro232 are not eligible."
+    fi
+    return 0
+  fi
+
+  local capacity
+  capacity="$(node_gpu_capacity "$SLURM_NODE")"
+  echo "Slurm scheduling: pinned to ${SLURM_NODE}; GPU_SPEC=${GPU_SPEC}; node_gpu_capacity=${capacity:-unknown}."
+  if [[ -n "$capacity" && "$capacity" -lt "$requested_gpus" ]]; then
+    echo "Invalid scheduling request: ${SLURM_NODE} has ${capacity} GPU(s), but GPU_SPEC requests ${requested_gpus}." >&2
+    exit 2
+  fi
+}
+
 mkdir -p "$OUTPUT_ROOT"
+validate_scheduling_request
 
 NODE_ARGS=()
 if [[ -n "$SLURM_NODE" ]]; then

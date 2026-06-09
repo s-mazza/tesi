@@ -259,6 +259,15 @@ Keep:
 - two GPUs for jobs using llama.cpp proposer sidecar
 - serial dependencies for heavy jobs unless explicitly testing independent short smoke runs
 
+Submit-script guard added:
+
+- `gepa-experiments/slurm/submit_gepa_engaging.sh` and `gepa-experiments/slurm/submit_experimental_nla_strategy.sh` now print the scheduling mode before submission.
+- `SLURM_NODE=auto` is treated as no pin, so flexible jobs can use any eligible node.
+- If a job is pinned, the submit script checks the target node GPU capacity via `scontrol show node`.
+- The submit fails immediately if the requested GPU count is larger than the pinned node capacity, preventing mistakes such as a 2-GPU Qwen35B proposer job pinned to single-GPU `moro232`.
+- The submit also fails if `PROPOSER_BACKEND=llamacpp` is configured with fewer than 2 GPUs.
+- This does not make a 2-GPU job runnable on `moro232`; it only prevents invalid submissions and makes the scheduler constraint explicit at submit time.
+
 ## Acceptance Criteria
 
 NLA can be considered thesis-ready only if at least one of these is true:
