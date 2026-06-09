@@ -209,6 +209,11 @@ Latest status:
 - No Slurm stdout files or new result artifacts with job ids `11912914`, `11912915`, or `11912916` are visible under `gepa-experiments/results`.
 - Therefore these three dataset smoke jobs must not be counted as scientifically completed yet.
 - Next action: once SlurmDB/logging is stable, either recover their status from accounting or re-submit equivalent smoke jobs with confirmed stdout/artifact creation.
+- Re-submission on 2026-06-10 01:02 CEST to exploit the idle single-GPU `moro232` node without occupying `faretra`:
+  - `11913111`: SummEval consistency smoke, PPL + real NLA, pinned to `moro232`, running.
+  - `11913112`: QAGS-CNN consistency smoke, PPL + real NLA, pinned to `moro232`, dependency `afterany:11913111`.
+  - `11913113`: QAGS-XSUM consistency smoke, PPL + real NLA, pinned to `moro232`, dependency `afterany:11913112`.
+- This pinning is intentional and limited to 1-GPU dataset smoke jobs. It should not be used for Qwen35B proposer jobs, which need 2 GPUs on the same node.
 
 Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain:
 
@@ -225,6 +230,7 @@ Latest status:
 - Reason: `11912917` needs 2 x RTX 3090 for vLLM judge plus llama.cpp Qwen35B proposer. `faretra` has 4 x RTX 3090 but all 4 are currently allocated; `moro232` has only 1 x RTX 3090 and is currently allocated, so it cannot run this 2-GPU job.
 - No new Slurm stdout or result artifact for jobs `11912917`, `11912918`, `11912947`, or `11912948` is visible yet.
 - Do not submit more matched Qwen35B proposer jobs until `11912917` starts or `faretra` frees GPUs, because they would queue behind the same 2-GPU bottleneck.
+- Latest check: 2026-06-10 01:01 CEST. `moro232` was idle, but it still cannot run `11912917` because it has only 1 x RTX 3090 and the job requests 2 x RTX 3090. `faretra` remains the only eligible node for this 2-GPU request and still has all 4 GPUs allocated.
 
 Additional isolated experimental strategy jobs to queue after `11912918`:
 
