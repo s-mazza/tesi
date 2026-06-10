@@ -243,6 +243,13 @@ Latest status:
 - Do not submit more matched Qwen35B proposer jobs until `11912917` starts or `faretra` frees GPUs, because they would queue behind the same 2-GPU bottleneck.
 - `moro232` cannot run `11912917` because it has only 1 x RTX 3090 and the job requests 2 x RTX 3090. `faretra` remains the only eligible node for this 2-GPU request.
 
+Additional 1-GPU queue-aging jobs submitted on 2026-06-10:
+
+- `11913130`: Topical-Chat engagingness PPL-only single-GPU smoke, pinned to `moro232`, 4 hour limit.
+- `11913131`: Topical-Chat engagingness PPL + real-NLA single-GPU smoke, pinned to `moro232`, dependency `afterany:11913130`, 4 hour limit.
+- These jobs are not the main Qwen35B proposer comparison, but they are useful while waiting for `faretra`: they provide a matched 1-GPU PPL-only vs real-NLA smoke and accumulate queue priority for `moro232`.
+- Because `moro232` has node-local artifacts, check or sync results from `moro232` when these complete.
+
 Additional isolated experimental strategy jobs to queue after `11912918`:
 
 - Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer.
