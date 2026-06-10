@@ -196,7 +196,7 @@ def _is_useful_precomputed_row(row: dict[str, Any]) -> bool:
         return False
     if token_status and token_status not in {"ok", "unknown"}:
         return False
-    return parse_status in {"ok", "partial_tags", "unknown", ""}
+    return parse_status in {"ok", "partial_tags", "missing_tags", "unknown", ""}
 
 
 def _sample_semantic_tokens(*, source: str, candidate: str, limit: int) -> list[tuple[str, str]]:

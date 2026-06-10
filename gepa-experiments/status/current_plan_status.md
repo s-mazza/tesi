@@ -241,12 +241,17 @@ Latest status:
 
 - `11912917`: failed on `faretra` because llama.cpp tried to bind occupied port `127.0.0.1:8080`.
 - `11913161`: replacement PPL-only control completed on `faretra`; artifacts were recovered to the local workspace from `gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke`.
-- `11912918`: dependency on `11913161` is satisfied and the job is pending for 2 x RTX 3090 availability.
-- Latest check: 2026-06-10 13:58 CEST.
+- `11912918`: started on `faretra` at 2026-06-10 16:01 CEST and failed after 13m16s with exit code `1:0`.
+- Latest check: 2026-06-10 16:16 CEST.
 - Reason: `11913161` and the downstream Qwen35B proposer jobs need 2 x RTX 3090 on the same node. `moro232` has only 1 x RTX 3090, so `faretra` remains the only eligible node.
-- `faretra` currently has 3 of 4 GPUs allocated, so only 1 GPU is free and `11912918` cannot start yet. Slurm backfill currently estimates `11912918` around 2026-06-11 13:35 CEST, but this is an unstable estimate.
-- No final result artifact for jobs `11912918`, `11912947`, or `11912948` is visible yet.
-- Do not submit duplicate matched Qwen35B proposer jobs while `11912918` is pending. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
+- Failure root cause: the NLA precompute succeeded and wrote 210 rows with `token_status=ok`, but all rows were marked `parse_status=missing_tags` because the NLA verbalizer emitted text ending in `</explanation>` without the opening `<explanation>` tag. The runner's useful-row guard was too strict and rejected all 210 non-empty verbalizations as unusable.
+- Fix: `parse_explanation` now treats closing-tag-only output as `partial_tags` and strips the tag; the NLA useful-row validator now accepts non-empty `missing_tags` rows with ok/unknown token status.
+- Validation: local targeted tests and the full `gepa-experiments/tests/test_data_and_metrics.py` suite pass; the recovered `11912918` precomputed file now reports `covered_examples=36`, `rows=210`, `useful_rows=210`.
+- Replacement job `11913262` submitted for the same Topical-Chat engagingness PPL+fixed-NLA smoke setting.
+- `11913262` has `ExcNodeList=deeplearn2`, 2 x RTX 3090, 64G memory, and 4h time limit.
+- Downstream experimental job `11912947` was rewired from the failed `11912918` to `afterok:11913262`; `11912948` remains after `11912947`.
+- No final result artifact for jobs `11913262`, `11912947`, or `11912948` is visible yet.
+- Do not submit duplicate matched Qwen35B proposer jobs while `11913262` is pending/running. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
 
 `11913161` PPL-only smoke result:
 

@@ -60,6 +60,8 @@ def parse_explanation(text: str) -> tuple[str, str]:
     stripped = text.strip()
     if stripped.startswith("<explanation>"):
         return stripped.removeprefix("<explanation>").strip(), "partial_tags"
+    if stripped.endswith("</explanation>"):
+        return stripped.removesuffix("</explanation>").strip(), "partial_tags"
     return stripped, "missing_tags" if stripped else "empty"
 
 

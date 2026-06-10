@@ -9,7 +9,7 @@ from unittest.mock import patch
 from geval_gepa.data import load_usr_examples, split_by_context
 from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
 from geval_gepa.nla_feedback import NlaFeedbackProvider
-from geval_gepa.nla_precompute import SemanticTokenSelector, fake_activation_rows, iter_verbalization_rows
+from geval_gepa.nla_precompute import SemanticTokenSelector, fake_activation_rows, iter_verbalization_rows, parse_explanation
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.preflight import build_report as build_preflight_report
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
@@ -508,6 +508,41 @@ class DataAndMetricsTest(unittest.TestCase):
 
         dspy_example = type("Example", (), {"example_id": example.response_id})()
         _validate_nla_feedback_ready(provider, [dspy_example], min_coverage=0.95)
+
+    def test_nla_precomputed_validation_accepts_missing_tag_text(self) -> None:
+        example = load_usr_examples_from_fixture()[0]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "nla.jsonl"
+            path.write_text(
+                json_dump(
+                    {
+                        "example_id": example.response_id,
+                        "token_position": "candidate_3",
+                        "token_text": "jazz",
+                        "explanation": "The activation focuses on a concrete music topic.",
+                        "parse_status": "missing_tags",
+                        "token_status": "ok",
+                        "layer": 20,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            provider = NlaFeedbackProvider(
+                checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                layer=20,
+                backend="precomputed",
+                max_tokens_per_example=3,
+                precomputed_path=str(path),
+            )
+
+        dspy_example = type("Example", (), {"example_id": example.response_id})()
+        _validate_nla_feedback_ready(provider, [dspy_example], min_coverage=0.95)
+
+    def test_parse_explanation_accepts_closing_tag_only(self) -> None:
+        explanation, status = parse_explanation("semantic content.\n</explanation>")
+        self.assertEqual(explanation, "semantic content.")
+        self.assertEqual(status, "partial_tags")
 
     def test_aux_judge_feedback_does_not_change_metric_score(self) -> None:
         class FakeAuxJudge:
