@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 from pathlib import Path
 from argparse import Namespace
@@ -13,7 +14,7 @@ from geval_gepa.nla_precompute import SemanticTokenSelector, fake_activation_row
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.preflight import build_report as build_preflight_report
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
-from geval_gepa.runner import _abstract_rubric_signals, _validate_nla_feedback_ready, configure_lms, create_metric_fn
+from geval_gepa.runner import _abstract_rubric_signals, _validate_nla_feedback_ready, configure_lms, create_metric_fn, evaluate_program
 from geval_gepa.tasks import get_task, split_examples
 from geval_gepa.trajectory import export_prompt_trajectory
 
@@ -22,6 +23,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from aggregate_results import build_rows  # noqa: E402
 from diagnose_nla_run import build_report as build_nla_diagnostic_report  # noqa: E402
+from experimental_build_nla_precomputed import ExperimentalTokenSelector  # noqa: E402
 from export_nla_manifest import build_manifest  # noqa: E402
 
 
@@ -462,6 +464,67 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("NLA multi-token verbalizations", result.feedback)
         self.assertIn("concrete music topic", result.feedback)
 
+    def test_metric_feedback_can_include_group_shared_nla_verbalization(self) -> None:
+        example = load_usr_examples_from_fixture()[0]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "nla.jsonl"
+            path.write_text(
+                "\n".join(
+                    [
+                        json_dump(
+                            {
+                                "example_id": example.response_id,
+                                "group_id": example.context_id,
+                                "token_position": "candidate_middle",
+                                "token_text": "jazz",
+                                "explanation": "The candidate activation focuses on a concrete music topic.",
+                                "parse_status": "ok",
+                                "token_status": "ok",
+                                "layer": 20,
+                            }
+                        ),
+                        json_dump(
+                            {
+                                "example_id": f"__group__:{example.context_id}",
+                                "group_id": example.context_id,
+                                "token_position": "experimental_hybrid_context_dedup_6_context_source_middle",
+                                "token_text": "discuss",
+                                "explanation": "The shared context activation preserves topic grounding.",
+                                "parse_status": "ok",
+                                "token_status": "ok",
+                                "layer": 20,
+                                "shared_group_feedback": True,
+                            }
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            provider = NlaFeedbackProvider(
+                checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                layer=20,
+                backend="precomputed",
+                max_tokens_per_example=3,
+                precomputed_path=str(path),
+            )
+
+        feedback = provider.feedback_for(
+            type(
+                "Example",
+                (),
+                {
+                    "example_id": example.response_id,
+                    "group_id": example.context_id,
+                    "dataset": "topical_chat",
+                    "dimension": "engagingness",
+                },
+            )()
+        )
+
+        self.assertIn("concrete music topic", feedback)
+        self.assertIn("shared context activation", feedback)
+
     def test_nla_precomputed_validation_rejects_missing_examples(self) -> None:
         example = load_usr_examples_from_fixture()[0]
         with TemporaryDirectory() as tmpdir:
@@ -741,6 +804,7 @@ class DataAndMetricsTest(unittest.TestCase):
                         "token_status": "ok",
                         "parse_status": "ok",
                         "verbalization": "This activation highlights a specific candidate detail.",
+                        "activation_dim": 3584,
                     }
                 )
                 + "\n",
@@ -753,6 +817,8 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(report["prediction_summary"]["nla_improved_examples"], 1)
         self.assertEqual(report["nla_quality"]["rows"], 1)
         self.assertEqual(report["nla_quality"]["covered_examples"], 1)
+        self.assertEqual(report["nla_quality"]["token_category"], {"candidate": 1})
+        self.assertEqual(report["nla_quality"]["activation_stats_rows"], 1)
 
     def test_export_nla_manifest_contains_prompt_and_ids(self) -> None:
         with TemporaryDirectory() as tmpdir:
@@ -855,6 +921,53 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(rows[0]["example_id"], "ex1")
         self.assertIn("verbalization", rows[0])
         self.assertEqual(rows[0]["parse_status"], "ok")
+        self.assertEqual(rows[0]["activation_dim"], 8)
+        self.assertGreater(rows[0]["activation_l2_norm"], 0.0)
+        self.assertIn("activation_std", rows[0])
+
+    def test_experimental_hybrid_strategy_deduplicates_context_rows(self) -> None:
+        selector = ExperimentalTokenSelector("hybrid_context_dedup_6")
+        first = {
+            "example_id": "ctx1_response_00",
+            "group_id": "ctx1",
+            "source_text": "Alice discusses astronomy with detailed comet observations.",
+            "candidate_output": "The candidate asks about meteor showers and stars tonight.",
+            "fact": "A comet was visible from Earth for several nights.",
+            "prompt": "",
+        }
+        second = {
+            **first,
+            "example_id": "ctx1_response_01",
+            "candidate_output": "Another response mentions telescopes and night skies.",
+        }
+        first_prompt = "\n".join([first["source_text"], first["fact"], first["candidate_output"]])
+        second_prompt = "\n".join([second["source_text"], second["fact"], second["candidate_output"]])
+
+        first_targets = selector.select(first, first_prompt)
+        second_targets = selector.select(second, second_prompt)
+
+        self.assertTrue(any(target.shared_group_feedback for target in first_targets))
+        self.assertFalse(any(target.shared_group_feedback for target in second_targets))
+        self.assertTrue(any(target.token_position.startswith("candidate_") for target in second_targets))
+
+    def test_evaluate_program_predictions_include_debug_text(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "tc.json"
+            path.write_text(json_dump(FIXTURE), encoding="utf-8")
+            row = get_task("usr").load(path, "engagingness")[0]
+            output = Path(tmpdir) / "predictions.jsonl"
+
+            class Program:
+                def __call__(self, **kwargs):
+                    del kwargs
+                    return type("Pred", (), {"score": "2", "rationale": "Acceptable response."})()
+
+            evaluate_program(Program(), [row], output)
+            payload = json.loads(output.read_text(encoding="utf-8").splitlines()[0])
+
+        self.assertEqual(payload["source_text"], row.source_text)
+        self.assertEqual(payload["fact"], row.fact)
+        self.assertEqual(payload["candidate_output"], row.candidate_output)
 
     def test_reflection_examples_use_abstract_trace_summaries(self) -> None:
         reflection_text = _format_reflection_examples(

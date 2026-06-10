@@ -138,11 +138,24 @@ def strategies() -> dict[str, dict[str, Any]]:
             "avoid_first": True,
             "filter_weak": True,
         },
+        "hybrid_context_dedup_6": {
+            "budgets": {"candidate": 4, "source": 1, "reference": 1},
+            "avoid_first": True,
+            "filter_weak": True,
+            "dedupe_context_fields": {"source", "reference"},
+        },
+        "hybrid_context_dedup_8": {
+            "budgets": {"candidate": 6, "source": 1, "reference": 1},
+            "avoid_first": True,
+            "filter_weak": True,
+            "dedupe_context_fields": {"source", "reference"},
+        },
     }
 
 
 def choose_tokens(rows: list[dict[str, Any]]) -> list[TokenChoice]:
     choices: list[TokenChoice] = []
+    seen_context_fields: set[tuple[str, str, str]] = set()
     for row in rows:
         fields = {
             "candidate": str(row.get("candidate_output") or ""),
@@ -154,9 +167,17 @@ def choose_tokens(rows: list[dict[str, Any]]) -> list[TokenChoice]:
             for field, budget in budgets.items():
                 if budget <= 0:
                     continue
+                group_id = str(row["group_id"])
+                dedupe_context_fields = set(spec.get("dedupe_context_fields", set()))
+                if field in dedupe_context_fields:
+                    context_key = (strategy_name, group_id, field)
+                    if context_key in seen_context_fields:
+                        continue
                 text = fields[field]
                 if not text or text == "_nofact":
                     continue
+                if field in dedupe_context_fields:
+                    seen_context_fields.add(context_key)
                 for position, token_text, word_index in sample_words(
                     text,
                     budget,
@@ -167,7 +188,7 @@ def choose_tokens(rows: list[dict[str, Any]]) -> list[TokenChoice]:
                         TokenChoice(
                             strategy=strategy_name,
                             example_id=str(row["example_id"]),
-                            group_id=str(row["group_id"]),
+                            group_id=group_id,
                             field=field,
                             position=position,
                             token_text=token_text,

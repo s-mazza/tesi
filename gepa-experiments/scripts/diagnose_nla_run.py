@@ -231,9 +231,12 @@ def nla_quality(nla_run: dict[str, Any]) -> dict[str, Any]:
     parse_status = Counter()
     token_status = Counter()
     token_position_prefix = Counter()
+    token_category = Counter()
+    texts_by_category: dict[str, Counter[str]] = defaultdict(Counter)
     texts = Counter()
     lengths = []
     suspicious = 0
+    activation_stats_rows = 0
     for row in rows:
         example_id = str(row.get("example_id", ""))
         if example_id:
@@ -242,9 +245,14 @@ def nla_quality(nla_run: dict[str, Any]) -> dict[str, Any]:
         token_status[str(row.get("token_status", "unknown"))] += 1
         token_position = str(row.get("token_position", "missing"))
         token_position_prefix[token_position.split("_", 1)[0]] += 1
+        category = _token_category(token_position)
+        token_category[category] += 1
         text = str(row.get("verbalization") or row.get("explanation") or row.get("raw_generation") or "").strip()
         texts[text] += 1
+        texts_by_category[category][text] += 1
         lengths.append(len(text.split()))
+        if row.get("activation_dim") not in {None, ""}:
+            activation_stats_rows += 1
         if _looks_suspicious_nla_text(text):
             suspicious += 1
     return {
@@ -254,11 +262,30 @@ def nla_quality(nla_run: dict[str, Any]) -> dict[str, Any]:
         "parse_status": dict(parse_status),
         "token_status": dict(token_status),
         "token_position_prefix": dict(token_position_prefix),
+        "token_category": dict(token_category),
         "avg_verbalization_words": sum(lengths) / len(lengths) if lengths else 0.0,
         "duplicate_text_rows": sum(count for text, count in texts.items() if text and count > 1),
+        "duplicate_text_rows_by_category": {
+            category: sum(count for text, count in category_texts.items() if text and count > 1)
+            for category, category_texts in sorted(texts_by_category.items())
+        },
         "suspicious_rows": suspicious,
+        "activation_stats_rows": activation_stats_rows,
         "top_repeated_text": [{"count": count, "text": text[:200]} for text, count in texts.most_common(5) if text],
     }
+
+
+def _token_category(token_position: str) -> str:
+    normalized = token_position.lower()
+    if "candidate" in normalized:
+        return "candidate"
+    if "source" in normalized:
+        return "source"
+    if "reference" in normalized:
+        return "reference"
+    if "prompt" in normalized:
+        return "prompt"
+    return "other"
 
 
 def _looks_suspicious_nla_text(text: str) -> bool:
@@ -370,9 +397,12 @@ def render_markdown(report: dict[str, Any], prediction_csv: Path) -> str:
             f"- avg verbalization words: {_format_float(quality['avg_verbalization_words'])}",
             f"- suspicious rows: {quality['suspicious_rows']}",
             f"- duplicate text rows: {quality['duplicate_text_rows']}",
+            f"- duplicate text rows by category: `{quality['duplicate_text_rows_by_category']}`",
             f"- parse status: `{quality['parse_status']}`",
             f"- token status: `{quality['token_status']}`",
             f"- token position prefixes: `{quality['token_position_prefix']}`",
+            f"- token categories: `{quality['token_category']}`",
+            f"- rows with activation summary stats: {quality['activation_stats_rows']}",
             "",
             "## Trajectory",
             f"- control: `{report['control_trajectory']}`",

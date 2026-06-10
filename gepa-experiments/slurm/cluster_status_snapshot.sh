@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-$HOME/tesi}"
 SLURM_USER="${SLURM_USER:-mazzacano}"
-JOB_IDS="${JOB_IDS:-11912917 11912918 11912947 11912948 11913111 11913112 11913113 11913124}"
+JOB_IDS="${JOB_IDS:-11912917 11912918 11912947 11912948 11913130 11913131 11913161 11913262 11913284}"
 NODE_IDS="${NODE_IDS:-faretra moro232}"
 RESULT_ROOT="${RESULT_ROOT:-gepa-experiments/results}"
 
@@ -34,7 +34,7 @@ done
 
 section "recent slurm logs"
 find "${RESULT_ROOT}/slurm" -maxdepth 1 -type f \
-  \( -name "slurm-119129*.out" -o -name "slurm-119131*.out" -o -name "slurm-*-slurm-stdout-smoke.out" \) \
+  \( -name "slurm-119129*.out" -o -name "slurm-119131*.out" -o -name "slurm-119132*.out" -o -name "slurm-*-slurm-stdout-smoke.out" \) \
   -printf "%TY-%Tm-%Td %TH:%TM %s %p\n" 2>/dev/null | sort | tail -40 || true
 
 section "current job log tails"
@@ -53,9 +53,11 @@ for dir in \
   "${RESULT_ROOT}/geval_gepa_qags_cnn_consistency_ppl_real_nla_smoke" \
   "${RESULT_ROOT}/geval_gepa_qags_xsum_consistency_ppl_real_nla_smoke" \
   "${RESULT_ROOT}/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke" \
+  "${RESULT_ROOT}/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b" \
   "${RESULT_ROOT}/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke" \
   "${RESULT_ROOT}/experimental_nla_candidate_content_6_topical_chat_smoke" \
-  "${RESULT_ROOT}/experimental_nla_candidate_content_10_topical_chat_smoke"; do
+  "${RESULT_ROOT}/experimental_nla_candidate_content_10_topical_chat_smoke" \
+  "${RESULT_ROOT}/experimental_nla_hybrid_context_dedup_6_topical_chat_smoke"; do
   echo "---- ${dir}"
   find "$dir" -maxdepth 2 -type f -printf "%TY-%Tm-%Td %TH:%TM %s %p\n" 2>/dev/null | sort | tail -35 || true
 done

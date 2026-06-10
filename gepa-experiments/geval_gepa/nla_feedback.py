@@ -56,7 +56,7 @@ class NlaFeedbackProvider:
         with self._lock:
             cached = self._emitted.get(example_id)
         if cached is None:
-            rows = self._precomputed.get(example_id) if self.backend == "precomputed" else None
+            rows = self._rows_for_example(example) if self.backend == "precomputed" else None
             verbalizations = (
                 self._from_precomputed(example, rows or [])
                 if rows
@@ -97,7 +97,7 @@ class NlaFeedbackProvider:
         covered_examples = 0
         for example in examples:
             example_id = str(getattr(example, "example_id", "") or getattr(example, "response_id", ""))
-            example_rows = self._precomputed.get(example_id, [])
+            example_rows = self._rows_for_example(example)
             if example_rows:
                 covered_examples += 1
                 rows += len(example_rows)
@@ -170,6 +170,14 @@ class NlaFeedbackProvider:
             )
             for position, token in sampled
         ]
+
+    def _rows_for_example(self, example: Any) -> list[dict[str, Any]]:
+        example_id = str(getattr(example, "example_id", "") or getattr(example, "response_id", ""))
+        group_id = str(getattr(example, "group_id", "") or getattr(example, "context_id", ""))
+        rows = list(self._precomputed.get(example_id, []))
+        if group_id:
+            rows.extend(self._precomputed.get(f"__group__:{group_id}", []))
+        return rows
 
 
 def _load_precomputed(path: str) -> dict[str, list[dict[str, Any]]]:

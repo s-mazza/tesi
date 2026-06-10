@@ -58,6 +58,8 @@ class ExperimentalTokenTarget:
     token_text: str
     char_start: int
     char_end: int
+    output_example_id: str | None = None
+    shared_group_feedback: bool = False
 
 
 STRATEGIES: dict[str, dict[str, Any]] = {
@@ -75,6 +77,18 @@ STRATEGIES: dict[str, dict[str, Any]] = {
         "budgets": {"candidate": 6, "source": 2, "reference": 0},
         "avoid_first": True,
         "filter_weak": True,
+    },
+    "hybrid_context_dedup_6": {
+        "budgets": {"candidate": 4, "source": 1, "reference": 1},
+        "avoid_first": True,
+        "filter_weak": True,
+        "dedupe_context_fields": {"source", "reference"},
+    },
+    "hybrid_context_dedup_8": {
+        "budgets": {"candidate": 6, "source": 1, "reference": 1},
+        "avoid_first": True,
+        "filter_weak": True,
+        "dedupe_context_fields": {"source", "reference"},
     },
 }
 
@@ -106,9 +120,11 @@ class ExperimentalTokenSelector:
     def __init__(self, strategy: str) -> None:
         self.strategy = strategy
         self.spec = STRATEGIES[strategy]
+        self._seen_context_fields: set[tuple[str, str]] = set()
 
     def select(self, manifest_row: dict[str, Any], rendered_prompt: str) -> list[ExperimentalTokenTarget]:
         targets: list[ExperimentalTokenTarget] = []
+        group_id = str(manifest_row.get("group_id") or "")
         fields = {
             "candidate": str(manifest_row.get("candidate_output") or ""),
             "source": str(manifest_row.get("source_text") or ""),
@@ -119,12 +135,19 @@ class ExperimentalTokenSelector:
             budget = int(budgets.get(field_name, 0))
             if budget <= 0:
                 continue
+            is_context_shared = field_name in set(self.spec.get("dedupe_context_fields", set()))
+            if is_context_shared:
+                context_key = (group_id, field_name)
+                if context_key in self._seen_context_fields:
+                    continue
             field_text = fields[field_name]
             if not field_text or field_text == "_nofact":
                 continue
             base_offset = rendered_prompt.find(field_text)
             if base_offset < 0:
                 continue
+            if is_context_shared:
+                self._seen_context_fields.add(context_key)
             for label, word, start, end in sample_words(
                 field_text,
                 budget,
@@ -133,10 +156,14 @@ class ExperimentalTokenSelector:
             ):
                 targets.append(
                     ExperimentalTokenTarget(
-                        token_position=f"{field_name}_{label}",
+                        token_position=(
+                            f"context_{field_name}_{label}" if is_context_shared else f"{field_name}_{label}"
+                        ),
                         token_text=word,
                         char_start=base_offset + start,
                         char_end=base_offset + end,
+                        output_example_id=f"__group__:{group_id}" if is_context_shared else None,
+                        shared_group_feedback=is_context_shared,
                     )
                 )
         return targets
@@ -244,9 +271,14 @@ class ExperimentalQwenActivationExtractor:
             token_index = _token_index_for_char_span(offsets, target.char_start, target.char_end)
             if token_index is None:
                 continue
+            manifest_for_output = dict(manifest_row)
+            if target.output_example_id:
+                manifest_for_output["base_example_id"] = manifest_row.get("example_id", "")
+                manifest_for_output["example_id"] = target.output_example_id
+                manifest_for_output["shared_group_feedback"] = target.shared_group_feedback
             output.append(
                 ActivationRow(
-                    manifest_row=manifest_row,
+                    manifest_row=manifest_for_output,
                     token_position=f"experimental_{self.selector.strategy}_{target.token_position}",
                     token_text=target.token_text,
                     token_index=token_index,
@@ -282,9 +314,14 @@ def fake_activation_rows(
     for item in manifest_rows[:limit]:
         for index, target in enumerate(selector.select(item, str(item["prompt"]))):
             key = f"{item['example_id']}::{strategy}::{target.token_position}"
+            manifest_for_output = dict(item)
+            if target.output_example_id:
+                manifest_for_output["base_example_id"] = item.get("example_id", "")
+                manifest_for_output["example_id"] = target.output_example_id
+                manifest_for_output["shared_group_feedback"] = target.shared_group_feedback
             rows.append(
                 ActivationRow(
-                    manifest_row=item,
+                    manifest_row=manifest_for_output,
                     token_position=f"experimental_{strategy}_{target.token_position}",
                     token_text=target.token_text,
                     token_index=index,

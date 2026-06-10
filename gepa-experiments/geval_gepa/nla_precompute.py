@@ -5,6 +5,7 @@ from __future__ import annotations
 import gc
 import hashlib
 import json
+import math
 import re
 import sys
 from collections.abc import Iterable, Iterator
@@ -422,12 +423,15 @@ def iter_verbalization_rows(
             )
         explanation, parse_status = parse_explanation(raw_generation)
         manifest = row.manifest_row
+        activation_stats = _activation_summary(row.activation_vector)
         yield {
             "dataset": manifest.get("dataset", ""),
             "dimension": manifest.get("dimension", ""),
             "example_id": manifest.get("example_id", ""),
+            "base_example_id": manifest.get("base_example_id", ""),
             "group_id": manifest.get("group_id", ""),
             "human_score": manifest.get("human_score"),
+            "shared_group_feedback": manifest.get("shared_group_feedback", False),
             "model_id": row.model_id,
             "layer": row.layer,
             "token_position": row.token_position,
@@ -440,5 +444,34 @@ def iter_verbalization_rows(
             "verbalization": explanation,
             "explanation": explanation,
             "parse_status": parse_status,
+            **activation_stats,
         }
         print(f"Verbalized NLA activation {index}/{len(activation_rows)}", flush=True)
+
+
+def _activation_summary(vector: list[float]) -> dict[str, float | int]:
+    """Persist compact vector diagnostics without storing raw activations."""
+
+    if not vector:
+        return {
+            "activation_dim": 0,
+            "activation_l2_norm": 0.0,
+            "activation_mean": 0.0,
+            "activation_std": 0.0,
+            "activation_min": 0.0,
+            "activation_max": 0.0,
+            "activation_abs_mean": 0.0,
+        }
+    values = [float(item) for item in vector]
+    dim = len(values)
+    mean = sum(values) / dim
+    variance = sum((item - mean) ** 2 for item in values) / dim
+    return {
+        "activation_dim": dim,
+        "activation_l2_norm": math.sqrt(sum(item * item for item in values)),
+        "activation_mean": mean,
+        "activation_std": math.sqrt(variance),
+        "activation_min": min(values),
+        "activation_max": max(values),
+        "activation_abs_mean": sum(abs(item) for item in values) / dim,
+    }
