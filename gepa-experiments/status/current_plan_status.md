@@ -116,7 +116,7 @@ Completed or in progress locally:
 Still required:
 
 - Wait for the queued fixed-NLA diagnostics to finish.
-- Pull artifacts for `11913161` and `11912918`.
+- Pull artifacts for `11912918`; artifacts for `11913161` were recovered locally from `faretra`.
 - Run `diagnose_nla_run.py` on the PPL-only smoke control `11913161` vs fixed-NLA smoke `11912918`.
 - Inspect recovered 1-GPU smoke artifacts for NLA feedback health: coverage, `token_status`, parse status, duplicate verbalizations, and whether the fixed selector is producing candidate-relevant verbalizations.
 - Check whether fixed NLA improves verbalization quality before launching another long NLA run.
@@ -131,7 +131,7 @@ Step 1: finish and analyze smoke diagnostics.
 
 - Completed artifact recovery for `11912914`, `11912915`, `11912916`, `11913111`, `11913112`, and `11913113`; use these artifacts to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
 - Use queued 1-GPU Topical-Chat jobs `11913130` and `11913131` as an additional matched smoke comparison while waiting for `faretra`.
-- Wait for `11913161` and `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
+- Wait for `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
 - Generate a diagnostic report for `11913161` vs `11912918`.
 - Decision gate: continue with fixed-NLA only if artifacts show healthier NLA feedback than the first long NLA run.
 
@@ -240,12 +240,23 @@ These are intended to validate whether the NLA token-selection fix improves verb
 Latest status:
 
 - `11912917`: failed on `faretra` because llama.cpp tried to bind occupied port `127.0.0.1:8080`.
-- `11913161`: replacement PPL-only control pending, fixed ports `18143/18144`, dependency satisfied, needs 2 x RTX 3090.
-- `11912918`: pending on dependency `afterok:11913161`.
-- Latest check: 2026-06-10 11:34 CEST.
+- `11913161`: replacement PPL-only control completed on `faretra`; artifacts were recovered to the local workspace from `gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke`.
+- `11912918`: dependency on `11913161` is satisfied and the job is pending for 2 x RTX 3090 availability.
+- Latest check: 2026-06-10 13:58 CEST.
 - Reason: `11913161` and the downstream Qwen35B proposer jobs need 2 x RTX 3090 on the same node. `moro232` has only 1 x RTX 3090, so `faretra` remains the only eligible node.
-- No final result artifact for jobs `11913161`, `11912918`, `11912947`, or `11912948` is visible yet.
-- Do not submit duplicate matched Qwen35B proposer jobs while `11913161` is pending. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
+- `faretra` currently has 3 of 4 GPUs allocated, so only 1 GPU is free and `11912918` cannot start yet. Slurm backfill currently estimates `11912918` around 2026-06-11 13:35 CEST, but this is an unstable estimate.
+- No final result artifact for jobs `11912918`, `11912947`, or `11912948` is visible yet.
+- Do not submit duplicate matched Qwen35B proposer jobs while `11912918` is pending. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
+
+`11913161` PPL-only smoke result:
+
+- Dataset/dimension: Topical-Chat engagingness.
+- Split: 24 GEPA train examples, 12 GEPA validation examples, 12 final-test examples.
+- Feedback: perplexity only, no NLA, no auxiliary judge.
+- Proposer: Qwen 35B via llama.cpp on `127.0.0.1:18144`.
+- Baseline final-test metrics: Pearson 0.603136, Spearman 0.590879, Kendall tau 0.531588, MAE 0.555556, agreement 0.722222.
+- Optimized final-test metrics: Pearson 0.536400, Spearman 0.527410, Kendall tau 0.459933, MAE 0.722222, agreement 0.638889.
+- Interpretation: this small smoke control validates the fixed-port and artifact path, but the optimized prompt overfit or degraded final-test behavior on the 12-example test slice. It remains useful as the matched control for `11912918`, not as evidence that GEPA improves this setting.
 
 Additional 1-GPU queue-aging jobs submitted on 2026-06-10:
 
