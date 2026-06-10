@@ -74,6 +74,34 @@ wait_for_sidecar_http() {
   return 1
 }
 
+find_free_tcp_port() {
+  local host="$1"
+  local start_port="$2"
+  local attempts="${3:-100}"
+  python3 - "$host" "$start_port" "$attempts" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+start = int(sys.argv[2])
+attempts = int(sys.argv[3])
+
+for port in range(start, start + attempts):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.bind((host, port))
+    except OSError:
+        continue
+    finally:
+        sock.close()
+    print(port)
+    sys.exit(0)
+
+sys.exit(1)
+PY
+}
+
 start_llamacpp_sidecar() {
   IFS=',' read -r -a allocated_gpus <<< "$VISIBLE_DEVICES"
   if [[ "${#allocated_gpus[@]}" -lt 2 ]]; then
@@ -93,6 +121,7 @@ start_llamacpp_sidecar() {
   LLAMACPP_HF_CACHE_DIR="${LLAMACPP_HF_CACHE_DIR:-${LLM_CACHE_DIR}/llamacpp-cache}"
   LLAMACPP_HOST="${LLAMACPP_HOST:-127.0.0.1}"
   PROPOSER_PORT="${PROPOSER_PORT:-8080}"
+  PROPOSER_PORT_SEARCH_ATTEMPTS="${PROPOSER_PORT_SEARCH_ATTEMPTS:-100}"
   LLAMA_API_KEY="${LLAMA_API_KEY:-local-llamacpp-key}"
   LLAMACPP_CTX_SIZE="${LLAMACPP_CTX_SIZE:-8192}"
   LLAMACPP_PARALLEL="${LLAMACPP_PARALLEL:-1}"
@@ -102,6 +131,27 @@ start_llamacpp_sidecar() {
   LLAMACPP_READY_ATTEMPTS="${LLAMACPP_READY_ATTEMPTS:-2160}"
   LLAMACPP_READY_SLEEP_SECONDS="${LLAMACPP_READY_SLEEP_SECONDS:-5}"
   PROPOSER_MODEL="${PROPOSER_MODEL:-local-llamacpp}"
+  local proposer_api_base_explicit=0
+  if [[ -n "${PROPOSER_API_BASE:-}" ]]; then
+    proposer_api_base_explicit=1
+  fi
+
+  local configured_proposer_port="$PROPOSER_PORT"
+  local free_proposer_port
+  if ! free_proposer_port="$(find_free_tcp_port "$LLAMACPP_HOST" "$PROPOSER_PORT" "$PROPOSER_PORT_SEARCH_ATTEMPTS")"; then
+    echo "No free llama.cpp proposer port found on ${LLAMACPP_HOST} starting at ${PROPOSER_PORT} for ${PROPOSER_PORT_SEARCH_ATTEMPTS} attempts." >&2
+    exit 2
+  fi
+  if [[ "$free_proposer_port" != "$configured_proposer_port" ]]; then
+    if [[ "$proposer_api_base_explicit" == "1" ]]; then
+      echo "Configured PROPOSER_PORT=${configured_proposer_port} is busy, but PROPOSER_API_BASE was explicitly set to ${PROPOSER_API_BASE}." >&2
+      echo "Choose a free PROPOSER_PORT/PROPOSER_API_BASE pair or unset PROPOSER_API_BASE so the runner can select one automatically." >&2
+      exit 2
+    fi
+    echo "Configured llama.cpp proposer port ${configured_proposer_port} is busy; using free port ${free_proposer_port}."
+    PROPOSER_PORT="$free_proposer_port"
+  fi
+
   PROPOSER_API_BASE="${PROPOSER_API_BASE:-http://${LLAMACPP_HOST}:${PROPOSER_PORT}/v1}"
   PROPOSER_API_KEY="${PROPOSER_API_KEY:-$LLAMA_API_KEY}"
 
@@ -119,6 +169,7 @@ start_llamacpp_sidecar() {
   fi
   echo "  sidecar GPU: ${PROPOSER_GPU_DEVICE}"
   echo "  judge GPU: ${JUDGE_GPU_DEVICE}"
+  echo "  sidecar endpoint: ${PROPOSER_API_BASE}"
   echo "  sidecar log: ${sidecar_log}"
 
   docker run \

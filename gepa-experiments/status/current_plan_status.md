@@ -116,8 +116,8 @@ Completed or in progress locally:
 Still required:
 
 - Wait for the queued fixed-NLA diagnostics to finish.
-- Pull artifacts for `11912917` and `11912918`.
-- Run `diagnose_nla_run.py` on the PPL-only smoke control vs fixed-NLA smoke.
+- Pull artifacts for `11913161` and `11912918`.
+- Run `diagnose_nla_run.py` on the PPL-only smoke control `11913161` vs fixed-NLA smoke `11912918`.
 - Inspect recovered 1-GPU smoke artifacts for NLA feedback health: coverage, `token_status`, parse status, duplicate verbalizations, and whether the fixed selector is producing candidate-relevant verbalizations.
 - Check whether fixed NLA improves verbalization quality before launching another long NLA run.
 - If fixed smoke looks better, launch a longer Topical-Chat engagingness PPL+fixed-NLA run.
@@ -131,8 +131,8 @@ Step 1: finish and analyze smoke diagnostics.
 
 - Completed artifact recovery for `11912914`, `11912915`, `11912916`, `11913111`, `11913112`, and `11913113`; use these artifacts to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
 - Use queued 1-GPU Topical-Chat jobs `11913130` and `11913131` as an additional matched smoke comparison while waiting for `faretra`.
-- Wait for `11912917` and `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
-- Generate a diagnostic report for `11912917` vs `11912918`.
+- Wait for `11913161` and `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
+- Generate a diagnostic report for `11913161` vs `11912918`.
 - Decision gate: continue with fixed-NLA only if artifacts show healthier NLA feedback than the first long NLA run.
 
 Step 2: launch one longer fixed-NLA Topical-Chat run.
@@ -231,20 +231,21 @@ Latest status:
 
 Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain:
 
-- `11912917`: Topical-Chat engagingness smoke, PPL-only control, llama.cpp proposer
+- `11912917`: failed Topical-Chat engagingness smoke, PPL-only control, llama.cpp proposer
+- `11913161`: replacement Topical-Chat engagingness smoke, PPL-only control, llama.cpp proposer, fixed ports
 - `11912918`: Topical-Chat engagingness smoke, PPL + fixed NLA, llama.cpp proposer
 
 These are intended to validate whether the NLA token-selection fix improves verbalization quality before launching another long NLA run.
 
 Latest status:
 
-- `11912917`: pending, dependency satisfied, but blocked by `ReqNodeNotAvail,_UnavailableNodes:faretra`.
-- `11912918`: pending on dependency `afterany:11912917`.
-- Latest check: 2026-06-10 10:50 CEST.
-- Reason: `11912917` needs 2 x RTX 3090 for vLLM judge plus llama.cpp Qwen35B proposer. `faretra` has 4 x RTX 3090 but all 4 are currently allocated; `moro232` has only 1 x RTX 3090 and is currently allocated, so it cannot run this 2-GPU job.
-- No new Slurm stdout or result artifact for jobs `11912917`, `11912918`, `11912947`, or `11912948` is visible yet.
-- Do not submit duplicate matched Qwen35B proposer jobs while `11912917` is pending. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
-- `moro232` cannot run `11912917` because it has only 1 x RTX 3090 and the job requests 2 x RTX 3090. `faretra` remains the only eligible node for this 2-GPU request.
+- `11912917`: failed on `faretra` because llama.cpp tried to bind occupied port `127.0.0.1:8080`.
+- `11913161`: replacement PPL-only control pending, fixed ports `18143/18144`, dependency satisfied, needs 2 x RTX 3090.
+- `11912918`: pending on dependency `afterok:11913161`.
+- Latest check: 2026-06-10 11:34 CEST.
+- Reason: `11913161` and the downstream Qwen35B proposer jobs need 2 x RTX 3090 on the same node. `moro232` has only 1 x RTX 3090, so `faretra` remains the only eligible node.
+- No final result artifact for jobs `11913161`, `11912918`, `11912947`, or `11912948` is visible yet.
+- Do not submit duplicate matched Qwen35B proposer jobs while `11913161` is pending. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
 
 Additional 1-GPU queue-aging jobs submitted on 2026-06-10:
 
@@ -252,6 +253,17 @@ Additional 1-GPU queue-aging jobs submitted on 2026-06-10:
 - `11913131`: Topical-Chat engagingness PPL + real-NLA single-GPU smoke, pinned to `moro232`, dependency `afterany:11913130`, 4 hour limit.
 - These jobs are not the main Qwen35B proposer comparison, but they are useful while waiting for `faretra`: they provide a matched 1-GPU PPL-only vs real-NLA smoke and accumulate queue priority for `moro232`.
 - Because `moro232` has node-local artifacts, check or sync results from `moro232` when these complete.
+
+Failure and recovery action on 2026-06-10:
+
+- `11912917` started on `faretra` at 11:32 CEST and failed after 3 seconds with exit code `125`.
+- Cause: llama.cpp sidecar attempted to bind `127.0.0.1:8080`, which was already in use on `faretra`.
+- Immediate action: held `11912918`, `11912947`, and `11912948` so the treatment and experimental NLA jobs cannot run without a valid PPL-only control.
+- Config fix: changed `geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke.env` from judge/proposer ports `8000/8080` to `18143/18144` and added explicit `SLURM_TIME=04:00:00`.
+- Relaunched PPL-only control as `11913161`, then set `11912918` to depend on it with `afterok`.
+- Dependency policy changed for the remaining chain: use `afterok` instead of `afterany` so failed controls/treatments do not trigger downstream comparison jobs.
+- Prevention fix: `gepa-experiments/slurm/run_docker.sh` now checks the llama.cpp proposer host port before launching the sidecar. If the configured port is busy and `PROPOSER_API_BASE` was not explicitly set, it automatically selects the next free port and passes that endpoint to the main GEPA container.
+- Additional config hygiene: old 2-GPU llama.cpp config `geval_gepa_engaging_qwen25_2h_ppl_llamacpp35b_proposer.env` no longer uses risky default ports `8000/8080`; it now uses `18153/18154`.
 
 Additional isolated experimental strategy jobs to queue after `11912918`:
 
@@ -264,8 +276,8 @@ Submission status:
 
 - Local implementation and validation completed.
 - Scripts/configs/status and token-strategy diagnostic report/CSV are synced to `faretra`.
-- `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, dependency `afterany:11912918`.
-- `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, dependency `afterany:11912947`.
+- `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, dependency `afterok:11912918`.
+- `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, dependency `afterok:11912947`.
 - These jobs are intentionally serial and outside the main pipeline.
 - Single-GPU Topical-Chat smoke work is now queued as `11913130` and `11913131` to exploit queue aging on `moro232`. It remains a secondary smoke comparison and does not replace the Qwen35B proposer chain.
 
