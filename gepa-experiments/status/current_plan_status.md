@@ -118,16 +118,19 @@ Still required:
 - Wait for the queued fixed-NLA diagnostics to finish.
 - Pull artifacts for `11912917` and `11912918`.
 - Run `diagnose_nla_run.py` on the PPL-only smoke control vs fixed-NLA smoke.
+- Inspect recovered 1-GPU smoke artifacts for NLA feedback health: coverage, `token_status`, parse status, duplicate verbalizations, and whether the fixed selector is producing candidate-relevant verbalizations.
 - Check whether fixed NLA improves verbalization quality before launching another long NLA run.
 - If fixed smoke looks better, launch a longer Topical-Chat engagingness PPL+fixed-NLA run.
 - If fixed smoke still fails, isolate candidate-only NLA, larger token budgets, lower proposer temperature, and shorter/summarized NLA feedback.
 - For any future job that can run on non-`faretra` nodes, check the execution node filesystem or sync artifacts back to `faretra`; `moro232` results are not guaranteed to be visible from `faretra`.
+- Queue scientifically useful pending work even when nodes are currently occupied, so jobs accrue scheduling age. Avoid only duplicate jobs or jobs that would answer no useful question.
 
 ## Future Step Roadmap
 
-Step 1: finish currently queued smoke diagnostics.
+Step 1: finish and analyze smoke diagnostics.
 
-- Use recovered `11912914`, `11912915`, `11912916`, `11913111`, `11913112`, and `11913113` artifacts to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
+- Completed artifact recovery for `11912914`, `11912915`, `11912916`, `11913111`, `11913112`, and `11913113`; use these artifacts to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
+- Use queued 1-GPU Topical-Chat jobs `11913130` and `11913131` as an additional matched smoke comparison while waiting for `faretra`.
 - Wait for `11912917` and `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
 - Generate a diagnostic report for `11912917` vs `11912918`.
 - Decision gate: continue with fixed-NLA only if artifacts show healthier NLA feedback than the first long NLA run.
@@ -237,10 +240,10 @@ Latest status:
 
 - `11912917`: pending, dependency satisfied, but blocked by `ReqNodeNotAvail,_UnavailableNodes:faretra`.
 - `11912918`: pending on dependency `afterany:11912917`.
-- Latest check: 2026-06-10 10:33 CEST.
+- Latest check: 2026-06-10 10:50 CEST.
 - Reason: `11912917` needs 2 x RTX 3090 for vLLM judge plus llama.cpp Qwen35B proposer. `faretra` has 4 x RTX 3090 but all 4 are currently allocated; `moro232` has only 1 x RTX 3090 and is currently allocated, so it cannot run this 2-GPU job.
 - No new Slurm stdout or result artifact for jobs `11912917`, `11912918`, `11912947`, or `11912948` is visible yet.
-- Do not submit more matched Qwen35B proposer jobs until `11912917` starts or `faretra` frees GPUs, because they would queue behind the same 2-GPU bottleneck.
+- Do not submit duplicate matched Qwen35B proposer jobs while `11912917` is pending. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
 - `moro232` cannot run `11912917` because it has only 1 x RTX 3090 and the job requests 2 x RTX 3090. `faretra` remains the only eligible node for this 2-GPU request.
 
 Additional 1-GPU queue-aging jobs submitted on 2026-06-10:
@@ -264,12 +267,17 @@ Submission status:
 - `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, dependency `afterany:11912918`.
 - `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, dependency `afterany:11912947`.
 - These jobs are intentionally serial and outside the main pipeline.
-- A single-GPU smoke config exists, but it is not a matched scientific comparison for Qwen35B proposer runs. It was not launched because it would not answer the current NLA-vs-control question and `moro232` has only one GPU and low real free memory.
-- Latest check: `moro232` is now allocated, so even non-comparable single-GPU smoke work should not be queued opportunistically right now.
+- Single-GPU Topical-Chat smoke work is now queued as `11913130` and `11913131` to exploit queue aging on `moro232`. It remains a secondary smoke comparison and does not replace the Qwen35B proposer chain.
 
 ## Cluster Scheduling Rule
 
-Do not pin jobs to `moro232` unless there is a concrete node-specific reason. Prefer allowing Slurm to choose either `faretra` or `moro232` to exploit the first available compatible GPU.
+Queue scientifically useful pending work even when the target node is currently occupied, so jobs accrue Slurm priority aging.
+
+Use flexible node selection by default. Pin to `moro232` only when there is a concrete reason, such as:
+
+- the job needs exactly one RTX 3090 and should not compete with the 2-GPU `faretra` Qwen35B proposer chain
+- the job is recovering or checking node-local artifacts written on `moro232`
+- the experiment is explicitly a 1-GPU smoke/control
 
 Keep:
 
@@ -302,10 +310,10 @@ Operational rule:
 
 - Prefer one persistent master connection to `faretra`.
 - Use `faretra` as the main Slurm entrypoint.
-- Avoid direct SSH to `moro232` except for narrow node debugging.
+- Direct SSH to `moro232` is appropriate for node-local artifact inspection and sync, because `moro232` result files may not be visible from `faretra`.
 - Do not run parallel local SSH status checks.
 - Use `gepa-experiments/slurm/cluster_status_snapshot.sh` for status: it collects queue, node state, job state, log tails, artifacts, and monitor logs in one remote command.
-- Use `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` as the minimal diagnostic when jobs disappear without logs: if it succeeds, debug Docker/GEPA startup; if it also disappears without stdout, debug Slurm/accounting/logging or node-local behavior first.
+- When a job seems to disappear without artifacts, first check the execution node filesystem directly or sync from that node. Use `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` only if direct node checks do not explain the missing artifacts.
 
 ## Acceptance Criteria
 
