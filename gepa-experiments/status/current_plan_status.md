@@ -201,6 +201,30 @@ Decision:
 - Do not relaunch the single-GPU NLA smoke immediately; it would answer a secondary question and may compete with more important queued work.
 - If a future single-GPU smoke is needed, rerun it only after the current code/config fix is synced, and treat it as plumbing evidence only unless the split/proposer/budget are made 1-to-1.
 
+Matched follow-up `11913388`:
+
+- `11913388` completed on `moro232` and artifacts were recovered locally from `gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_matched_smoke`.
+- Matched control: `11913130`, PPL-only single-GPU smoke.
+- Diagnostic report: `gepa-experiments/results/diagnostics/nla_single_gpu_matched_vs_ppl_smoke_20260611.md`.
+- Config match is clean except intended NLA fields: same dataset, dimension, seed, train/validation/test groups, judge/proposer model, proposer settings, instruction proposer, and perplexity feedback.
+- Split is exactly matched: 24 GEPA train rows, 12 GEPA validation rows, and 12 final-test rows.
+- NLA precompute is complete and real: 216 emitted rows across 36 covered train+validation examples, all `token_status=ok`, no dry-run placeholders, no suspicious rows.
+- NLA artifact caveat: emitted rows have `parse_status=missing_tags` and no compact activation summary stats. The missing tags contain usable text and were accepted by the validator, but future NLA runs on `moro232` should sync the full latest code path, not only the provider/config files, so the activation-stat fields are preserved.
+- Duplicate feedback remains high: 114 duplicate rows, dominated by source rows (107 source duplicates, 7 candidate duplicates). This is the same qualitative issue seen in prior fixed-NLA smoke runs.
+
+Matched single-GPU metrics:
+
+- PPL-only `11913130` optimized: Pearson 0.314271, Spearman 0.345082, MAE 0.750000, agreement 0.625000.
+- PPL+NLA `11913388` optimized: Pearson 0.603136, Spearman 0.590879, MAE 0.555556, agreement 0.722222.
+- Delta NLA minus PPL optimized: Pearson +0.288864 (+91.92%), Spearman +0.245797 (+71.23%), MAE -0.194444 (-25.93%), agreement +0.097222 (+15.56%).
+- Prediction-level movement: 3 improved final-test examples, 0 worsened, 9 unchanged.
+
+Interpretation:
+
+- The result is technically positive against the PPL-only optimized prompt, but it is not evidence that NLA improved over the seed baseline.
+- `11913388` optimized prompt is byte-identical to its seed prompt, so the "improvement" comes from NLA preventing the bad PPL-only prompt update rather than producing a better prompt.
+- This is useful debugging evidence: under the 7B proposer single-GPU setup, NLA changed GEPA's search/selection behavior enough to avoid final-test degradation. It remains secondary because the thesis-relevant proposer setting is Qwen35B via llama.cpp.
+
 ## Implementation Status
 
 Completed or in progress locally:
@@ -246,6 +270,11 @@ Still required:
   - Raw activation vectors are still intentionally not persisted by default.
 - For any future job that can run on non-`faretra` nodes, check the execution node filesystem or sync artifacts back to `faretra`; `moro232` results are not guaranteed to be visible from `faretra`.
 - Queue scientifically useful pending work even when nodes are currently occupied, so jobs accrue scheduling age. Avoid only duplicate jobs or jobs that would answer no useful question.
+- Prepared three single-GPU PPL-only controls for already completed real-NLA dataset smoke runs:
+  - `gepa-experiments/config/geval_gepa_summeval_consistency_ppl_smoke.env`
+  - `gepa-experiments/config/geval_gepa_qags_cnn_consistency_ppl_smoke.env`
+  - `gepa-experiments/config/geval_gepa_qags_xsum_consistency_ppl_smoke.env`
+- These controls are matched to the corresponding real-NLA smoke split/budget and pinned to `moro232`. They should be submitted when SSH to `moro232` is available again. They are technical ablations only, not final Qwen35B proposer results.
 
 ## Future Step Roadmap
 
@@ -444,6 +473,12 @@ Submission status:
 - Pre-submit checks for `11913388`: `moro232` GPU was free, port `18213` was free, dataset cache existed, Docker image `geval_gepa:latest` existed, config had no `NLA_PRECOMPUTE_LIMIT`, `NLA_MIN_COVERAGE=0.95` was explicit, and the precomputed-NLA no-dry-run-fallback code was present on `moro232`.
 - Startup status for `11913388`: running on `moro232`; preflight passed, split sizes are `gepa_train=24`, `gepa_validation=12`, `final_test=12`, and a 36-row NLA manifest was written before NLA checkpoint loading.
 - Operational note for `11913388`: `moro232` now has `~/.telegram_credentials` copied from `faretra` with mode `600`. A node-local Telegram monitor is active on `moro232` with PID `4108546` and watches the node-local Slurm stdout file. The monitor originally started from `faretra` may still miss node-local log alerts, so use the `moro232` monitor as the authoritative one for this job.
+- Completion status for `11913388`: completed on `moro232`, artifacts recovered locally, diagnostic report generated. Final interpretation is audit-positive but not thesis-level: NLA prevented the PPL-only optimized degradation, but the final optimized prompt stayed identical to the seed prompt.
+- Prepared but not yet submitted because local SSH to `moro232` started returning `socket: Operation not permitted`:
+  - SummEval consistency PPL-only single-GPU control.
+  - QAGS-CNN consistency PPL-only single-GPU control.
+  - QAGS-XSUM consistency PPL-only single-GPU control.
+- Submit these three controls on `moro232` when SSH is available. They are matched technical controls for the already recovered real-NLA smoke jobs and should be interpreted as secondary 7B-proposer ablations.
 
 ## Cluster Scheduling Rule
 
