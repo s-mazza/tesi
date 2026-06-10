@@ -443,7 +443,7 @@ Submission status:
 - Purpose of `11913388`: technical audit of the corrected precomputed-NLA path after removing the partial-precompute failure mode from `11913131`. It remains secondary evidence because the proposer is Qwen2.5-7B rather than Qwen35B.
 - Pre-submit checks for `11913388`: `moro232` GPU was free, port `18213` was free, dataset cache existed, Docker image `geval_gepa:latest` existed, config had no `NLA_PRECOMPUTE_LIMIT`, `NLA_MIN_COVERAGE=0.95` was explicit, and the precomputed-NLA no-dry-run-fallback code was present on `moro232`.
 - Startup status for `11913388`: running on `moro232`; preflight passed, split sizes are `gepa_train=24`, `gepa_validation=12`, `final_test=12`, and a 36-row NLA manifest was written before NLA checkpoint loading.
-- Operational note for `11913388`: `moro232` does not currently have `~/.telegram_credentials`, and the Slurm stdout path is node-local on `moro232`, so the Telegram monitor started from `faretra` may not catch log alerts. Check the node-local Slurm log directly unless credentials are intentionally installed on `moro232`.
+- Operational note for `11913388`: `moro232` now has `~/.telegram_credentials` copied from `faretra` with mode `600`. A node-local Telegram monitor is active on `moro232` with PID `4108546` and watches the node-local Slurm stdout file. The monitor originally started from `faretra` may still miss node-local log alerts, so use the `moro232` monitor as the authoritative one for this job.
 
 ## Cluster Scheduling Rule
 
