@@ -84,6 +84,67 @@ The diagnostic report answered:
 
 Use `gepa-experiments/scripts/diagnose_nla_run.py` for this comparison.
 
+## Fixed-NLA Smoke Findings
+
+The first fixed-NLA smoke that completed successfully is `11913262`, replacing failed job `11912918`.
+
+Matched comparison:
+
+- Control: `11913161`, Topical-Chat engagingness PPL-only smoke.
+- Treatment: `11913262`, same setting plus fixed real NLA feedback.
+- Same dataset, dimension, seed, split sizes, proposer model/settings, perplexity feedback, and GEPA budget.
+- Only intended differences are `nla_feedback`, `nla_backend`, `nla_precomputed_path`, and `nla_max_tokens_per_example`.
+
+Final-test metric movement on the 12-example smoke slice:
+
+- Optimized Pearson: 0.536400 -> 0.674979, delta +0.138580, +25.84%.
+- Optimized Spearman: 0.527410 -> 0.674693, delta +0.147283, +27.93%.
+- Optimized Kendall tau: 0.459933 -> 0.606407, delta +0.146474, +31.85%.
+- Optimized agreement: 0.638889 -> 0.763889, delta +0.125000, +19.57%.
+- Optimized MAE: 0.722222 -> 0.472222, delta -0.250000, 34.62% lower error.
+- Prediction-level movement: 4 improved examples, 1 worsened example, 7 unchanged.
+
+NLA feedback health for `11913262`:
+
+- Raw activation vectors are not persisted in the current artifact format. The stored artifacts contain token metadata and natural-language verbalizations of activation vectors.
+- Precomputed rows: 210.
+- Covered examples: 36/36.
+- Useful rows after the parser/validator fix: 210/210.
+- Emitted verbalization rows: 210.
+- Token status: `ok` for all 210 rows.
+- Parse status: `partial_tags` for all 210 rows after stripping closing-tag-only verbalizer output.
+- Token position mix: 108 candidate rows, 36 source rows, 66 reference rows.
+- Rows per example: 30 examples have 6 rows, 6 examples have 5 rows.
+- Verbalization length: mean about 10.7 words, median 11 words.
+- Duplicate/repeated verbalizations remain non-trivial: the diagnostic report finds 107 duplicate text rows. This is much better than the first long NLA run, but still a core quality issue.
+
+Manual qualitative pattern:
+
+- The fixed selector no longer collapses to weak first tokens only; candidate tokens now dominate the feedback rows.
+- Many source/reference verbalizations are repeated across the six candidate responses from the same context, because source and reference text are context-level signals. This likely explains a large fraction of duplicate rows.
+- The verbalizations often describe likely continuations or topical completions, not direct high-level rubric concepts. Example pattern: `"or database or model organism"` for a zebrafish-related activation.
+- Despite imperfect verbalization semantics, the proposer used the extra feedback to move the prompt toward a useful scoring rule: relevant responses that keep the conversation flowing should usually be at least 2, while score 1 should be reserved for genuinely disengaged, irrelevant, or conversation-ending responses.
+- This prompt change directly matches the error pattern where the PPL-only run underrated several high-scoring human examples.
+
+Current interpretation:
+
+- Fixed-NLA is now a plausible positive signal, not just a plumbing test.
+- The smoke result is scientifically encouraging but not sufficient for thesis claims because the final test has only 12 examples.
+- The next main-pipeline action is a longer fixed-NLA run with the same long setting as the prior PPL-only long control.
+- The next diagnostic action is to finish candidate-only smoke jobs to check whether removing repeated source/reference rows improves feedback quality further.
+- Detailed activation-verbalization analysis is saved in `gepa-experiments/results/diagnostics/nla_activation_verbalization_quality_20260610.md`.
+
+Extra activation-verbalization reading from the current artifacts:
+
+- The current artifacts do not contain raw activation vectors. They contain selected-token metadata and natural-language verbalizations generated from those activation vectors.
+- Fixed-NLA `11913262` has 210 rows across 36 examples: 108 candidate rows, 36 source rows, and 66 reference rows.
+- Fixed-NLA has 123/210 unique normalized verbalizations, with 87 exact duplicate normalized rows in direct inspection and 107 duplicate rows under the stricter diagnostic normalization.
+- Fixed-NLA still has many completion-style verbalizations: 192/210 rows look like quoted continuations or topical completions rather than direct rubric concepts.
+- Candidate-only precompute for running job `11912947` has 187 rows across the same 36 examples, all candidate rows, all `token_status=ok`, all non-empty `partial_tags`, and 187/187 unique normalized verbalizations.
+- Candidate-only `11912947` has fewer weak token rows than fixed-NLA in direct inspection: 21/187, 11.2%, versus 40/210, 19.0%, for fixed-NLA.
+- Candidate-only does not yet have final GEPA metrics, so it is currently only a feedback-health signal. It must not replace fixed-NLA in the main pipeline until it wins a matched metrics comparison.
+- The main hypothesis to test is now clear: source/reference NLA rows may provide useful grounding, but they also repeat across all responses in the same context and may dilute or bias proposer feedback. Candidate-only removes that repeated context-level pressure.
+
 ## Implementation Status
 
 Completed or in progress locally:
@@ -115,13 +176,12 @@ Completed or in progress locally:
 
 Still required:
 
-- Wait for the queued fixed-NLA diagnostics to finish.
-- Pull artifacts for `11912918`; artifacts for `11913161` were recovered locally from `faretra`.
-- Run `diagnose_nla_run.py` on the PPL-only smoke control `11913161` vs fixed-NLA smoke `11912918`.
-- Inspect recovered 1-GPU smoke artifacts for NLA feedback health: coverage, `token_status`, parse status, duplicate verbalizations, and whether the fixed selector is producing candidate-relevant verbalizations.
-- Check whether fixed NLA improves verbalization quality before launching another long NLA run.
-- If fixed smoke looks better, launch a longer Topical-Chat engagingness PPL+fixed-NLA run.
-- If fixed smoke still fails, isolate candidate-only NLA, larger token budgets, lower proposer temperature, and shorter/summarized NLA feedback.
+- Let the currently running isolated candidate-only NLA smoke `11912947` finish, then compare it against the fixed-NLA smoke `11913262` and the PPL-only control `11913161`.
+- Let `11912948` run after `11912947` if `11912947` succeeds; this tests the candidate-only 10-token strategy.
+- Launch or keep queued one longer Topical-Chat engagingness PPL+fixed-NLA run, because the fixed-NLA smoke gate has passed.
+- After the long fixed-NLA run completes, compare it against the closest long PPL-only control with `diagnose_nla_run.py`.
+- Inspect recovered 1-GPU smoke artifacts from `11913130` and `11913131` if they eventually run on `moro232`; these remain secondary and do not replace the Qwen35B proposer comparison.
+- If long fixed-NLA fails or reverses the smoke improvement, isolate candidate-only NLA, larger token budgets, lower proposer temperature, and shorter/summarized NLA feedback.
 - For any future job that can run on non-`faretra` nodes, check the execution node filesystem or sync artifacts back to `faretra`; `moro232` results are not guaranteed to be visible from `faretra`.
 - Queue scientifically useful pending work even when nodes are currently occupied, so jobs accrue scheduling age. Avoid only duplicate jobs or jobs that would answer no useful question.
 
@@ -131,9 +191,9 @@ Step 1: finish and analyze smoke diagnostics.
 
 - Completed artifact recovery for `11912914`, `11912915`, `11912916`, `11913111`, `11913112`, and `11913113`; use these artifacts to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
 - Use queued 1-GPU Topical-Chat jobs `11913130` and `11913131` as an additional matched smoke comparison while waiting for `faretra`.
-- Wait for `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
-- Generate a diagnostic report for `11913161` vs `11912918`.
-- Decision gate: continue with fixed-NLA only if artifacts show healthier NLA feedback than the first long NLA run.
+- Completed the matched Topical-Chat PPL-only vs fixed-NLA smoke comparison using `11913161` vs replacement `11913262`.
+- Generated diagnostic report `gepa-experiments/results/diagnostics/nla_vs_ppl_fixed_smoke_20260610.md`.
+- Decision gate result: fixed-NLA smoke is positive on the 12-example final-test slice and has valid NLA coverage/useful rows, so proceed to one longer fixed-NLA run while treating the smoke as suggestive rather than conclusive.
 
 Step 2: launch one longer fixed-NLA Topical-Chat run.
 
@@ -143,6 +203,9 @@ Step 2: launch one longer fixed-NLA Topical-Chat run.
 - Keep Qwen 35B as proposer.
 - Do not enable auxiliary judge yet.
 - Goal: verify whether fixed-NLA alone can recover or improve over the previous PPL-only result.
+- Use new config `gepa-experiments/config/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b.env` so the new fixed-NLA long run does not mix artifacts with the older negative long NLA run.
+- Keep `SLURM_TIME=16:00:00` as a safety limit; the target is a long 8-12 hour style run, not necessarily a full 16 hours.
+- Submitted this long fixed-NLA run as `11913284`; it is pending for 2 x RTX 3090 availability with `ExcNodeList=deeplearn2`.
 
 Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 
@@ -164,7 +227,7 @@ Step 4: if Topical-Chat diagnostics are positive, scale to paper-aligned dimensi
 - Then expand to all G-Eval dimensions listed above.
 - For each target, preserve all prompt artifacts, NLA artifacts, diagnostic reports, and paper-aligned metrics.
 
-Step 5: if NLA remains negative after the fixed selector.
+Step 5: if NLA remains negative or unstable after the fixed selector.
 
 - Keep all creative NLA strategy experiments separate from the current main pipeline.
 - Do not change the default NLA selector, runner behavior, or production configs for these experiments.
@@ -180,7 +243,7 @@ Step 5: if NLA remains negative after the fixed selector.
   - `candidate_content_6`: candidate-only, weak token rows 0.00%, duplicate row pct 35.58%.
   - `candidate_content_10`: candidate-only, weak token rows 0.00%, duplicate row pct 34.89%.
 - `candidate_source_content_8` remains a secondary cross-check, but it is not first priority because it has higher duplicate row pct 51.76%.
-- Run candidate-content NLA as separate smoke experiments before considering any merge into the main pipeline.
+- Run candidate-content NLA as separate smoke experiments before considering any merge into the main pipeline. This is now in progress as `11912947` (`candidate_content_6`) followed by `11912948` (`candidate_content_10`).
 - Increase `NLA_MAX_TOKENS_PER_EXAMPLE` to 8 or 10 only in separate experimental configs.
 - Lower proposer temperature to 0.2 or 0.0 only in matched experimental controls.
 - Test summarized/compressed NLA feedback before giving it to the proposer, but keep it isolated from the current runner path unless it clearly wins.
@@ -234,6 +297,7 @@ Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain
 - `11912917`: failed Topical-Chat engagingness smoke, PPL-only control, llama.cpp proposer
 - `11913161`: replacement Topical-Chat engagingness smoke, PPL-only control, llama.cpp proposer, fixed ports
 - `11912918`: Topical-Chat engagingness smoke, PPL + fixed NLA, llama.cpp proposer
+- `11913262`: replacement Topical-Chat engagingness smoke, PPL + fixed NLA, llama.cpp proposer, parser/useful-row fix
 
 These are intended to validate whether the NLA token-selection fix improves verbalization quality before launching another long NLA run.
 
@@ -242,16 +306,19 @@ Latest status:
 - `11912917`: failed on `faretra` because llama.cpp tried to bind occupied port `127.0.0.1:8080`.
 - `11913161`: replacement PPL-only control completed on `faretra`; artifacts were recovered to the local workspace from `gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke`.
 - `11912918`: started on `faretra` at 2026-06-10 16:01 CEST and failed after 13m16s with exit code `1:0`.
-- Latest check: 2026-06-10 16:16 CEST.
+- `11913262`: replacement PPL+fixed-NLA smoke completed on `faretra` with exit code `0:0`.
+- Latest check: 2026-06-10 16:49 CEST.
 - Reason: `11913161` and the downstream Qwen35B proposer jobs need 2 x RTX 3090 on the same node. `moro232` has only 1 x RTX 3090, so `faretra` remains the only eligible node.
 - Failure root cause: the NLA precompute succeeded and wrote 210 rows with `token_status=ok`, but all rows were marked `parse_status=missing_tags` because the NLA verbalizer emitted text ending in `</explanation>` without the opening `<explanation>` tag. The runner's useful-row guard was too strict and rejected all 210 non-empty verbalizations as unusable.
 - Fix: `parse_explanation` now treats closing-tag-only output as `partial_tags` and strips the tag; the NLA useful-row validator now accepts non-empty `missing_tags` rows with ok/unknown token status.
 - Validation: local targeted tests and the full `gepa-experiments/tests/test_data_and_metrics.py` suite pass; the recovered `11912918` precomputed file now reports `covered_examples=36`, `rows=210`, `useful_rows=210`.
-- Replacement job `11913262` submitted for the same Topical-Chat engagingness PPL+fixed-NLA smoke setting.
-- `11913262` has `ExcNodeList=deeplearn2`, 2 x RTX 3090, 64G memory, and 4h time limit.
-- Downstream experimental job `11912947` was rewired from the failed `11912918` to `afterok:11913262`; `11912948` remains after `11912947`.
-- No final result artifact for jobs `11913262`, `11912947`, or `11912948` is visible yet.
-- Do not submit duplicate matched Qwen35B proposer jobs while `11913262` is pending/running. Do submit other scientifically useful queued work if it answers a distinct question and can age in the queue.
+- Replacement job `11913262` used the same Topical-Chat engagingness PPL+fixed-NLA smoke setting with `ExcNodeList=deeplearn2`, 2 x RTX 3090, 64G memory, and 4h time limit.
+- `11913262` artifacts are visible under `gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke`.
+- Downstream experimental job `11912947` was rewired from the failed `11912918` to `afterok:11913262` and is now running on `faretra`.
+- `11912947` passed the startup-risk phase: NLA precompute finished with 187 candidate-only rows, vLLM and llama.cpp readiness passed, dataset/split/model-cache checks passed, and perplexity scoring started.
+- `11912948` remains after `11912947`.
+- No final metrics or optimized-prompt artifact for jobs `11912947` or `11912948` is visible yet.
+- Do not submit duplicate matched Qwen35B proposer smoke jobs; the matched smoke comparison is complete. Do submit the longer fixed-NLA run and other scientifically distinct queued work if it answers a planned question and can age in the queue.
 
 `11913161` PPL-only smoke result:
 
@@ -292,9 +359,11 @@ Submission status:
 
 - Local implementation and validation completed.
 - Scripts/configs/status and token-strategy diagnostic report/CSV are synced to `faretra`.
-- `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, dependency `afterok:11912918`.
+- `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, currently running after successful `11913262`.
 - `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, dependency `afterok:11912947`.
-- These jobs are intentionally serial and outside the main pipeline.
+- `11913284`: Topical-Chat engagingness long run, PPL + fixed NLA, llama.cpp proposer, pending for 2 x RTX 3090 availability with 16h safety limit.
+- `11912947` and `11912948` are intentionally serial and outside the main pipeline.
+- `11913284` is not part of that experimental serial chain. It is the current main-pipeline long fixed-NLA run and is independent of the candidate-only smoke jobs.
 - Single-GPU Topical-Chat smoke work is now queued as `11913130` and `11913131` to exploit queue aging on `moro232`. It remains a secondary smoke comparison and does not replace the Qwen35B proposer chain.
 
 ## Cluster Scheduling Rule
@@ -447,8 +516,9 @@ Before launching another long fixed-NLA run, the fixed-NLA smoke comparison must
 - NLA emitted artifacts preserve `token_status=ok`.
 - Verbalizations are not dominated by first-token source/reference activations.
 - Duplicate verbalization rows are substantially lower than the first long NLA run.
-- `partial_tags` are reduced, or at least the unclosed tag behavior is confirmed not to truncate semantic content.
+- `partial_tags` or missing tags are confirmed not to truncate semantic content; after the parser fix, closing-tag-only outputs are normalized and accepted only when they contain non-empty text.
 - The PPL-only smoke and fixed-NLA smoke are compared with `diagnose_nla_run.py`.
+- Current status: this gate passed on smoke job `11913262`, with the caveat that duplicate source/reference verbalizations remain high and must be monitored in the long run.
 
 Before launching `ppl_nla_auxjudge`, the fixed-NLA run should have a valid diagnostic report. The auxiliary judge experiment should answer a separate question: whether Qwen 35B feedback helps the proposer use NLA/perplexity signals better, not whether the base judge model itself changes.
 
