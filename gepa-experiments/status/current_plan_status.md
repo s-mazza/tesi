@@ -121,13 +121,13 @@ Still required:
 - Check whether fixed NLA improves verbalization quality before launching another long NLA run.
 - If fixed smoke looks better, launch a longer Topical-Chat engagingness PPL+fixed-NLA run.
 - If fixed smoke still fails, isolate candidate-only NLA, larger token budgets, lower proposer temperature, and shorter/summarized NLA feedback.
-- Verify Slurm stdout/GPU allocation on `moro232` with `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` because the latest pinned 1-GPU smoke jobs disappeared without visible stdout or new artifacts.
+- For any future job that can run on non-`faretra` nodes, check the execution node filesystem or sync artifacts back to `faretra`; `moro232` results are not guaranteed to be visible from `faretra`.
 
 ## Future Step Roadmap
 
 Step 1: finish currently queued smoke diagnostics.
 
-- Wait for `11912914`, `11912915`, and `11912916` to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
+- Use recovered `11912914`, `11912915`, `11912916`, `11913111`, `11913112`, and `11913113` artifacts to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
 - Wait for `11912917` and `11912918` to compare Topical-Chat PPL-only vs fixed-NLA on the original engagingness task.
 - Generate a diagnostic report for `11912917` vs `11912918`.
 - Decision gate: continue with fixed-NLA only if artifacts show healthier NLA feedback than the first long NLA run.
@@ -205,11 +205,9 @@ Replacement chain submitted without a node pin, keeping `ExcNodeList=deeplearn2`
 
 Latest status:
 
-- `11912914`, `11912915`, and `11912916` are no longer visible in `squeue` or `scontrol`.
-- `sacct` is currently unusable because SlurmDB returns `Connection refused`.
-- No Slurm stdout files or new result artifacts with job ids `11912914`, `11912915`, or `11912916` are visible under `gepa-experiments/results`.
-- Therefore these three dataset smoke jobs must not be counted as scientifically completed yet.
-- Next action: once SlurmDB/logging is stable, either recover their status from accounting or re-submit equivalent smoke jobs with confirmed stdout/artifact creation.
+- `11912914`, `11912915`, and `11912916` were initially missing from `faretra` checks because they wrote artifacts on `moro232`'s local filesystem. Their artifacts were recovered together with `11913111`, `11913112`, and `11913113`.
+- `sacct` is currently unusable because SlurmDB returns `Connection refused`; use node-local artifacts plus `/var/log/slurm/jobcomp.log` when old jobs age out of `scontrol`.
+- The recovered 2026-06-08 and 2026-06-09 dataset smoke runs are scientifically usable only as small runner/NLA sanity checks, not as final paper-level comparisons.
 - Re-submission on 2026-06-10 01:02 CEST to exploit the idle single-GPU `moro232` node without occupying `faretra`:
   - `11913111`: SummEval consistency smoke, PPL + real NLA, pinned to `moro232`.
   - `11913112`: QAGS-CNN consistency smoke, PPL + real NLA, pinned to `moro232`, dependency `afterany:11913111`.
