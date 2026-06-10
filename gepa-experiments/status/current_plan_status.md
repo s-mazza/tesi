@@ -131,7 +131,7 @@ Current interpretation:
 - Fixed-NLA is now a plausible positive signal, not just a plumbing test.
 - The smoke result is scientifically encouraging but not sufficient for thesis claims because the final test has only 12 examples.
 - The next main-pipeline action is a longer fixed-NLA run with the same long setting as the prior PPL-only long control.
-- The next diagnostic action is to finish candidate-only smoke jobs to check whether removing repeated source/reference rows improves feedback quality further.
+- The next diagnostic action is to finish `candidate_content_10` only as a secondary check, while preparing the hybrid deduplicated NLA strategy for a later isolated smoke if fixed-NLA long results or candidate10 justify it.
 - Detailed activation-verbalization analysis is saved in `gepa-experiments/results/diagnostics/nla_activation_verbalization_quality_20260610.md`.
 
 Extra activation-verbalization reading from the current artifacts:
@@ -156,6 +156,14 @@ Extra activation-verbalization reading from the current artifacts:
   - `context_058_response_05`: target 3.0, fixed-NLA 3, candidate-only 2.
 - Qualitative read: candidate-only made the feedback artifact cleaner, but GEPA produced a stricter, more aesthetic prompt that over-penalizes responses for not having enough flair or direct social integration. Fixed-NLA produced a better dataset-aligned rule: relevant responses that keep the conversation moving should usually get at least 2, and score 1 should be reserved for genuinely disengaged or irrelevant replies.
 - Updated hypothesis: duplicate reduction alone is not the right objective. Source/reference rows are repetitive, but they may provide useful grounding and may help GEPA avoid an overly strict candidate-style rubric. The next NLA strategy should deduplicate or compress context-level rows rather than removing source/reference feedback entirely.
+- Implementation decision: the hybrid deduplicated strategy is implemented only in the isolated experimental path, not in the main fixed-NLA runner path. The provider now supports optional `__group__:<group_id>` rows, so one context-level source/reference verbalization can be reused for all responses in the same context without storing repeated source/reference rows for every candidate.
+- `hybrid_context_dedup_6` is the first ready hybrid smoke config. It keeps the same total NLA feedback budget as fixed-NLA: up to 4 candidate rows per response plus 1 source and 1 reference row shared per context.
+- CPU token-selection check on the current 36-example smoke split:
+  - `current_fixed_6`: 210 selected token rows, 108 candidate, 36 source, 66 reference, weak token pct 17.14.
+  - `candidate_content_6`: 187 rows, all candidate, weak token pct 0.00.
+  - `hybrid_context_dedup_6`: 141 rows, 129 candidate, 6 source, 6 reference, weak token pct 0.00.
+  - `hybrid_context_dedup_8`: 199 rows, 187 candidate, 6 source, 6 reference, weak token pct 0.00.
+- Decision: do not launch or merge `hybrid_context_dedup_6` ahead of the current long fixed-NLA result unless explicitly needed. It is prepared as the next isolated NLA strategy if fixed-NLA long fails, if candidate10 confirms candidate-only is weak, or if we need a direct test of "keep grounding but remove repeated context rows."
 
 ## Implementation Status
 
@@ -192,9 +200,11 @@ Still required:
 - Launch or keep queued one longer Topical-Chat engagingness PPL+fixed-NLA run, because the fixed-NLA smoke gate has passed.
 - After the long fixed-NLA run completes, compare it against the closest long PPL-only control with `diagnose_nla_run.py`.
 - Inspect recovered 1-GPU smoke artifacts from `11913130` and `11913131` if they eventually run on `moro232`; these remain secondary and do not replace the Qwen35B proposer comparison.
-- If long fixed-NLA fails or reverses the smoke improvement, prioritize hybrid deduplicated NLA feedback, lower proposer temperature, and shorter/summarized NLA feedback. Do not prioritize pure candidate-only replacement unless `candidate_content_10` contradicts the `candidate_content_6` result.
-- Add a non-invasive diagnostic artifact for future runs that stores final-test context/fact/candidate text alongside predictions; current prediction artifacts do not include the text, which slows qualitative error analysis.
-- Add a separate diagnostic-only artifact for activation-vector summary statistics if vector-level NLA analysis is needed. Current artifacts do not persist raw activation vectors.
+- If long fixed-NLA fails or reverses the smoke improvement, prioritize `hybrid_context_dedup_6`, lower proposer temperature, and shorter/summarized NLA feedback. Do not prioritize pure candidate-only replacement unless `candidate_content_10` contradicts the `candidate_content_6` result.
+- Non-invasive diagnostic artifact support is now implemented for future runs:
+  - prediction JSONL rows now include `source_text`, `fact`, `reference`, and `candidate_output`, so final-test qualitative errors can be inspected without rejoining the dataset manually.
+  - NLA precomputed/verbalization rows now include compact activation-vector statistics: dimension, L2 norm, mean, std, min, max, and absolute mean.
+  - Raw activation vectors are still intentionally not persisted by default.
 - For any future job that can run on non-`faretra` nodes, check the execution node filesystem or sync artifacts back to `faretra`; `moro232` results are not guaranteed to be visible from `faretra`.
 - Queue scientifically useful pending work even when nodes are currently occupied, so jobs accrue scheduling age. Avoid only duplicate jobs or jobs that would answer no useful question.
 
@@ -260,6 +270,11 @@ Step 5: if NLA remains negative or unstable after the fixed selector.
 - `candidate_source_content_8` remains a secondary cross-check, but it is not first priority because it has higher duplicate row pct 51.76%.
 - Run candidate-content NLA as separate smoke experiments before considering any merge into the main pipeline. This is now in progress as `11912947` (`candidate_content_6`) followed by `11912948` (`candidate_content_10`).
 - `11912947` completed successfully and is negative on final metrics, despite very clean duplicate statistics.
+- Hybrid deduplicated NLA is implemented as a separate experimental strategy:
+  - `gepa-experiments/scripts/experimental_build_nla_precomputed.py` supports `hybrid_context_dedup_6` and `hybrid_context_dedup_8`.
+  - `gepa-experiments/scripts/experimental_nla_token_strategy_analysis.py` reports both hybrid strategies.
+  - `gepa-experiments/config/experimental_nla_hybrid_context_dedup_6_topical_chat_smoke.env` is ready for a future isolated smoke.
+  - `NlaFeedbackProvider` can consume shared context rows with `example_id="__group__:<group_id>"`.
 - Increase `NLA_MAX_TOKENS_PER_EXAMPLE` to 8 or 10 only in separate experimental configs.
 - Lower proposer temperature to 0.2 or 0.0 only in matched experimental controls.
 - Test summarized/compressed NLA feedback before giving it to the proposer, but keep it isolated from the current runner path unless it clearly wins.
