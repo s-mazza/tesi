@@ -479,6 +479,7 @@ Submission status:
   - QAGS-CNN consistency PPL-only single-GPU control.
   - QAGS-XSUM consistency PPL-only single-GPU control.
 - Submit these three controls on `moro232` when SSH is available. They are matched technical controls for the already recovered real-NLA smoke jobs and should be interpreted as secondary 7B-proposer ablations.
+- The configs and latest GEPA code path were synced to `moro232` successfully. A later submission attempt failed before `sbatch` with the same local SSH `socket: Operation not permitted` error, so no new job ids were created for these three controls yet.
 
 ## Cluster Scheduling Rule
 
