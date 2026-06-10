@@ -306,6 +306,98 @@ Submit-script guard added:
 - The submit also fails if `PROPOSER_BACKEND=llamacpp` is configured with fewer than 2 GPUs.
 - This does not make a 2-GPU job runnable on `moro232`; it only prevents invalid submissions and makes the scheduler constraint explicit at submit time.
 
+## Pre-Submit Checklist
+
+Before submitting any new job, complete this checklist. Do not rely only on the submit script guards; they catch scheduling mistakes, not scientific or artifact mistakes.
+
+Scientific purpose:
+
+- Confirm the job answers a distinct question already in this plan, or update the plan before submitting it.
+- Confirm the matched control exists, is queued, or is submitted in the same action.
+- Confirm the job is not a duplicate of a queued, running, or completed artifact unless the previous job failed or is explicitly being rerun.
+- Confirm whether the job is main-pipeline evidence, secondary smoke evidence, or isolated experimental NLA evidence.
+- Confirm the final comparison metrics are paper-aligned for that dataset/dimension.
+- Confirm GEPA optimization uses validation examples, not final test examples.
+- Confirm final test is used only after optimization.
+
+Config file:
+
+- Confirm `CONFIG_FILE` exists locally and on the target cluster path.
+- Confirm `DATASET`, `DIMENSION`, `LABEL`, `SEED`, `TRAIN_CONTEXTS`, `VAL_CONTEXTS`, and `TEST_CONTEXTS` are intentional.
+- Confirm split sizes are large enough for the purpose: smoke, diagnostic, long run, or thesis-level comparison.
+- Confirm `OUTPUT_DIR` is unique or intentionally reuses a directory with timestamped artifacts.
+- Confirm `SLURM_TIME` is set; smoke jobs must not appear as `UNLIMITED`.
+- Confirm `SLURM_MEM` is set and consistent with vLLM, NLA, and llama.cpp memory needs.
+- Confirm `JOB_SLUG` is unique enough that Slurm stdout files are readable and not ambiguous.
+- Run shell syntax validation on changed Slurm scripts before submission.
+
+Scheduling:
+
+- Inspect current queue with `squeue` and current node state with `scontrol show node`.
+- Confirm requested GPU count is compatible with the selected backend:
+  - llama.cpp proposer sidecar requires 2 GPUs on one node.
+  - single-GPU smoke jobs must not pretend to be matched Qwen35B proposer comparisons.
+- Confirm node pinning is intentional:
+  - use flexible scheduling by default.
+  - pin to `moro232` only for 1-GPU smoke/control jobs or node-local artifact work.
+  - do not pin 2-GPU Qwen35B proposer jobs to `moro232`.
+- Keep `SLURM_EXCLUDE=deeplearn2` unless there is an explicit reason to change it.
+- Confirm dependencies use `afterok` for scientific chains where downstream jobs require a valid upstream result.
+- Use `afterany` only for cleanup/recovery jobs or cases where downstream execution is valid after failure.
+- Confirm held jobs are intentionally held; release only after dependencies and configs are corrected.
+- Queue useful pending work even when nodes are occupied, but do not queue duplicate jobs that answer the same question.
+
+Ports and networking:
+
+- Confirm vLLM `SERVER_PORT` is not an old risky default unless intentionally isolated.
+- Confirm llama.cpp `PROPOSER_PORT` is not `8080` unless there is a specific reason.
+- Confirm `run_docker.sh` port auto-selection is synced on the cluster before submitting llama.cpp proposer jobs.
+- If `PROPOSER_API_BASE` is explicitly set, confirm it matches `PROPOSER_PORT`; otherwise the auto-port fallback cannot safely rewrite it.
+- Confirm the expected proposer endpoint is printed in the Slurm log at startup.
+
+Model/cache/container readiness:
+
+- Confirm judge model cache exists under `/llms/hub/...` on the execution node.
+- Confirm NLA checkpoint cache exists when NLA is enabled.
+- Confirm llama.cpp GGUF exists under `/llms/llamacpp-cache` for Qwen35B proposer jobs.
+- Confirm the Docker image expected by `IMAGE_NAME` exists on the node or can be pulled/built intentionally.
+- Confirm vLLM/Flash Attention compatibility has not changed for the active Docker image.
+- Confirm no stale container with the same `CONTAINER_NAME` or `SIDECAR_NAME` can block startup; names include the Slurm job id by default.
+
+Data and split integrity:
+
+- Confirm data source exists on the execution node.
+- Confirm preflight checks pass for dataset, split counts, context disjointness, response ids, model cache, and NLA cache.
+- For Topical-Chat, confirm the run uses the intended USR data source and dimension.
+- For SummEval/QAGS, confirm the run uses the intended paper-aligned dataset/dimension and not a legacy Topical-Chat label path.
+
+NLA/perplexity feedback:
+
+- If `NLA_FEEDBACK=1`, confirm whether this is real NLA or dry-run NLA.
+- Dry-run NLA is allowed only for plumbing tests, not scientific comparison.
+- If real NLA is enabled, confirm `NLA_BACKEND=precomputed`, `NLA_PRECOMPUTED_AUTO=1`, token budget, layer, dtypes, and checkpoint.
+- Confirm `NLA_PRECOMPUTE_LIMIT` is intentional; do not accidentally cap scientific runs below train/validation coverage.
+- Confirm `NLA_MIN_COVERAGE` is strict enough for the run purpose.
+- Confirm perplexity feedback is computed on the base Qwen2.5-7B judge model, not on the 35B proposer.
+
+Artifacts and monitoring:
+
+- Confirm Slurm stdout path is under `gepa-experiments/results/slurm`.
+- Confirm Telegram monitor credentials exist if monitor is enabled.
+- Confirm monitor log and pid paths will be unique for the job id.
+- If the job can run on `moro232`, plan artifact retrieval from `moro232` because results may be node-local.
+- After submission, record the job id, dependency chain, config path, output dir, node pin/exclude, and expected comparison in this file.
+- After completion, sync artifacts from the execution node to local workspace and to `faretra` if needed.
+- After completion, verify required artifacts: metrics, run config, baseline and optimized predictions, seed and optimized prompts, prompt trajectory, GEPA viz, runtime manifest, Slurm log, vLLM log, llama.cpp log when applicable, and NLA verbalizations when applicable.
+
+Post-submit sanity:
+
+- Immediately inspect `scontrol show job` for the submitted job.
+- Confirm `TimeLimit`, `ReqNodeList`, `ExcNodeList`, `TRES`, `Dependency`, `StdOut`, and `WorkDir`.
+- If any field is wrong, fix it with `scontrol update` before the job starts, or cancel and resubmit.
+- If the job starts and fails before model loading, inspect Slurm stdout first; common startup failures include occupied ports, missing image, missing model cache, wrong node filesystem, or bad dependency/config path.
+- If a control job fails, hold or rewire downstream treatment jobs before they start.
+
 ## SSH / IPS Mitigation
 
 The UniBo network can quarantine a client when it detects an IPS-like pattern. In this project the risky pattern is many short-lived SSH/SCP/rsync connections from Codex, especially parallel checks and aborted retries. The mitigation is to keep command throughput high while reducing new TCP/SSH handshakes.
