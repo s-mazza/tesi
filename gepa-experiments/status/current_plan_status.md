@@ -215,9 +215,18 @@ Latest status:
   - `11913112`: QAGS-CNN consistency smoke, PPL + real NLA, pinned to `moro232`, dependency `afterany:11913111`.
   - `11913113`: QAGS-XSUM consistency smoke, PPL + real NLA, pinned to `moro232`, dependency `afterany:11913112`.
 - This pinning is intentional and limited to 1-GPU dataset smoke jobs. It should not be used for Qwen35B proposer jobs, which need 2 GPUs on the same node.
-- Latest check: 2026-06-10 10:33 CEST. Jobs `11913111`, `11913112`, and `11913113` are no longer visible in `squeue` or `scontrol`, have no visible Slurm stdout, and produced no new result artifacts. Treat them as unverified/failed-to-observe, not completed.
-- Diagnostic action: submit `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` on `moro232` to test whether a minimal GPU job creates stdout and receives a valid GPU assignment without Docker/GEPA.
-- Submitted diagnostic job `11913124`: `slurm-stdout-smoke`, pinned to `moro232`, 1 x RTX 3090, 5 minute limit. Latest check 2026-06-10 10:34 CEST: pending with reason `Resources`, which is expected while `moro232` is allocated.
+- Latest check: 2026-06-10 10:38 CEST. Jobs `11913111`, `11913112`, and `11913113` are no longer visible in `squeue` or `scontrol` because `MinJobAge=300 sec` and SlurmDB accounting is down. The text job completion log shows they did run on `moro232` and completed with exit code `0:0`:
+  - `11913111`: start 2026-06-10 01:01:56, end 01:27:28.
+  - `11913112`: start 2026-06-10 01:27:28, end 01:35:07.
+  - `11913113`: start 2026-06-10 01:35:07, end 01:41:47.
+- Final diagnosis: the jobs wrote their stdout and result artifacts to the local filesystem visible on `moro232`, not to the filesystem visible from `faretra`. Direct SSH from the local machine to `moro232` works and confirmed the artifacts.
+- Recovered and synchronized artifacts from `moro232` to local workspace and then to `faretra`, preserving the expected experiment directories.
+- Extra diagnostic jobs `11913124` and `11913129` were cancelled because direct SSH recovery made them unnecessary.
+- Important operational consequence: when jobs run on a node whose home/workdir is not shared with `faretra`, result checks must query that node or explicitly sync artifacts back to `faretra`.
+- Recovered metrics:
+  - `11913111` SummEval consistency smoke: baseline Pearson 0.659360, Spearman 0.615213, MAE 1.375; optimized Pearson 0.618512, Spearman 0.696582, MAE 1.125.
+  - `11913112` QAGS-CNN consistency smoke: baseline and optimized both Pearson 1.0, Spearman 1.0, MAE 1.055556 on `n=2`.
+  - `11913113` QAGS-XSUM consistency smoke: baseline and optimized both Pearson 0.0, Spearman 0.0, MAE 1.333333 on `n=2`.
 
 Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain:
 
