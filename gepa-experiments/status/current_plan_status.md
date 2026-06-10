@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-08
+Last updated: 2026-06-10
 
 ## Objective
 
@@ -121,6 +121,7 @@ Still required:
 - Check whether fixed NLA improves verbalization quality before launching another long NLA run.
 - If fixed smoke looks better, launch a longer Topical-Chat engagingness PPL+fixed-NLA run.
 - If fixed smoke still fails, isolate candidate-only NLA, larger token budgets, lower proposer temperature, and shorter/summarized NLA feedback.
+- Verify Slurm stdout/GPU allocation on `moro232` with `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` because the latest pinned 1-GPU smoke jobs disappeared without visible stdout or new artifacts.
 
 ## Future Step Roadmap
 
@@ -210,10 +211,13 @@ Latest status:
 - Therefore these three dataset smoke jobs must not be counted as scientifically completed yet.
 - Next action: once SlurmDB/logging is stable, either recover their status from accounting or re-submit equivalent smoke jobs with confirmed stdout/artifact creation.
 - Re-submission on 2026-06-10 01:02 CEST to exploit the idle single-GPU `moro232` node without occupying `faretra`:
-  - `11913111`: SummEval consistency smoke, PPL + real NLA, pinned to `moro232`, running.
+  - `11913111`: SummEval consistency smoke, PPL + real NLA, pinned to `moro232`.
   - `11913112`: QAGS-CNN consistency smoke, PPL + real NLA, pinned to `moro232`, dependency `afterany:11913111`.
   - `11913113`: QAGS-XSUM consistency smoke, PPL + real NLA, pinned to `moro232`, dependency `afterany:11913112`.
 - This pinning is intentional and limited to 1-GPU dataset smoke jobs. It should not be used for Qwen35B proposer jobs, which need 2 GPUs on the same node.
+- Latest check: 2026-06-10 10:33 CEST. Jobs `11913111`, `11913112`, and `11913113` are no longer visible in `squeue` or `scontrol`, have no visible Slurm stdout, and produced no new result artifacts. Treat them as unverified/failed-to-observe, not completed.
+- Diagnostic action: submit `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` on `moro232` to test whether a minimal GPU job creates stdout and receives a valid GPU assignment without Docker/GEPA.
+- Submitted diagnostic job `11913124`: `slurm-stdout-smoke`, pinned to `moro232`, 1 x RTX 3090, 5 minute limit. Latest check 2026-06-10 10:34 CEST: pending with reason `Resources`, which is expected while `moro232` is allocated.
 
 Additional Topical-Chat diagnostic chain submitted after the dataset smoke chain:
 
@@ -226,11 +230,11 @@ Latest status:
 
 - `11912917`: pending, dependency satisfied, but blocked by `ReqNodeNotAvail,_UnavailableNodes:faretra`.
 - `11912918`: pending on dependency `afterany:11912917`.
-- Latest check: 2026-06-09 09:50 CEST.
+- Latest check: 2026-06-10 10:33 CEST.
 - Reason: `11912917` needs 2 x RTX 3090 for vLLM judge plus llama.cpp Qwen35B proposer. `faretra` has 4 x RTX 3090 but all 4 are currently allocated; `moro232` has only 1 x RTX 3090 and is currently allocated, so it cannot run this 2-GPU job.
 - No new Slurm stdout or result artifact for jobs `11912917`, `11912918`, `11912947`, or `11912948` is visible yet.
 - Do not submit more matched Qwen35B proposer jobs until `11912917` starts or `faretra` frees GPUs, because they would queue behind the same 2-GPU bottleneck.
-- Latest check: 2026-06-10 01:01 CEST. `moro232` was idle, but it still cannot run `11912917` because it has only 1 x RTX 3090 and the job requests 2 x RTX 3090. `faretra` remains the only eligible node for this 2-GPU request and still has all 4 GPUs allocated.
+- `moro232` cannot run `11912917` because it has only 1 x RTX 3090 and the job requests 2 x RTX 3090. `faretra` remains the only eligible node for this 2-GPU request.
 
 Additional isolated experimental strategy jobs to queue after `11912918`:
 
@@ -267,6 +271,27 @@ Submit-script guard added:
 - The submit fails immediately if the requested GPU count is larger than the pinned node capacity, preventing mistakes such as a 2-GPU Qwen35B proposer job pinned to single-GPU `moro232`.
 - The submit also fails if `PROPOSER_BACKEND=llamacpp` is configured with fewer than 2 GPUs.
 - This does not make a 2-GPU job runnable on `moro232`; it only prevents invalid submissions and makes the scheduler constraint explicit at submit time.
+
+## SSH / IPS Mitigation
+
+The UniBo network can quarantine a client when it detects an IPS-like pattern. In this project the risky pattern is many short-lived SSH/SCP/rsync connections from Codex, especially parallel checks and aborted retries. The mitigation is to keep command throughput high while reducing new TCP/SSH handshakes.
+
+Current local SSH configuration for `faretra` and `moro232` uses:
+
+- `ControlMaster auto`
+- `ControlPersist 30m`
+- `ControlPath ~/.ssh/cm-%C`
+- public-key-only batch authentication
+- short connect timeout and one connection attempt
+
+Operational rule:
+
+- Prefer one persistent master connection to `faretra`.
+- Use `faretra` as the main Slurm entrypoint.
+- Avoid direct SSH to `moro232` except for narrow node debugging.
+- Do not run parallel local SSH status checks.
+- Use `gepa-experiments/slurm/cluster_status_snapshot.sh` for status: it collects queue, node state, job state, log tails, artifacts, and monitor logs in one remote command.
+- Use `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` as the minimal diagnostic when jobs disappear without logs: if it succeeds, debug Docker/GEPA startup; if it also disappears without stdout, debug Slurm/accounting/logging or node-local behavior first.
 
 ## Acceptance Criteria
 
