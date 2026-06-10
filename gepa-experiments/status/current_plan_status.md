@@ -479,7 +479,13 @@ Submission status:
   - QAGS-CNN consistency PPL-only single-GPU control.
   - QAGS-XSUM consistency PPL-only single-GPU control.
 - Submit these three controls on `moro232` when SSH is available. They are matched technical controls for the already recovered real-NLA smoke jobs and should be interpreted as secondary 7B-proposer ablations.
-- The configs and latest GEPA code path were synced to `moro232` successfully. A later submission attempt failed before `sbatch` with the same local SSH `socket: Operation not permitted` error, so no new job ids were created for these three controls yet.
+- The configs and latest GEPA code path were synced to `moro232` successfully.
+- A first submission attempt accidentally expanded the config loop variable locally and submitted three wrong default Topical-Chat jobs: `11913401`, `11913402`, `11913403`. They were cancelled immediately; `11913401` briefly entered `COMPLETING`, then disappeared, and stale Telegram monitors for `11913401-03` were killed.
+- Correct PPL-only dataset controls were then submitted on `moro232`:
+  - `11913404`: SummEval consistency PPL-only single-GPU control, running on `moro232`.
+  - `11913405`: QAGS-CNN consistency PPL-only single-GPU control, pending behind `11913404`.
+  - `11913406`: QAGS-XSUM consistency PPL-only single-GPU control, pending behind the single-GPU queue.
+- Startup check for `11913404`: Slurm stdout shows config `geval_gepa_summeval_consistency_ppl_smoke.env`, dataset `summeval`, dimension `consistency`, `perplexity feedback: 1`, `nla feedback: 0`, vLLM port `18230`, and 4h time limit. No startup error was visible in the first log check.
 
 ## Cluster Scheduling Rule
 
