@@ -56,12 +56,10 @@ class NlaFeedbackProvider:
         with self._lock:
             cached = self._emitted.get(example_id)
         if cached is None:
-            rows = self._rows_for_example(example) if self.backend == "precomputed" else None
-            verbalizations = (
-                self._from_precomputed(example, rows or [])
-                if rows
-                else self._dry_run_verbalizations(example)
-            )
+            if self.backend == "precomputed":
+                verbalizations = self._from_precomputed(example, self._rows_for_example(example))
+            else:
+                verbalizations = self._dry_run_verbalizations(example)
             with self._lock:
                 self._emitted[example_id] = verbalizations
         else:

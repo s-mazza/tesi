@@ -542,6 +542,27 @@ class DataAndMetricsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "coverage is below threshold"):
             _validate_nla_feedback_ready(provider, [dspy_example], min_coverage=0.95)
 
+    def test_precomputed_nla_missing_rows_do_not_fall_back_to_dry_run(self) -> None:
+        example = load_usr_examples_from_fixture()[0]
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "nla.jsonl"
+            artifact_path = Path(tmpdir) / "emitted.jsonl"
+            path.write_text("", encoding="utf-8")
+            provider = NlaFeedbackProvider(
+                checkpoint="kitft/nla-qwen2.5-7b-L20-av",
+                layer=20,
+                backend="precomputed",
+                max_tokens_per_example=3,
+                precomputed_path=str(path),
+            )
+
+            feedback = provider.feedback_for(type("Example", (), {"example_id": example.response_id})())
+            emitted_count = provider.write_artifact(artifact_path)
+
+        self.assertIn("NLA verbalizations unavailable", feedback)
+        self.assertEqual(emitted_count, 0)
+        self.assertFalse(artifact_path.exists())
+
     def test_nla_precomputed_validation_accepts_useful_rows(self) -> None:
         example = load_usr_examples_from_fixture()[0]
         with TemporaryDirectory() as tmpdir:

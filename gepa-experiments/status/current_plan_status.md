@@ -165,6 +165,42 @@ Extra activation-verbalization reading from the current artifacts:
   - `hybrid_context_dedup_8`: 199 rows, 187 candidate, 6 source, 6 reference, weak token pct 0.00.
 - Decision: do not launch or merge `hybrid_context_dedup_6` ahead of the current long fixed-NLA result unless explicitly needed. It is prepared as the next isolated NLA strategy if fixed-NLA long fails, if candidate10 confirms candidate-only is weak, or if we need a direct test of "keep grounding but remove repeated context rows."
 
+## Single-GPU Topical-Chat Smoke Audit
+
+Jobs `11913130` and `11913131` completed on `moro232` and their node-local artifacts were recovered to the local workspace.
+
+Artifact locations:
+
+- PPL-only single-GPU smoke: `gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_smoke`
+- PPL + NLA single-GPU smoke: `gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_smoke`
+- Diagnostic report: `gepa-experiments/results/diagnostics/nla_single_gpu_vs_ppl_smoke_20260610.md`
+
+Result status:
+
+- These two runs are not a clean scientific ablation.
+- `11913130` used 4 train groups, 2 validation groups, and 2 test groups; `11913131` used 2 train groups, 1 validation group, and 1 test group.
+- Both runs used `Qwen/Qwen2.5-7B-Instruct` as proposer, not Qwen 35B via llama.cpp.
+- `11913131` was contaminated by incomplete NLA precompute: the config had `NLA_PRECOMPUTE_LIMIT=6`, while GEPA used 18 train+validation rows. The emitted NLA feedback artifact contains 18 `DRY RUN ONLY` placeholder rows and only 6 real `partial_tags` rows.
+- Therefore, the apparent metric delta from this comparison is not scientifically interpretable and must not be used as NLA evidence.
+
+Observed metrics, recorded only for audit:
+
+- `11913130` PPL-only final test, optimized: Pearson 0.314271, Spearman 0.345082, MAE 0.750000, agreement 0.625000 on 12 test examples.
+- `11913131` PPL+NLA final test, optimized: Pearson 0.643921, Spearman 0.651533, MAE 0.611111, agreement 0.694444 on 6 different test examples.
+- Prediction-level comparison joined 0 examples because the final-test slices differ.
+
+Fix applied after the audit:
+
+- `NlaFeedbackProvider` no longer falls back to dry-run placeholder verbalizations when `backend=precomputed` and rows are missing.
+- Added a regression test that verifies missing precomputed rows produce no dry-run artifact.
+- Removed `NLA_PRECOMPUTE_LIMIT=6` from the single-GPU real-NLA smoke config and added explicit `NLA_MIN_COVERAGE=0.95`.
+- Local validation: `PYTHONPATH=gepa-experiments python3 -m pytest gepa-experiments/tests/test_data_and_metrics.py` passes with 38 tests.
+
+Decision:
+
+- Do not relaunch the single-GPU NLA smoke immediately; it would answer a secondary question and may compete with more important queued work.
+- If a future single-GPU smoke is needed, rerun it only after the current code/config fix is synced, and treat it as plumbing evidence only unless the split/proposer/budget are made 1-to-1.
+
 ## Implementation Status
 
 Completed or in progress locally:
@@ -193,13 +229,16 @@ Completed or in progress locally:
   - preserved `token_status` in emitted NLA artifacts
   - increased real-NLA token and generation budgets
   - removed the old `NLA_PRECOMPUTE_LIMIT=8` from the fixed-NLA smoke config so the coverage gate can validate full GEPA train/validation coverage
+- Audited completed single-GPU Topical-Chat jobs `11913130` and `11913131`; marked `11913131` as non-scientific because incomplete NLA precompute caused dry-run placeholder feedback to enter the run.
+- Hardened the NLA feedback provider so precomputed NLA can no longer silently fall back to dry-run placeholders when rows are missing.
+- Removed the dangerous `NLA_PRECOMPUTE_LIMIT=6` from the single-GPU real-NLA smoke config and made `NLA_MIN_COVERAGE=0.95` explicit.
 
 Still required:
 
 - Let `11912948` run after `11912947`; this tests whether a larger candidate-only 10-token budget changes the conclusion, but it is now lower priority than the main long fixed-NLA run because `candidate_content_6` was negative.
-- Launch or keep queued one longer Topical-Chat engagingness PPL+fixed-NLA run, because the fixed-NLA smoke gate has passed.
+- Keep the longer Topical-Chat engagingness PPL+fixed-NLA run `11913284` running, because the fixed-NLA smoke gate has passed and its precompute artifact has full GEPA coverage.
 - After the long fixed-NLA run completes, compare it against the closest long PPL-only control with `diagnose_nla_run.py`.
-- Inspect recovered 1-GPU smoke artifacts from `11913130` and `11913131` if they eventually run on `moro232`; these remain secondary and do not replace the Qwen35B proposer comparison.
+- Do not use `11913131` as evidence for NLA effectiveness; it is an audit-only failure case because dry-run placeholders entered the feedback artifact.
 - If long fixed-NLA fails or reverses the smoke improvement, prioritize `hybrid_context_dedup_6`, lower proposer temperature, and shorter/summarized NLA feedback. Do not prioritize pure candidate-only replacement unless `candidate_content_10` contradicts the `candidate_content_6` result.
 - Non-invasive diagnostic artifact support is now implemented for future runs:
   - prediction JSONL rows now include `source_text`, `fact`, `reference`, and `candidate_output`, so final-test qualitative errors can be inspected without rejoining the dataset manually.
@@ -213,7 +252,7 @@ Still required:
 Step 1: finish and analyze smoke diagnostics.
 
 - Completed artifact recovery for `11912914`, `11912915`, `11912916`, `11913111`, `11913112`, and `11913113`; use these artifacts to verify real-NLA precompute and runner behavior on SummEval, QAGS-CNN, and QAGS-XSUM.
-- Use queued 1-GPU Topical-Chat jobs `11913130` and `11913131` as an additional matched smoke comparison while waiting for `faretra`.
+- Recovered and audited 1-GPU Topical-Chat jobs `11913130` and `11913131`; they are not a valid matched comparison because split sizes differ, final-test examples do not overlap, proposer is not Qwen 35B, and `11913131` contains dry-run fallback feedback.
 - Completed the matched Topical-Chat PPL-only vs fixed-NLA smoke comparison using `11913161` vs replacement `11913262`.
 - Generated diagnostic report `gepa-experiments/results/diagnostics/nla_vs_ppl_fixed_smoke_20260610.md`.
 - Decision gate result: fixed-NLA smoke is positive on the 12-example final-test slice and has valid NLA coverage/useful rows, so proceed to one longer fixed-NLA run while treating the smoke as suggestive rather than conclusive.
@@ -230,7 +269,8 @@ Step 2: launch one longer fixed-NLA Topical-Chat run.
 - Keep `SLURM_TIME=16:00:00` as a safety limit; the target is a long 8-12 hour style run, not necessarily a full 16 hours.
 - Submitted this long fixed-NLA run as `11913284`.
 - Current status: `11913284` started on `faretra` at 2026-06-10 16:55:36 CEST with 2 x RTX 3090 and is running.
-- Startup status: NLA activation extraction completed for 300 manifest rows, 1752 NLA activation rows were prepared, and NLA verbalization has started. No cache, port, or Slurm startup failure is visible at the latest check.
+- Startup status: NLA activation extraction completed for 300 manifest rows and 1752 real precomputed NLA feedback rows were written. This covers the GEPA train+validation manifest and is not affected by the incomplete single-GPU smoke issue.
+- Latest runtime check on 2026-06-10 around 22:14 CEST: Slurm reports `RUNNING`, the GEPA/vLLM container and llama.cpp sidecar are both up, vLLM and llama.cpp logs are updating, and there is no crash signature. The GEPA stdout progress visible in the line-buffered log was around iteration 329/12600 at 20:13 CEST; the active llama.cpp log indicates the job is spending most time in proposer generations.
 
 Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 
@@ -366,8 +406,9 @@ Additional 1-GPU queue-aging jobs submitted on 2026-06-10:
 
 - `11913130`: Topical-Chat engagingness PPL-only single-GPU smoke, pinned to `moro232`, 4 hour limit.
 - `11913131`: Topical-Chat engagingness PPL + real-NLA single-GPU smoke, pinned to `moro232`, dependency `afterany:11913130`, 4 hour limit.
-- These jobs are not the main Qwen35B proposer comparison, but they are useful while waiting for `faretra`: they provide a matched 1-GPU PPL-only vs real-NLA smoke and accumulate queue priority for `moro232`.
-- Because `moro232` has node-local artifacts, check or sync results from `moro232` when these complete.
+- These jobs completed on `moro232` and artifacts were recovered locally.
+- Final audit: they are useful only as operational evidence that the single-GPU path can run. They are not a valid matched NLA comparison because split sizes differ, final-test examples do not overlap, proposer is Qwen2.5-7B rather than Qwen35B, and `11913131` contains dry-run fallback feedback caused by incomplete NLA precompute.
+- Prevention action: the single-GPU NLA config was fixed and precomputed NLA no longer silently falls back to dry-run rows.
 
 Failure and recovery action on 2026-06-10:
 
@@ -397,7 +438,7 @@ Submission status:
 - `11912947` and `11912948` are intentionally serial and outside the main pipeline.
 - `11913284` is not part of that experimental serial chain. It is the current main-pipeline long fixed-NLA run and is independent of the candidate-only smoke jobs.
 - Slurm priority check after `11912947`: `11913284` started first, while `11912948` remains pending for resources with an estimated start after the long job. No hold action is needed.
-- Single-GPU Topical-Chat smoke work is now queued as `11913130` and `11913131` to exploit queue aging on `moro232`. It remains a secondary smoke comparison and does not replace the Qwen35B proposer chain.
+- Single-GPU Topical-Chat smoke work `11913130` and `11913131` is complete and audited. It does not replace the Qwen35B proposer chain and should not be cited as NLA evidence.
 
 ## Cluster Scheduling Rule
 
