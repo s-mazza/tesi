@@ -668,6 +668,52 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("Auxiliary 35B judge feedback", result.feedback)
         self.assertEqual(provider.kwargs["parsed"], 2)
 
+    def test_aux_judge_receives_nla_feedback_when_available(self) -> None:
+        class FakeNlaProvider:
+            def feedback_for(self, example):
+                return "NLA multi-token verbalizations: candidate token='jazz': concrete music-topic signal."
+
+        class FakeAuxJudge:
+            def feedback_for(self, **kwargs):
+                self.kwargs = kwargs
+                return "Auxiliary 35B judge feedback: turn NLA into a rubric-level lesson."
+
+        class FakeDspy:
+            class Prediction:
+                def __init__(self, **kwargs):
+                    self.__dict__.update(kwargs)
+
+        example = load_usr_examples_from_fixture()[0]
+        aux_provider = FakeAuxJudge()
+        with patch.dict("sys.modules", {"dspy": FakeDspy}):
+            metric_fn = create_metric_fn(
+                "Engaging",
+                min_score=1,
+                max_score=3,
+                nla_feedback_provider=FakeNlaProvider(),
+                aux_judge_provider=aux_provider,
+            )
+            result = metric_fn(
+                type(
+                    "Example",
+                    (),
+                    {
+                        "human_score": example.human_score("Engaging"),
+                        "context": example.context,
+                        "fact": example.fact,
+                        "response": example.response,
+                        "context_id": example.context_id,
+                        "response_id": example.response_id,
+                        "example_id": example.response_id,
+                    },
+                )(),
+                type("Pred", (), {"score": "2", "rationale": "It is acceptable."})(),
+            )
+
+        self.assertIn("NLA multi-token verbalizations", result.feedback)
+        self.assertIn("Auxiliary 35B judge feedback", result.feedback)
+        self.assertIn("concrete music-topic signal", aux_provider.kwargs["extra_feedback"])
+
     def test_configure_lms_keeps_judge_global_and_returns_separate_proposer(self) -> None:
         configured = {}
 

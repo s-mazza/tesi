@@ -128,8 +128,10 @@ def create_metric_fn(
                     f"Perplexity feedback failed for {context_id}/{response_id}: {type(exc).__name__}: {exc}"
                 ) from exc
             feedback.append(format_perplexity_feedback(perplexity))
+        nla_feedback_text = ""
         if nla_feedback_provider is not None:
-            feedback.append(nla_feedback_provider.feedback_for(example))
+            nla_feedback_text = nla_feedback_provider.feedback_for(example)
+            feedback.append(nla_feedback_text)
         if aux_judge_provider is not None:
             feedback.append(
                 aux_judge_provider.feedback_for(
@@ -139,6 +141,7 @@ def create_metric_fn(
                     target=target,
                     agreement=score,
                     dimension=metric_label,
+                    extra_feedback=nla_feedback_text,
                 )
             )
         if abs(delta) >= 1.0:

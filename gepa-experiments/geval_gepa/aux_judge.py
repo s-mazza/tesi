@@ -22,6 +22,7 @@ class AuxJudgeRecord:
     agreement: float
     raw_response: str
     feedback: str
+    extra_feedback: str
     status: str
 
 
@@ -56,6 +57,7 @@ class AuxJudgeFeedbackProvider:
         target: float,
         agreement: float,
         dimension: str,
+        extra_feedback: str = "",
     ) -> str:
         example_id = str(getattr(example, "example_id", "") or getattr(example, "response_id", ""))
         with self._lock:
@@ -70,6 +72,7 @@ class AuxJudgeFeedbackProvider:
             target=target,
             agreement=agreement,
             dimension=dimension,
+            extra_feedback=extra_feedback,
         )
         try:
             raw = self._chat_completion(prompt)
@@ -90,6 +93,7 @@ class AuxJudgeFeedbackProvider:
             agreement=agreement,
             raw_response=raw,
             feedback=feedback,
+            extra_feedback=extra_feedback,
             status=status,
         )
         with self._lock:
@@ -141,11 +145,19 @@ def _build_aux_judge_prompt(
     target: float,
     agreement: float,
     dimension: str,
+    extra_feedback: str = "",
 ) -> str:
     source = str(getattr(example, "source_text", "") or getattr(example, "context", ""))
     candidate = str(getattr(example, "candidate_output", "") or getattr(example, "response", ""))
     rationale = str(getattr(pred, "rationale", ""))
     score = str(getattr(pred, "score", ""))
+    extra_block = ""
+    if extra_feedback.strip():
+        extra_block = f"""
+Additional weak proposer feedback already computed for this example:
+{extra_feedback[:2400]}
+
+Use the additional feedback only to infer a general rubric lesson. Do not copy token-level strings into the final prompt."""
     return f"""You are an auxiliary LLM-as-a-judge helping improve a G-EVAL prompt.
 
 Do not produce a replacement score. Produce concise, generalizable feedback for a prompt proposer.
@@ -166,6 +178,7 @@ Base judge rationale:
 
 Base judge raw score:
 {score[:200]}
+{extra_block}
 
 Return:
 1. One sentence explaining the likely judging error or confirming it is close.
