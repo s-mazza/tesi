@@ -74,6 +74,75 @@ wait_for_sidecar_http() {
   return 1
 }
 
+gpu_memory_mib() {
+  local device="$1"
+  nvidia-smi \
+    --id="$device" \
+    --query-gpu=memory.free,memory.total \
+    --format=csv,noheader,nounits \
+    2>/dev/null \
+    | head -1 \
+    | tr -d ' '
+}
+
+default_judge_min_free_memory_mib() {
+  local device="$1"
+  local values
+  values="$(gpu_memory_mib "$device" || true)"
+  if [[ -z "$values" ]]; then
+    echo ""
+    return 0
+  fi
+  local total="${values#*,}"
+  python3 - "$total" "${GPU_MEMORY_UTILIZATION:-0.90}" <<'PY'
+import sys
+
+total = int(float(sys.argv[1]))
+util = float(sys.argv[2])
+print(int(total * util))
+PY
+}
+
+wait_for_gpu_free_memory() {
+  local label="$1"
+  local device="$2"
+  local min_free_mib="$3"
+  local wait_seconds="${GPU_MEMORY_WAIT_SECONDS:-0}"
+  local poll_seconds="${GPU_MEMORY_POLL_SECONDS:-30}"
+
+  if [[ -z "$min_free_mib" || "$min_free_mib" == "0" ]]; then
+    return 0
+  fi
+  if ! command -v nvidia-smi >/dev/null 2>&1; then
+    echo "nvidia-smi unavailable; cannot verify ${label} GPU memory before startup." >&2
+    return 0
+  fi
+
+  local deadline=$((SECONDS + wait_seconds))
+  while true; do
+    local values
+    values="$(gpu_memory_mib "$device" || true)"
+    if [[ -z "$values" ]]; then
+      echo "Could not read GPU memory for ${label} device ${device}." >&2
+      return 1
+    fi
+    local free_mib="${values%,*}"
+    local total_mib="${values#*,}"
+    if [[ "$free_mib" -ge "$min_free_mib" ]]; then
+      echo "${label} GPU memory check passed: device=${device} free=${free_mib}MiB total=${total_mib}MiB min=${min_free_mib}MiB."
+      return 0
+    fi
+
+    echo "${label} GPU memory check waiting: device=${device} free=${free_mib}MiB total=${total_mib}MiB min=${min_free_mib}MiB."
+    if [[ "$wait_seconds" -le 0 || "$SECONDS" -ge "$deadline" ]]; then
+      echo "${label} GPU device ${device} does not have enough free memory for startup." >&2
+      nvidia-smi >&2 || true
+      return 1
+    fi
+    sleep "$poll_seconds"
+  done
+}
+
 find_free_tcp_port() {
   local host="$1"
   local start_port="$2"
@@ -131,6 +200,8 @@ start_llamacpp_sidecar() {
   LLAMACPP_READY_ATTEMPTS="${LLAMACPP_READY_ATTEMPTS:-2160}"
   LLAMACPP_READY_SLEEP_SECONDS="${LLAMACPP_READY_SLEEP_SECONDS:-5}"
   PROPOSER_MODEL="${PROPOSER_MODEL:-local-llamacpp}"
+  JUDGE_MIN_FREE_MEMORY_MIB="${JUDGE_MIN_FREE_MEMORY_MIB:-0}"
+  PROPOSER_MIN_FREE_MEMORY_MIB="${PROPOSER_MIN_FREE_MEMORY_MIB:-0}"
   local proposer_api_base_explicit=0
   if [[ -n "${PROPOSER_API_BASE:-}" ]]; then
     proposer_api_base_explicit=1
@@ -171,6 +242,9 @@ start_llamacpp_sidecar() {
   echo "  judge GPU: ${JUDGE_GPU_DEVICE}"
   echo "  sidecar endpoint: ${PROPOSER_API_BASE}"
   echo "  sidecar log: ${sidecar_log}"
+
+  wait_for_gpu_free_memory "judge/vLLM" "$JUDGE_GPU_DEVICE" "$JUDGE_MIN_FREE_MEMORY_MIB"
+  wait_for_gpu_free_memory "llama.cpp proposer" "$PROPOSER_GPU_DEVICE" "$PROPOSER_MIN_FREE_MEMORY_MIB"
 
   docker run \
     --rm \

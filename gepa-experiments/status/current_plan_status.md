@@ -280,7 +280,9 @@ Still required:
 - `11913284`, the longer Topical-Chat engagingness PPL+fixed-NLA run, completed successfully and all required final artifacts were recovered locally.
 - A current-code matched PPL-only long control is now required before making any strong NLA-effect claim, because the old long PPL-only control used an older seed/code artifact path and the fixed-NLA long run selected the unchanged seed prompt.
 - Current-code matched control `11913415` was submitted on 2026-06-11 with the same split, seed, GEPA budget, Qwen35B proposer, and PPL feedback as `11913284`, but with `NLA_FEEDBACK=0`.
-- After `11913415` completes, compare it against `11913284` with `diagnose_nla_run.py`.
+- `11913415` failed after 53 seconds before GEPA started. Root cause: vLLM startup saw only 7.22 GiB free on the assigned judge GPU while `GPU_MEMORY_UTILIZATION=0.90` required about 21.32 GiB. `nvidia-smi` showed the memory was occupied by other users' processes on `faretra`, not by our stale containers.
+- Replacement current-code matched control: `11913482`, same scientific config and no artificial GPU-memory wait.
+- After `11913482` completes, compare it against `11913284` with `diagnose_nla_run.py`.
 - Do not use `11913131` as evidence for NLA effectiveness; it is an audit-only failure case because dry-run placeholders entered the feedback artifact.
 - If the matched current-code long control shows that fixed-NLA does not improve the real paper-aligned metrics, prioritize auxiliary-judge summarized NLA feedback and hybrid context deduplication. Do not prioritize pure candidate-only replacement because both candidate-only smokes are now negative.
 - Non-invasive diagnostic artifact support is now implemented for future runs:
@@ -329,7 +331,7 @@ Interpretation:
 - These single-GPU dataset controls do not support a claim that the current NLA feedback improves GEPA across datasets.
 - They do support the root-cause hypothesis that NLA feedback quality and compression matter: SummEval NLA has high duplicate text rows, and the older dataset NLA artifacts lack the richer token/activation stats now required for diagnosis.
 - Do not scale dataset-level NLA from these 7B-proposer smoke runs alone. Use them as technical controls while waiting for the thesis-relevant Qwen35B proposer long run.
-- Next action from these results is not to launch duplicates; the next decisive artifact is the matched current-code PPL-only long control `11913415`.
+- Next action from these results is not to launch duplicates; the next decisive artifact is the matched current-code PPL-only long control replacement `11913482`.
 
 ## Fixed-NLA Long Run Findings
 
@@ -378,7 +380,7 @@ Interpretation:
 - It is positive relative to the old long PPL-only optimized run on paper-primary Topical-Chat correlations, but negative on MAE/agreement.
 - It is much healthier than the first old NLA long run, which had Pearson/Spearman drops and a large MAE increase caused by weak/repetitive first-token feedback.
 - The remaining ambiguity is important: the current seed prompt/codepath appears stronger than the old long PPL-only baseline, so the observed Pearson/Spearman advantage cannot be attributed confidently to NLA until a matched current-code PPL-only long control finishes.
-- Action taken: submitted `11913415`, a matched current-code PPL-only long control with the same split/budget/proposer/PPL setting and NLA disabled.
+- Action taken: submitted `11913415`, a matched current-code PPL-only long control with the same split/budget/proposer/PPL setting and NLA disabled. It failed at vLLM startup because the allocated GPU had too little free memory due to other users' processes. Replacement job: `11913482`.
 
 ## Future Step Roadmap
 
@@ -405,8 +407,8 @@ Step 2: launch and analyze one longer fixed-NLA Topical-Chat run.
 - Completion status: `11913284` completed successfully on `faretra`, final artifacts were recovered locally, and `nla_fixed_long_vs_ppl_long_20260611.md` was generated.
 - Startup status: NLA activation extraction completed for 300 manifest rows and 1752 real precomputed NLA feedback rows were written. This covers the GEPA train+validation manifest and is not affected by the incomplete single-GPU smoke issue.
 - Final runtime: about 8h28m39s.
-- Result: baseline and optimized metrics are identical because GEPA selected the unchanged seed prompt. The fixed-NLA run beats the old long PPL-only optimized run on Pearson/Spearman, but loses on MAE/agreement and cannot be treated as a clean NLA-effect claim until the current-code PPL-only control `11913415` completes.
-- Follow-up control: `11913415` is queued as the matched current-code PPL-only long run with NLA disabled.
+- Result: baseline and optimized metrics are identical because GEPA selected the unchanged seed prompt. The fixed-NLA run beats the old long PPL-only optimized run on Pearson/Spearman, but loses on MAE/agreement and cannot be treated as a clean NLA-effect claim until the current-code PPL-only control replacement `11913482` completes.
+- Follow-up control: `11913482` is queued as the matched current-code PPL-only long run with NLA disabled.
 
 Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 
@@ -419,7 +421,7 @@ Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 - Goal: isolate whether auxiliary judge feedback adds useful semantic feedback beyond perplexity and NLA.
 - Implementation update: the auxiliary judge now receives the already-computed NLA text as extra weak feedback for the same example. Its prompt explicitly asks it to convert this into a general rubric-level lesson and not to copy token-level strings.
 - Smoke config: `gepa-experiments/config/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke.env`.
-- Submitted job: `11913424`, dependency `afterok:11913415`, 2 x RTX 3090, flexible node selection, `deeplearn2` excluded.
+- Submitted job: `11913424`, dependency `afterok:11913415`, 2 x RTX 3090, flexible node selection, `deeplearn2` excluded. It was cancelled after `11913415` failed, because the dependency became `DependencyNeverSatisfied` and because the aux-judge/NLA-context ablation needs to be resubmitted with an explicit, scientifically unambiguous config.
 - Interpretation rule: this smoke does not replace the matched long control. It only tests whether a semantic compression layer can make NLA usable by GEPA.
 - If `11913424` improves over both `ppl_smoke_q35` and `fixed_nla_smoke_q35`, the next action is a matched longer `ppl_nla_auxjudge` Topical-Chat run with the same 40/10/10 context split as `11913284` and `11913415`.
 - If it fails, do not launch another raw NLA long run. Instead inspect its auxiliary-judge records to decide whether the judge ignored NLA, copied noisy token strings, or produced rubric feedback that GEPA still overfit.
@@ -579,11 +581,12 @@ Submission status:
 - `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, completed successfully; final metrics are worse than fixed-NLA and PPL-only.
 - `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, completed successfully; final metrics are also worse than fixed-NLA and PPL-only.
 - `11913284`: Topical-Chat engagingness long run, PPL + fixed NLA, llama.cpp proposer, completed successfully on `faretra`; final artifacts recovered locally.
-- `11913415`: Topical-Chat engagingness long current-code PPL-only control, llama.cpp proposer, submitted on 2026-06-11 and pending for 2 x RTX 3090 resources. This is now the required control for the strongest interpretation of `11913284`.
-- `11913424`: Topical-Chat engagingness smoke, PPL + fixed NLA + Qwen35B auxiliary judge feedback, llama.cpp proposer, submitted on 2026-06-11 with dependency `afterok:11913415`. This prevents it from stealing the first available 2-GPU slot from the decisive long PPL-only control.
+- `11913415`: Topical-Chat engagingness long current-code PPL-only control, llama.cpp proposer, failed before vLLM readiness because the allocated GPU was already heavily occupied by other users' processes.
+- `11913482`: replacement Topical-Chat engagingness long current-code PPL-only control, same scientific config, submitted on 2026-06-11 and pending for 2 x RTX 3090 resources.
+- `11913424`: cancelled after `11913415` failed; resubmit the aux-judge smoke only after the control path is repaired and the aux-judge/NLA-context ambiguity is resolved.
 - `11912947` and `11912948` are intentionally serial and outside the main pipeline.
 - `11913284` is not part of that experimental serial chain. It is the current main-pipeline long fixed-NLA run and is independent of the candidate-only smoke jobs.
-- Slurm priority check after `11913284`: only `11913415` is currently resource-pending for an eligible 2-GPU node; `11913424` is dependency-pending behind it. No hold action is currently applied.
+- Slurm priority check after `11913415`: only `11913482` is currently resource-pending for an eligible 2-GPU node. No hold action is currently applied.
 - Single-GPU Topical-Chat smoke work `11913130` and `11913131` is complete and audited. It does not replace the Qwen35B proposer chain and should not be cited as NLA evidence.
 - `11913388`: Topical-Chat engagingness single-GPU matched smoke, PPL + real NLA, pinned to `moro232`, submitted after `moro232` became free. It uses the same split and budget as PPL-only `11913130`: 4 train groups, 2 validation groups, 2 final-test groups, seed 42, `MAX_FULL_EVALS=2`, `NUM_THREADS=2`.
 - Purpose of `11913388`: technical audit of the corrected precomputed-NLA path after removing the partial-precompute failure mode from `11913131`. It remains secondary evidence because the proposer is Qwen2.5-7B rather than Qwen35B.
