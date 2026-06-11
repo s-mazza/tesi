@@ -27,7 +27,7 @@ Da quel punto sono state aggiunte tre cose principali:
 
 La conclusione attuale e sospesa: NLA ha dato un segnale positivo su smoke
 Topical-Chat con Qwen35B proposer, ma non abbiamo ancora una claim pulita sulla
-long run perche manca il controllo PPL current-code completato (`11913482`).
+long run perche manca il controllo PPL current-code completato (`11913587`).
 
 ## Timeline git da raccontare
 
@@ -47,7 +47,8 @@ Poi:
 - `da63910`: impedito fallback scientificamente pericoloso a dry-run NLA.
 - `4d08b14`: registrati risultati long fixed-NLA e bisogno del controllo PPL current-code.
 - `907c0bb`: aggiunto report aggregato NLA e prima path per aux judge.
-- `4164e0c`: registrato crash del controllo PPL per GPU gia occupata da altri processi, replacement `11913482`.
+- `4164e0c`: registrato crash del controllo PPL per GPU gia occupata da altri processi.
+- Dopo due altri tentativi falliti per GPU proposer non abbastanza libera (`11913482`, `11913557`), il replacement corrente e `11913587`.
 
 ## Stato esperimenti principali
 
@@ -159,7 +160,7 @@ mae       +0.072222  (peggio)
 
 Interpretazione: non e una claim pulita che NLA migliori GEPA. Il seed prompt
 era gia forte e GEPA non ha selezionato un prompt diverso. Serve il controllo
-PPL current-code, cioe `11913482`, per capire se il vantaggio Pearson/Spearman
+PPL current-code, cioe `11913587`, per capire se il vantaggio Pearson/Spearman
 dipende davvero da NLA o da cambi di seed/codepath.
 
 ### 5. Candidate-only NLA
@@ -208,9 +209,14 @@ claim scientifiche.
 causa: vLLM ha trovato solo 7.22 GiB liberi sulla GPU assegnata
 origine: processi di altri utenti su faretra, non nostri container/zombie
 
-11913482: replacement PPL long current-code
-stato ultimo check: PENDING
-motivo: ReqNodeNotAvail, UnavailableNodes:faretra,moro[43,232]
+11913482: replacement PPL long current-code, fallito in startup llama.cpp
+causa: proposer GPU con circa 7.4 GiB liberi, ma Qwen35B richiedeva circa 20.6 GiB
+
+11913557: secondo tentativo, stesso fallimento llama.cpp per proposer GPU non abbastanza libera
+
+11913587: replacement PPL long current-code corrente
+stato ultimo check: RUNNING
+startup: llama.cpp proposer ready, vLLM ready, perplexity precompute avviato
 ```
 
 Questo job e il pezzo mancante piu importante per la call se dovesse finire in
@@ -315,7 +321,7 @@ Da sottolineare:
 
 Risposta: per ora non abbiamo una risposta positiva solida. Ha migliorato nello
 smoke Topical-Chat Qwen35B, ma nella fixed-NLA long GEPA ha scelto il seed
-invariato. Serve il controllo current-code PPL `11913482`.
+invariato. Serve il controllo current-code PPL `11913587`.
 
 ### "Perche la prima NLA long e peggiorata?"
 
@@ -388,6 +394,6 @@ La prima NLA long era negativa per feedback debole.
 La fixed-NLA smoke era positiva.
 La fixed-NLA long e inconclusiva perche GEPA ha tenuto il seed.
 Candidate-only NLA non basta.
-Il controllo PPL current-code 11913482 e il prossimo risultato necessario.
+Il controllo PPL current-code 11913587 e il prossimo risultato necessario.
 Aux judge e il prossimo strumento per capire se NLA deve essere trasformata in feedback piu semantico.
 ```
