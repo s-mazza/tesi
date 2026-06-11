@@ -148,7 +148,7 @@ Current interpretation:
 - Fixed-NLA is now a plausible positive signal, not just a plumbing test.
 - The smoke result is scientifically encouraging but not sufficient for thesis claims because the final test has only 12 examples.
 - The next main-pipeline action is a longer fixed-NLA run with the same long setting as the prior PPL-only long control.
-- The next diagnostic action is to finish `candidate_content_10` only as a secondary check, while preparing the hybrid deduplicated NLA strategy for a later isolated smoke if fixed-NLA long results or candidate10 justify it.
+- `candidate_content_10` has now finished and is negative, so the next diagnostic action is no longer candidate-only token selection. The next isolated strategy is semantic compression of NLA feedback, starting with the auxiliary-judge smoke.
 - Detailed activation-verbalization analysis is saved in `gepa-experiments/results/diagnostics/nla_activation_verbalization_quality_20260610.md`.
 
 Extra activation-verbalization reading from the current artifacts:
@@ -180,7 +180,7 @@ Extra activation-verbalization reading from the current artifacts:
   - `candidate_content_6`: 187 rows, all candidate, weak token pct 0.00.
   - `hybrid_context_dedup_6`: 141 rows, 129 candidate, 6 source, 6 reference, weak token pct 0.00.
   - `hybrid_context_dedup_8`: 199 rows, 187 candidate, 6 source, 6 reference, weak token pct 0.00.
-- Decision: do not launch or merge `hybrid_context_dedup_6` ahead of the current long fixed-NLA result unless explicitly needed. It is prepared as the next isolated NLA strategy if fixed-NLA long fails, if candidate10 confirms candidate-only is weak, or if we need a direct test of "keep grounding but remove repeated context rows."
+- Decision: do not launch or merge `hybrid_context_dedup_6` ahead of the current long control and auxiliary-judge smoke unless explicitly needed. Candidate10 already confirms that pure candidate-only feedback is weak; hybrid dedup remains a backup test for "keep grounding but remove repeated context rows."
 
 ## Single-GPU Topical-Chat Smoke Audit
 
@@ -329,7 +329,7 @@ Interpretation:
 - These single-GPU dataset controls do not support a claim that the current NLA feedback improves GEPA across datasets.
 - They do support the root-cause hypothesis that NLA feedback quality and compression matter: SummEval NLA has high duplicate text rows, and the older dataset NLA artifacts lack the richer token/activation stats now required for diagnosis.
 - Do not scale dataset-level NLA from these 7B-proposer smoke runs alone. Use them as technical controls while waiting for the thesis-relevant Qwen35B proposer long run.
-- Next action from these results is not to launch duplicates; the next decisive artifact is the matched current-code PPL-only long control `11913415`, followed by the already queued `11912948` candidate-content-10 smoke.
+- Next action from these results is not to launch duplicates; the next decisive artifact is the matched current-code PPL-only long control `11913415`.
 
 ## Fixed-NLA Long Run Findings
 
@@ -450,7 +450,7 @@ Step 5: if NLA remains negative or unstable after the fixed selector.
   - `candidate_content_6`: candidate-only, weak token rows 0.00%, duplicate row pct 35.58%.
   - `candidate_content_10`: candidate-only, weak token rows 0.00%, duplicate row pct 34.89%.
 - `candidate_source_content_8` remains a secondary cross-check, but it is not first priority because it has higher duplicate row pct 51.76%.
-- Run candidate-content NLA as separate smoke experiments before considering any merge into the main pipeline. This is now in progress as `11912947` (`candidate_content_6`) followed by `11912948` (`candidate_content_10`).
+- Candidate-content NLA was tested as separate smoke experiments before considering any merge into the main pipeline. Both `11912947` (`candidate_content_6`) and `11912948` (`candidate_content_10`) completed and were negative, so candidate-only selection is not a current merge candidate.
 - `11912947` completed successfully and is negative on final metrics, despite cleaner token-selection statistics.
 - Hybrid deduplicated NLA is implemented as a separate experimental strategy:
   - `gepa-experiments/scripts/experimental_build_nla_precomputed.py` supports `hybrid_context_dedup_6` and `hybrid_context_dedup_8`.
