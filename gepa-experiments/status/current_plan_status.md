@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ## Objective
 
@@ -259,9 +259,11 @@ Completed or in progress locally:
 
 Still required:
 
-- Let `11912948` run after `11912947`; this tests whether a larger candidate-only 10-token budget changes the conclusion, but it is now lower priority than the main long fixed-NLA run because `candidate_content_6` was negative.
-- Keep the longer Topical-Chat engagingness PPL+fixed-NLA run `11913284` running, because the fixed-NLA smoke gate has passed and its precompute artifact has full GEPA coverage.
-- After the long fixed-NLA run completes, compare it against the closest long PPL-only control with `diagnose_nla_run.py`.
+- Let `11912948` run when resources free; this tests whether a larger candidate-only 10-token budget changes the conclusion, but it is lower priority than the main matched long-control gap because `candidate_content_6` was negative.
+- `11913284`, the longer Topical-Chat engagingness PPL+fixed-NLA run, completed successfully and all required final artifacts were recovered locally.
+- A current-code matched PPL-only long control is now required before making any strong NLA-effect claim, because the old long PPL-only control used an older seed/code artifact path and the fixed-NLA long run selected the unchanged seed prompt.
+- Current-code matched control `11913415` was submitted on 2026-06-11 with the same split, seed, GEPA budget, Qwen35B proposer, and PPL feedback as `11913284`, but with `NLA_FEEDBACK=0`.
+- After `11913415` completes, compare it against `11913284` with `diagnose_nla_run.py`.
 - Do not use `11913131` as evidence for NLA effectiveness; it is an audit-only failure case because dry-run placeholders entered the feedback artifact.
 - If long fixed-NLA fails or reverses the smoke improvement, prioritize `hybrid_context_dedup_6`, lower proposer temperature, and shorter/summarized NLA feedback. Do not prioritize pure candidate-only replacement unless `candidate_content_10` contradicts the `candidate_content_6` result.
 - Non-invasive diagnostic artifact support is now implemented for future runs:
@@ -270,11 +272,95 @@ Still required:
   - Raw activation vectors are still intentionally not persisted by default.
 - For any future job that can run on non-`faretra` nodes, check the execution node filesystem or sync artifacts back to `faretra`; `moro232` results are not guaranteed to be visible from `faretra`.
 - Queue scientifically useful pending work even when nodes are currently occupied, so jobs accrue scheduling age. Avoid only duplicate jobs or jobs that would answer no useful question.
-- Prepared three single-GPU PPL-only controls for already completed real-NLA dataset smoke runs:
+- Completed three single-GPU PPL-only controls for already completed real-NLA dataset smoke runs:
   - `gepa-experiments/config/geval_gepa_summeval_consistency_ppl_smoke.env`
   - `gepa-experiments/config/geval_gepa_qags_cnn_consistency_ppl_smoke.env`
   - `gepa-experiments/config/geval_gepa_qags_xsum_consistency_ppl_smoke.env`
-- These controls are matched to the corresponding real-NLA smoke split/budget and pinned to `moro232`. They should be submitted when SSH to `moro232` is available again. They are technical ablations only, not final Qwen35B proposer results.
+- These controls are matched to the corresponding real-NLA smoke split/budget and were pinned to `moro232`. They are technical ablations only, not final Qwen35B proposer results.
+
+## Dataset Single-GPU Control Findings
+
+Jobs `11913404`, `11913405`, and `11913406` completed on `moro232`; artifacts were recovered locally and diagnostic reports were generated.
+
+Artifact locations:
+
+- SummEval consistency PPL-only control: `gepa-experiments/results/geval_gepa_summeval_consistency_ppl_smoke`
+- QAGS-CNN consistency PPL-only control: `gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_smoke`
+- QAGS-XSUM consistency PPL-only control: `gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_smoke`
+- Diagnostic reports:
+  - `gepa-experiments/results/diagnostics/nla_summeval_consistency_vs_ppl_smoke_20260611.md`
+  - `gepa-experiments/results/diagnostics/nla_qags_cnn_consistency_vs_ppl_smoke_20260611.md`
+  - `gepa-experiments/results/diagnostics/nla_qags_xsum_consistency_vs_ppl_smoke_20260611.md`
+
+SummEval consistency is the only one of these three smoke comparisons with enough final-test rows to read directionally:
+
+- PPL-only optimized on 32 final-test examples: Pearson 0.701281, Spearman 0.790860, Kendall tau 0.716853, agreement 0.723958, MAE 1.104167.
+- PPL+real-NLA optimized on the matched split: Pearson 0.618512, Spearman 0.696582, agreement 0.718750, MAE 1.125000. Kendall tau is unavailable in the older real-NLA artifact because that run predates the metric addition.
+- NLA minus PPL-only: Pearson -0.082769 (-11.80%), Spearman -0.094278 (-11.92%), agreement -0.005208 (-0.72%), MAE +0.020833 (+1.89%, worse).
+- Prediction movement: 3 improved, 3 worsened, 26 unchanged.
+- Feedback artifact issue: 100 NLA rows across 50 examples, but 86 duplicate text rows and no activation-summary stats because the NLA run used an older artifact schema.
+
+QAGS-CNN and QAGS-XSUM controls are valid plumbing checks but not scientifically interpretable:
+
+- Both final-test slices have only `n=2`, so Pearson/Spearman/Kendall can be unstable or degenerate.
+- QAGS-CNN PPL-only optimized improves agreement/MAE over the matched NLA run, but with only 2 examples this is not enough for a claim.
+- QAGS-XSUM PPL-only optimized is better than the matched NLA run on the reported metrics, but the tiny final-test slice and older NLA artifact make this diagnostic-only.
+
+Interpretation:
+
+- These single-GPU dataset controls do not support a claim that the current NLA feedback improves GEPA across datasets.
+- They do support the root-cause hypothesis that NLA feedback quality and compression matter: SummEval NLA has high duplicate text rows, and the older dataset NLA artifacts lack the richer token/activation stats now required for diagnosis.
+- Do not scale dataset-level NLA from these 7B-proposer smoke runs alone. Use them as technical controls while waiting for the thesis-relevant Qwen35B proposer long run.
+- Next action from these results is not to launch duplicates; the next decisive artifact is the matched current-code PPL-only long control `11913415`, followed by the already queued `11912948` candidate-content-10 smoke.
+
+## Fixed-NLA Long Run Findings
+
+Job `11913284` completed on `faretra` and artifacts were recovered locally from `gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b`.
+
+Runtime and artifacts:
+
+- Runtime: 30,519.012 seconds, about 8h28m39s.
+- Split: 40 train groups, 10 validation groups, 10 final-test groups; rows are 240 GEPA train, 60 GEPA validation, and 60 final test.
+- Proposer: Qwen 35B via llama.cpp, `PROPOSER_TEMPERATURE=0.7`, `PROPOSER_MAX_TOKENS=4096`.
+- Judge/PPL/NLA base model: `Qwen/Qwen2.5-7B-Instruct`.
+- `prompt_trajectory_20260610T163111Z.jsonl` has 740 candidate rows.
+- Final `optimized_prompt_20260610T163111Z.txt` is byte-identical to `seed_prompt_20260610T163111Z.txt`.
+
+Final-test metrics for `11913284`:
+
+- Baseline and optimized are identical because GEPA selected the unchanged seed prompt.
+- Pearson 0.681158, Spearman 0.677076, Kendall tau 0.571150, agreement 0.752778, MAE 0.494444 on 60 examples.
+
+Comparison against the old long PPL-only control `geval_gepa_engaging_qwen25_8h_ppl_llamacpp35b_proposer`:
+
+- Diagnostic report: `gepa-experiments/results/diagnostics/nla_fixed_long_vs_ppl_long_20260611.md`.
+- Config comparison is mostly matched after legacy normalization: same dataset/dimension/seed/split/proposer/PPL feedback, NLA-specific fields differ.
+- Fixed-NLA optimized vs old PPL-only optimized:
+  - Pearson: 0.632812 -> 0.681158, delta +0.048346 (+7.64%).
+  - Spearman: 0.619893 -> 0.677076, delta +0.057183 (+9.22%).
+  - Agreement: 0.788889 -> 0.752778, delta -0.036111 (-4.58%).
+  - MAE: 0.422222 -> 0.494444, delta +0.072222 (+17.11%, worse).
+- Prediction-level movement against old PPL-only: 8 improved, 15 worsened, 37 unchanged.
+- Prediction distribution shifted from PPL-only `{1: 14, 2: 36, 3: 10}` to fixed-NLA `{1: 23, 2: 19, 3: 18}`. This increases rank correlation by spreading scores more, but worsens absolute error on several human-score-2 examples.
+
+NLA feedback quality for `11913284`:
+
+- 1752 real NLA rows across 300 covered GEPA train/validation examples.
+- `token_status=ok` for all rows.
+- `parse_status=partial_tags` for all rows.
+- Suspicious rows: 0.
+- Average verbalization length: about 10.55 words.
+- Duplicate text rows remain high: 925 total, mostly reference/source context repetition; category breakdown is candidate 77, reference 550, source 298.
+- Token positions are healthier than the first negative long NLA run: 888 candidate rows, 300 source rows, 564 reference rows.
+- Activation summary stats are still not present in the persisted artifact despite the intended support, so this needs a code/artifact audit before the next NLA-heavy run.
+
+Interpretation:
+
+- This fixed-NLA long run is not a clean positive GEPA optimization result because the optimized prompt is exactly the seed prompt.
+- It is positive relative to the old long PPL-only optimized run on paper-primary Topical-Chat correlations, but negative on MAE/agreement.
+- It is much healthier than the first old NLA long run, which had Pearson/Spearman drops and a large MAE increase caused by weak/repetitive first-token feedback.
+- The remaining ambiguity is important: the current seed prompt/codepath appears stronger than the old long PPL-only baseline, so the observed Pearson/Spearman advantage cannot be attributed confidently to NLA until a matched current-code PPL-only long control finishes.
+- Action taken: submitted `11913415`, a matched current-code PPL-only long control with the same split/budget/proposer/PPL setting and NLA disabled.
 
 ## Future Step Roadmap
 
@@ -285,8 +371,9 @@ Step 1: finish and analyze smoke diagnostics.
 - Completed the matched Topical-Chat PPL-only vs fixed-NLA smoke comparison using `11913161` vs replacement `11913262`.
 - Generated diagnostic report `gepa-experiments/results/diagnostics/nla_vs_ppl_fixed_smoke_20260610.md`.
 - Decision gate result: fixed-NLA smoke is positive on the 12-example final-test slice and has valid NLA coverage/useful rows, so proceed to one longer fixed-NLA run while treating the smoke as suggestive rather than conclusive.
+- Completed matched single-GPU dataset control diagnostics for SummEval consistency, QAGS-CNN consistency, and QAGS-XSUM consistency. SummEval is directionally useful and negative for NLA versus PPL-only; QAGS smokes are `n=2` and should be treated only as plumbing checks.
 
-Step 2: launch one longer fixed-NLA Topical-Chat run.
+Step 2: launch and analyze one longer fixed-NLA Topical-Chat run.
 
 - Dataset/dimension: Topical-Chat engagingness.
 - Compare against the closest PPL-only control with same seed, split, proposer, and GEPA budget.
@@ -297,9 +384,11 @@ Step 2: launch one longer fixed-NLA Topical-Chat run.
 - Use new config `gepa-experiments/config/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b.env` so the new fixed-NLA long run does not mix artifacts with the older negative long NLA run.
 - Keep `SLURM_TIME=16:00:00` as a safety limit; the target is a long 8-12 hour style run, not necessarily a full 16 hours.
 - Submitted this long fixed-NLA run as `11913284`.
-- Current status: `11913284` started on `faretra` at 2026-06-10 16:55:36 CEST with 2 x RTX 3090 and is running.
+- Completion status: `11913284` completed successfully on `faretra`, final artifacts were recovered locally, and `nla_fixed_long_vs_ppl_long_20260611.md` was generated.
 - Startup status: NLA activation extraction completed for 300 manifest rows and 1752 real precomputed NLA feedback rows were written. This covers the GEPA train+validation manifest and is not affected by the incomplete single-GPU smoke issue.
-- Latest runtime check on 2026-06-10 around 22:14 CEST: Slurm reports `RUNNING`, the GEPA/vLLM container and llama.cpp sidecar are both up, vLLM and llama.cpp logs are updating, and there is no crash signature. The GEPA stdout progress visible in the line-buffered log was around iteration 329/12600 at 20:13 CEST; the active llama.cpp log indicates the job is spending most time in proposer generations.
+- Final runtime: about 8h28m39s.
+- Result: baseline and optimized metrics are identical because GEPA selected the unchanged seed prompt. The fixed-NLA run beats the old long PPL-only optimized run on Pearson/Spearman, but loses on MAE/agreement and cannot be treated as a clean NLA-effect claim until the current-code PPL-only control `11913415` completes.
+- Follow-up control: `11913415` is queued as the matched current-code PPL-only long run with NLA disabled.
 
 Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 
@@ -338,7 +427,7 @@ Step 5: if NLA remains negative or unstable after the fixed selector.
   - `candidate_content_10`: candidate-only, weak token rows 0.00%, duplicate row pct 34.89%.
 - `candidate_source_content_8` remains a secondary cross-check, but it is not first priority because it has higher duplicate row pct 51.76%.
 - Run candidate-content NLA as separate smoke experiments before considering any merge into the main pipeline. This is now in progress as `11912947` (`candidate_content_6`) followed by `11912948` (`candidate_content_10`).
-- `11912947` completed successfully and is negative on final metrics, despite very clean duplicate statistics.
+- `11912947` completed successfully and is negative on final metrics, despite cleaner token-selection statistics.
 - Hybrid deduplicated NLA is implemented as a separate experimental strategy:
   - `gepa-experiments/scripts/experimental_build_nla_precomputed.py` supports `hybrid_context_dedup_6` and `hybrid_context_dedup_8`.
   - `gepa-experiments/scripts/experimental_nla_token_strategy_analysis.py` reports both hybrid strategies.
@@ -417,7 +506,7 @@ Latest status:
 - Downstream experimental job `11912947` was rewired from the failed `11912918` to `afterok:11913262`, ran on `faretra`, and completed successfully at 2026-06-10 16:54:41 CEST after 16m08s.
 - `11912947` final artifacts are visible under `gepa-experiments/results/experimental_nla_candidate_content_6_topical_chat_smoke`.
 - Diagnostic report for `11912947` vs PPL-only control is saved at `gepa-experiments/results/diagnostics/nla_candidate_content_6_vs_ppl_smoke_20260610.md`.
-- `11912948` is no longer dependency-blocked; it is pending for 2 x RTX 3090 availability.
+- `11912948` is no longer dependency-blocked; latest check on 2026-06-11 03:05 CEST shows it still pending for unavailable requested nodes/resources. It should remain queued because it is a distinct candidate-content-10 diagnostic and can accrue scheduling age.
 - No final metrics or optimized-prompt artifact for job `11912948` is visible yet.
 - Do not submit duplicate matched Qwen35B proposer smoke jobs; the matched smoke comparison is complete. Do submit the longer fixed-NLA run and other scientifically distinct queued work if it answers a planned question and can age in the queue.
 
@@ -463,10 +552,11 @@ Submission status:
 - Scripts/configs/status and token-strategy diagnostic report/CSV are synced to `faretra`.
 - `11912947`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_6` NLA, llama.cpp proposer, completed successfully; final metrics are worse than fixed-NLA and PPL-only.
 - `11912948`: Topical-Chat engagingness smoke, PPL + experimental `candidate_content_10` NLA, llama.cpp proposer, pending for resources after `11912947`.
-- `11913284`: Topical-Chat engagingness long run, PPL + fixed NLA, llama.cpp proposer, running on `faretra` since 2026-06-10 16:55:36 CEST with 16h safety limit.
+- `11913284`: Topical-Chat engagingness long run, PPL + fixed NLA, llama.cpp proposer, completed successfully on `faretra`; final artifacts recovered locally.
+- `11913415`: Topical-Chat engagingness long current-code PPL-only control, llama.cpp proposer, submitted on 2026-06-11 and pending for 2 x RTX 3090 resources. This is now the required control for the strongest interpretation of `11913284`.
 - `11912947` and `11912948` are intentionally serial and outside the main pipeline.
 - `11913284` is not part of that experimental serial chain. It is the current main-pipeline long fixed-NLA run and is independent of the candidate-only smoke jobs.
-- Slurm priority check after `11912947`: `11913284` started first, while `11912948` remains pending for resources with an estimated start after the long job. No hold action is needed.
+- Slurm priority check after `11913284`: `11912948` and `11913415` are pending because requested nodes `faretra,moro43` are unavailable. No hold action is currently applied; `11912948` is short and already queued, while `11913415` is the higher scientific priority after it starts.
 - Single-GPU Topical-Chat smoke work `11913130` and `11913131` is complete and audited. It does not replace the Qwen35B proposer chain and should not be cited as NLA evidence.
 - `11913388`: Topical-Chat engagingness single-GPU matched smoke, PPL + real NLA, pinned to `moro232`, submitted after `moro232` became free. It uses the same split and budget as PPL-only `11913130`: 4 train groups, 2 validation groups, 2 final-test groups, seed 42, `MAX_FULL_EVALS=2`, `NUM_THREADS=2`.
 - Purpose of `11913388`: technical audit of the corrected precomputed-NLA path after removing the partial-precompute failure mode from `11913131`. It remains secondary evidence because the proposer is Qwen2.5-7B rather than Qwen35B.
@@ -474,18 +564,18 @@ Submission status:
 - Startup status for `11913388`: running on `moro232`; preflight passed, split sizes are `gepa_train=24`, `gepa_validation=12`, `final_test=12`, and a 36-row NLA manifest was written before NLA checkpoint loading.
 - Operational note for `11913388`: `moro232` now has `~/.telegram_credentials` copied from `faretra` with mode `600`. A node-local Telegram monitor is active on `moro232` with PID `4108546` and watches the node-local Slurm stdout file. The monitor originally started from `faretra` may still miss node-local log alerts, so use the `moro232` monitor as the authoritative one for this job.
 - Completion status for `11913388`: completed on `moro232`, artifacts recovered locally, diagnostic report generated. Final interpretation is audit-positive but not thesis-level: NLA prevented the PPL-only optimized degradation, but the final optimized prompt stayed identical to the seed prompt.
-- Prepared but not yet submitted because local SSH to `moro232` started returning `socket: Operation not permitted`:
-  - SummEval consistency PPL-only single-GPU control.
-  - QAGS-CNN consistency PPL-only single-GPU control.
-  - QAGS-XSUM consistency PPL-only single-GPU control.
-- Submit these three controls on `moro232` when SSH is available. They are matched technical controls for the already recovered real-NLA smoke jobs and should be interpreted as secondary 7B-proposer ablations.
-- The configs and latest GEPA code path were synced to `moro232` successfully.
+- Submitted and completed after SSH to `moro232` became available:
+  - `11913404`: SummEval consistency PPL-only single-GPU control.
+  - `11913405`: QAGS-CNN consistency PPL-only single-GPU control.
+  - `11913406`: QAGS-XSUM consistency PPL-only single-GPU control.
+- These are matched technical controls for the already recovered real-NLA smoke jobs and should be interpreted as secondary 7B-proposer ablations.
+- The configs and latest GEPA code path were synced to `moro232` before submission.
 - A first submission attempt accidentally expanded the config loop variable locally and submitted three wrong default Topical-Chat jobs: `11913401`, `11913402`, `11913403`. They were cancelled immediately; `11913401` briefly entered `COMPLETING`, then disappeared, and stale Telegram monitors for `11913401-03` were killed.
-- Correct PPL-only dataset controls were then submitted on `moro232`:
-  - `11913404`: SummEval consistency PPL-only single-GPU control, running on `moro232`.
-  - `11913405`: QAGS-CNN consistency PPL-only single-GPU control, pending behind `11913404`.
-  - `11913406`: QAGS-XSUM consistency PPL-only single-GPU control, pending behind the single-GPU queue.
-- Startup check for `11913404`: Slurm stdout shows config `geval_gepa_summeval_consistency_ppl_smoke.env`, dataset `summeval`, dimension `consistency`, `perplexity feedback: 1`, `nla feedback: 0`, vLLM port `18230`, and 4h time limit. No startup error was visible in the first log check.
+- Correct PPL-only dataset controls were then submitted on `moro232` and completed:
+  - `11913404`: SummEval consistency PPL-only single-GPU control, runtime 666.171 seconds, final artifacts complete.
+  - `11913405`: QAGS-CNN consistency PPL-only single-GPU control, runtime 73.002 seconds, final artifacts complete.
+  - `11913406`: QAGS-XSUM consistency PPL-only single-GPU control, runtime 52.894 seconds, final artifacts complete.
+- Startup and final artifact checks show the intended configs were used: dataset/dimension matched the plan, perplexity feedback was enabled, NLA feedback was disabled, and metrics/runtime/prompt/trajectory artifacts were written.
 
 ## Cluster Scheduling Rule
 
