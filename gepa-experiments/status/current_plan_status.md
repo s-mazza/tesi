@@ -430,6 +430,10 @@ Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 - Implementation update: the auxiliary judge now receives the already-computed NLA text as extra weak feedback for the same example. Its prompt explicitly asks it to convert this into a general rubric-level lesson and not to copy token-level strings.
 - Smoke config: `gepa-experiments/config/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke.env`.
 - Submitted job: `11913424`, dependency `afterok:11913415`, 2 x RTX 3090, flexible node selection, `deeplearn2` excluded. It was cancelled after `11913415` failed, because the dependency became `DependencyNeverSatisfied` and because the aux-judge/NLA-context ablation needs to be resubmitted with an explicit, scientifically unambiguous config.
+- Current submitted aux-judge smoke: `11913731`, submitted 2026-06-12 with the same smoke config.
+- Scientific setting for `11913731`: Topical-Chat engagingness smoke, same 4/2/2 context split and seed as the matched Qwen35B smoke controls, PPL enabled, fixed real NLA enabled, Qwen35B llama.cpp used both as proposer and auxiliary judge.
+- Aux-judge context for `11913731`: the auxiliary judge receives NLA text through `extra_feedback=nla_feedback_text`, so this run answers "can Qwen35B compress/interpret raw NLA into useful rubric feedback?", not merely "does an independent second judge help?"
+- Cluster status after submission: pending with `Reason=ReqNodeNotAvail,_UnavailableNodes:faretra,moro43`. `moro232` is idle but has only one RTX 3090, while this job needs two RTX 3090 GPUs on the same node. `faretra` has 4/4 GPUs allocated by other users, so the job must wait for `faretra`.
 - Interpretation rule: this smoke does not replace the matched long control. It only tests whether a semantic compression layer can make NLA usable by GEPA.
 - If the future aux-judge smoke improves over both `ppl_smoke_q35` and `fixed_nla_smoke_q35`, the next action is a matched longer `ppl_nla_auxjudge` Topical-Chat run with the same 40/10/10 context split as `11913284` and the completed current-code PPL control.
 - If it fails, do not launch another raw NLA long run. Instead inspect its auxiliary-judge records to decide whether the judge ignored NLA, copied noisy token strings, or produced rubric feedback that GEPA still overfit.
@@ -593,7 +597,8 @@ Submission status:
 - `11913482`: replacement Topical-Chat engagingness long current-code PPL-only control, same scientific config, failed at llama.cpp startup because the proposer GPU had only about 7.4 GiB free.
 - `11913557`: second replacement attempt, same scientific config, failed at llama.cpp startup for the same reason.
 - `11913587`: replacement Topical-Chat engagingness long current-code PPL-only control, same scientific config, completed on `faretra`; final artifacts recovered locally and diagnostic report generated.
-- `11913424`: cancelled after `11913415` failed; the control path is now repaired via completed `11913587`. Resubmit an aux-judge smoke only with an explicit config that states whether the aux judge receives NLA text or only metric/PPL context.
+- `11913424`: cancelled after `11913415` failed; the control path is now repaired via completed `11913587`.
+- `11913731`: aux-judge smoke submitted as the replacement for `11913424`. Pending for two RTX 3090 GPUs on `faretra`; Telegram monitor started and watches `gepa-experiments/results/slurm/slurm-11913731-geval-gepa-topical_chat-engagingness-ppl-nla-auxjudge-llamacpp35b-smoke.out`.
 - `11912947` and `11912948` are intentionally serial and outside the main pipeline.
 - `11913284` is not part of that experimental serial chain. It is the current main-pipeline long fixed-NLA run and is independent of the candidate-only smoke jobs.
 - Slurm priority check after `11913587`: no active user jobs remain visible in `squeue` on `faretra` or `moro232`; `sacct` is still unavailable because SlurmDB refuses connections.
