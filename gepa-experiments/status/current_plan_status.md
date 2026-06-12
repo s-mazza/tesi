@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 ## Objective
 
@@ -87,8 +87,8 @@ Use `gepa-experiments/scripts/diagnose_nla_run.py` for this comparison.
 Additional cross-run evidence report:
 
 - `gepa-experiments/scripts/analyze_nla_evidence.py`
-- latest report: `gepa-experiments/results/diagnostics/nla_evidence_deep_dive_20260611.md`
-- latest machine-readable artifact: `gepa-experiments/results/diagnostics/nla_evidence_deep_dive_20260611.json`
+- latest report: `gepa-experiments/results/diagnostics/nla_evidence_deep_dive_20260612.md`
+- latest machine-readable artifact: `gepa-experiments/results/diagnostics/nla_evidence_deep_dive_20260612.json`
 
 This report aggregates the long runs, Qwen35B smoke runs, single-GPU audit runs, dataset smoke controls, prompt trajectories, prediction distributions, and NLA feedback-health statistics.
 
@@ -96,7 +96,8 @@ Current root-cause conclusion from the aggregate evidence:
 
 - The first old NLA long run was a clearly bad NLA condition: weak first-token selection and high duplicate feedback led to a large metric drop.
 - The fixed-NLA long run is much healthier technically, but GEPA selected the seed prompt unchanged after 740 trajectory rows.
-- Fixed-NLA beats the old PPL long run on Topical-Chat Pearson/Spearman but loses on agreement/MAE, so it is not a clean NLA improvement claim.
+- Fixed-NLA beats the old PPL long run on Topical-Chat Pearson/Spearman but loses on agreement/MAE, so the old comparison is not a clean NLA improvement claim.
+- The matched current-code PPL long control `11913587` has now completed. Against this stricter control, fixed-NLA is slightly better on all recorded final-test metrics, but both runs selected the byte-identical seed prompt. The observed gain is only two improved final-test predictions out of 60, so it is weak evidence and not proof that GEPA found a better prompt because of NLA.
 - Candidate-only NLA is not the answer by itself. `candidate_content_6` and `candidate_content_10` remove duplicate source/reference repetition, but both worsen the matched Qwen35B smoke results.
 - Therefore the most likely bottleneck is not just duplicate text. The raw NLA verbalizations are still mostly completion/association-style text, not metric-aligned explanations of why the score should move up or down.
 - The next useful intervention is to transform NLA into short rubric-conditioned error feedback before GEPA's reflection/proposer step, instead of handing raw token verbalizations directly to the proposer.
@@ -157,7 +158,7 @@ Extra activation-verbalization reading from the current artifacts:
 - Fixed-NLA `11913262` has 210 rows across 36 examples: 108 candidate rows, 36 source rows, and 66 reference rows.
 - Fixed-NLA has 123/210 unique normalized verbalizations, with 87 exact duplicate normalized rows in direct inspection and 107 duplicate rows under the stricter diagnostic normalization.
 - Fixed-NLA still has many completion-style verbalizations: 192/210 rows look like quoted continuations or topical completions rather than direct rubric concepts.
-- Candidate-only precompute for running job `11912947` has 187 rows across the same 36 examples, all candidate rows, all `token_status=ok`, all non-empty `partial_tags`, and 187/187 unique normalized verbalizations.
+- Candidate-only precompute for completed job `11912947` had 187 rows across the same 36 examples, all candidate rows, all `token_status=ok`, all non-empty `partial_tags`, and 187/187 unique normalized verbalizations.
 - Candidate-only `11912947` has fewer weak token rows than fixed-NLA in direct inspection: 21/187, 11.2%, versus 40/210, 19.0%, for fixed-NLA.
 - Candidate-only `11912947` now has final GEPA metrics and should be treated as negative evidence for a candidate-only replacement, despite the cleaner feedback artifact.
 - Candidate-only optimized metrics are much worse than fixed-NLA on the same 12-example final-test slice:
@@ -274,19 +275,23 @@ Completed or in progress locally:
 - Hardened the NLA feedback provider so precomputed NLA can no longer silently fall back to dry-run placeholders when rows are missing.
 - Removed the dangerous `NLA_PRECOMPUTE_LIMIT=6` from the single-GPU real-NLA smoke config and made `NLA_MIN_COVERAGE=0.95` explicit.
 
-Still required:
+Latest completed long-control update:
 
 - `11912948` completed and is negative. Larger candidate-only 10-token feedback did not recover the fixed-NLA smoke gain and should not be promoted into the main pipeline.
 - `11913284`, the longer Topical-Chat engagingness PPL+fixed-NLA run, completed successfully and all required final artifacts were recovered locally.
-- A current-code matched PPL-only long control is now required before making any strong NLA-effect claim, because the old long PPL-only control used an older seed/code artifact path and the fixed-NLA long run selected the unchanged seed prompt.
 - Current-code matched control `11913415` was submitted on 2026-06-11 with the same split, seed, GEPA budget, Qwen35B proposer, and PPL feedback as `11913284`, but with `NLA_FEEDBACK=0`.
 - `11913415` failed after 53 seconds before GEPA started. Root cause: vLLM startup saw only 7.22 GiB free on the assigned judge GPU while `GPU_MEMORY_UTILIZATION=0.90` required about 21.32 GiB. `nvidia-smi` showed the memory was occupied by other users' processes on `faretra`, not by our stale containers.
 - Replacement attempts `11913482` and `11913557` also failed before GEPA started because llama.cpp Qwen35B was assigned a proposer GPU with only about 7.4 GiB free and could not allocate its about 20.6 GiB CUDA buffer.
-- Current replacement current-code matched control: `11913587`, same scientific config and no artificial GPU-memory wait.
-- Startup check for `11913587`: llama.cpp proposer loaded successfully on a GPU with 23.98 GiB free, vLLM loaded successfully on the judge GPU, both endpoints became ready, and perplexity precompute started for the 300 GEPA train/validation rows.
-- After `11913587` completes, compare it against `11913284` with `diagnose_nla_run.py`.
+- Replacement current-code matched control `11913587` completed successfully on `faretra`; artifacts were synced locally to `gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_llamacpp35b_current_control`.
+- Diagnostic report: `gepa-experiments/results/diagnostics/nla_fixed_long_vs_current_ppl_long_20260612.md`.
+- Runtime: 30,049.160 seconds, about 8h20m49s.
+- Baseline and optimized metrics are identical because GEPA also selected the unchanged seed prompt in the PPL current-code control.
+- PPL current-code optimized, n=60: Pearson 0.658218, Spearman 0.658203, Kendall tau 0.555309, agreement 0.741667, MAE 0.516667.
+- Fixed-NLA optimized minus PPL current-code optimized: Pearson +0.022940, Spearman +0.018872, Kendall tau +0.015841, agreement +0.011111, MAE -0.022222.
+- Prediction movement: 2 improved examples, 0 worsened examples, 58 unchanged.
+- Important interpretation: because seed and optimized prompts are byte-identical across both runs, this is not evidence that GEPA discovered a better prompt under NLA. It is a small positive final-test delta under otherwise matched runs, likely within judge/runtime stochasticity unless replicated.
 - Do not use `11913131` as evidence for NLA effectiveness; it is an audit-only failure case because dry-run placeholders entered the feedback artifact.
-- If the matched current-code long control shows that fixed-NLA does not improve the real paper-aligned metrics, prioritize auxiliary-judge summarized NLA feedback and hybrid context deduplication. Do not prioritize pure candidate-only replacement because both candidate-only smokes are now negative.
+- Since the matched current-code long control shows only a weak positive delta and no prompt improvement, prioritize auxiliary-judge summarized NLA feedback and hybrid context deduplication. Do not prioritize pure candidate-only replacement because both candidate-only smokes are now negative.
 - Non-invasive diagnostic artifact support is now implemented for future runs:
   - prediction JSONL rows now include `source_text`, `fact`, `reference`, and `candidate_output`, so final-test qualitative errors can be inspected without rejoining the dataset manually.
   - NLA precomputed/verbalization rows now include compact activation-vector statistics: dimension, L2 norm, mean, std, min, max, and absolute mean.
@@ -332,8 +337,8 @@ Interpretation:
 
 - These single-GPU dataset controls do not support a claim that the current NLA feedback improves GEPA across datasets.
 - They do support the root-cause hypothesis that NLA feedback quality and compression matter: SummEval NLA has high duplicate text rows, and the older dataset NLA artifacts lack the richer token/activation stats now required for diagnosis.
-- Do not scale dataset-level NLA from these 7B-proposer smoke runs alone. Use them as technical controls while waiting for the thesis-relevant Qwen35B proposer long run.
-- Next action from these results is not to launch duplicates; the next decisive artifact is the matched current-code PPL-only long control replacement `11913587`.
+- Do not scale dataset-level NLA from these 7B-proposer smoke runs alone. Use them as technical controls, not thesis-level performance claims.
+- Next action from these results is not to launch duplicates; the matched current-code PPL-only long control has completed, and the next decisive experiment is an aux-judge or compressed-NLA smoke that tests whether raw NLA can be transformed into rubric-conditioned feedback.
 
 ## Fixed-NLA Long Run Findings
 
@@ -380,9 +385,10 @@ Interpretation:
 
 - This fixed-NLA long run is not a clean positive GEPA optimization result because the optimized prompt is exactly the seed prompt.
 - It is positive relative to the old long PPL-only optimized run on paper-primary Topical-Chat correlations, but negative on MAE/agreement.
+- It is also slightly positive relative to the matched current-code PPL-only long control on all recorded metrics, but this comparison remains weak because the prompt is byte-identical and only two final-test examples change.
 - It is much healthier than the first old NLA long run, which had Pearson/Spearman drops and a large MAE increase caused by weak/repetitive first-token feedback.
-- The remaining ambiguity is important: the current seed prompt/codepath appears stronger than the old long PPL-only baseline, so the observed Pearson/Spearman advantage cannot be attributed confidently to NLA until a matched current-code PPL-only long control finishes.
-- Action taken: submitted `11913415`, a matched current-code PPL-only long control with the same split/budget/proposer/PPL setting and NLA disabled. It failed at vLLM startup because the allocated GPU had too little free memory due to other users' processes. Replacement attempts `11913482` and `11913557` failed at llama.cpp startup for the same cluster GPU-memory availability issue. Current running replacement: `11913587`.
+- The remaining ambiguity is now different: fixed-NLA did not produce a better selected prompt, so the small metric gain is not enough for a strong thesis claim that NLA improves GEPA. It should be reported as diagnostic/weak-positive evidence pending an aux-judge or compressed-NLA variant.
+- Action taken: `11913587` completed and was compared against `11913284`; generated `nla_fixed_long_vs_current_ppl_long_20260612.md` and updated the aggregate evidence report.
 
 ## Future Step Roadmap
 
@@ -409,8 +415,8 @@ Step 2: launch and analyze one longer fixed-NLA Topical-Chat run.
 - Completion status: `11913284` completed successfully on `faretra`, final artifacts were recovered locally, and `nla_fixed_long_vs_ppl_long_20260611.md` was generated.
 - Startup status: NLA activation extraction completed for 300 manifest rows and 1752 real precomputed NLA feedback rows were written. This covers the GEPA train+validation manifest and is not affected by the incomplete single-GPU smoke issue.
 - Final runtime: about 8h28m39s.
-- Result: baseline and optimized metrics are identical because GEPA selected the unchanged seed prompt. The fixed-NLA run beats the old long PPL-only optimized run on Pearson/Spearman, but loses on MAE/agreement and cannot be treated as a clean NLA-effect claim until the current-code PPL-only control replacement `11913587` completes.
-- Follow-up control: `11913587` is running as the matched current-code PPL-only long run with NLA disabled.
+- Result: baseline and optimized metrics are identical because GEPA selected the unchanged seed prompt. The fixed-NLA run beats the old long PPL-only optimized run on Pearson/Spearman but loses on MAE/agreement.
+- Matched follow-up control `11913587` completed with NLA disabled. Fixed-NLA is slightly better than this current-code control on all recorded metrics, but both runs kept the same seed prompt and only two final-test predictions changed. Treat this as weak-positive diagnostic evidence, not a clean GEPA+NLA optimization win.
 
 Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 
@@ -586,16 +592,16 @@ Submission status:
 - `11913415`: Topical-Chat engagingness long current-code PPL-only control, llama.cpp proposer, failed before vLLM readiness because the allocated GPU was already heavily occupied by other users' processes.
 - `11913482`: replacement Topical-Chat engagingness long current-code PPL-only control, same scientific config, failed at llama.cpp startup because the proposer GPU had only about 7.4 GiB free.
 - `11913557`: second replacement attempt, same scientific config, failed at llama.cpp startup for the same reason.
-- `11913587`: current replacement Topical-Chat engagingness long current-code PPL-only control, same scientific config, running on `faretra`. Startup passed: llama.cpp proposer is ready, vLLM is ready, and perplexity precompute has started.
-- `11913424`: cancelled after `11913415` failed; resubmit the aux-judge smoke only after the control path is repaired and the aux-judge/NLA-context ambiguity is resolved.
+- `11913587`: replacement Topical-Chat engagingness long current-code PPL-only control, same scientific config, completed on `faretra`; final artifacts recovered locally and diagnostic report generated.
+- `11913424`: cancelled after `11913415` failed; the control path is now repaired via completed `11913587`. Resubmit an aux-judge smoke only with an explicit config that states whether the aux judge receives NLA text or only metric/PPL context.
 - `11912947` and `11912948` are intentionally serial and outside the main pipeline.
 - `11913284` is not part of that experimental serial chain. It is the current main-pipeline long fixed-NLA run and is independent of the candidate-only smoke jobs.
-- Slurm priority check after `11913587`: no hold action is currently applied; monitor this running job until final artifacts are written.
+- Slurm priority check after `11913587`: no active user jobs remain visible in `squeue` on `faretra` or `moro232`; `sacct` is still unavailable because SlurmDB refuses connections.
 - Single-GPU Topical-Chat smoke work `11913130` and `11913131` is complete and audited. It does not replace the Qwen35B proposer chain and should not be cited as NLA evidence.
 - `11913388`: Topical-Chat engagingness single-GPU matched smoke, PPL + real NLA, pinned to `moro232`, submitted after `moro232` became free. It uses the same split and budget as PPL-only `11913130`: 4 train groups, 2 validation groups, 2 final-test groups, seed 42, `MAX_FULL_EVALS=2`, `NUM_THREADS=2`.
 - Purpose of `11913388`: technical audit of the corrected precomputed-NLA path after removing the partial-precompute failure mode from `11913131`. It remains secondary evidence because the proposer is Qwen2.5-7B rather than Qwen35B.
 - Pre-submit checks for `11913388`: `moro232` GPU was free, port `18213` was free, dataset cache existed, Docker image `geval_gepa:latest` existed, config had no `NLA_PRECOMPUTE_LIMIT`, `NLA_MIN_COVERAGE=0.95` was explicit, and the precomputed-NLA no-dry-run-fallback code was present on `moro232`.
-- Startup status for `11913388`: running on `moro232`; preflight passed, split sizes are `gepa_train=24`, `gepa_validation=12`, `final_test=12`, and a 36-row NLA manifest was written before NLA checkpoint loading.
+- Startup status for `11913388`: preflight passed on `moro232`, split sizes were `gepa_train=24`, `gepa_validation=12`, `final_test=12`, and a 36-row NLA manifest was written before NLA checkpoint loading.
 - Operational note for `11913388`: `moro232` now has `~/.telegram_credentials` copied from `faretra` with mode `600`. A node-local Telegram monitor is active on `moro232` with PID `4108546` and watches the node-local Slurm stdout file. The monitor originally started from `faretra` may still miss node-local log alerts, so use the `moro232` monitor as the authoritative one for this job.
 - Completion status for `11913388`: completed on `moro232`, artifacts recovered locally, diagnostic report generated. Final interpretation is audit-positive but not thesis-level: NLA prevented the PPL-only optimized degradation, but the final optimized prompt stayed identical to the seed prompt.
 - Submitted and completed after SSH to `moro232` became available:
@@ -776,3 +782,28 @@ The full experiment matrix is considered scientifically usable only when every d
 - prompt artifacts
 - runtime artifact
 - prompt trajectory artifact
+
+## Thesis Writing Readiness
+
+Material already usable for thesis writing:
+
+- Background/method section: GEPA pipeline, G-Eval judge setup, Qwen2.5-7B base judge, Qwen35B proposer, PPL feedback, NLA activation verbalization feedback, and optional auxiliary judge design.
+- Reproducibility section: Slurm/Docker/vLLM/llama.cpp setup, artifact requirements, split semantics, pre-submit checklist, SSH/IPS mitigation, and node-local artifact recovery caveat.
+- Topical-Chat engagingness results section:
+  - old PPL long showed GEPA+PPL can improve over its seed/initial run;
+  - old NLA long was negative and diagnosed as a weak/noisy NLA condition;
+  - fixed-NLA smoke was positive;
+  - fixed-NLA long was weak-positive against the current-code PPL control but did not produce a better prompt.
+- Negative/diagnostic NLA section: candidate-only NLA, SummEval single-GPU smoke, QAGS plumbing smokes, duplicate/completion-like NLA verbalizations, and the conclusion that raw NLA text is not yet reliably metric-aligned.
+- Code/provenance section: all key artifact paths and diagnostic scripts are present locally, including `nla_evidence_deep_dive_20260612.md` and `nla_fixed_long_vs_current_ppl_long_20260612.md`.
+
+Still missing before writing the main experimental claim:
+
+- Decide with the advisor whether the thesis claim should be framed as "NLA improves GEPA" or as "raw NLA is diagnostically informative but needs semantic compression/auxiliary judging to help GEPA reliably".
+- Run or explicitly postpone the auxiliary-judge smoke with Qwen35B, because it is the planned next test for turning raw NLA into rubric-conditioned feedback.
+- If claiming improvement, replicate the weak-positive fixed-NLA long result or obtain a stronger aux-judge/compressed-NLA result where GEPA selects a genuinely different and better prompt.
+- For paper-aligned full-matrix tables, expand beyond the current smoke coverage to all planned dimensions or clearly label the current tables as pilot/smoke evidence.
+- Add final paper-comparison context: exact G-Eval paper Table 2 numbers, dataset sizes/splits used in our experiments, and which comparisons are data-aligned but not model-identical.
+- Decide whether to include QAGS-CNN and QAGS-XSUM smoke numbers; current `n=2` results are plumbing-only and should not be presented as scientific performance claims.
+- Collect final prompt examples for the thesis appendix: seed prompt, old PPL optimized prompt, old NLA optimized prompt, fixed-NLA final prompt, and at least one failed candidate-only prompt.
+- Fill a clean results table with confidence caveats: n, split, proposer, feedback variant, Pearson/Spearman/Kendall, agreement/MAE diagnostics, prompt changed yes/no, and artifact path.

@@ -48,6 +48,7 @@ class RunSpec:
 
 RUNS = (
     RunSpec("ppl_long_old", "geval_gepa_engaging_qwen25_8h_ppl_llamacpp35b_proposer", "long"),
+    RunSpec("ppl_long_current", "geval_gepa_topical_chat_engagingness_8h_ppl_llamacpp35b_current_control", "long"),
     RunSpec("old_nla_long", "geval_gepa_topical_chat_engagingness_8h_ppl_nla_llamacpp35b", "long"),
     RunSpec("fixed_nla_long", "geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b", "long"),
     RunSpec("ppl_smoke_q35", "geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke", "smoke"),
@@ -67,6 +68,7 @@ RUNS = (
 PAIRS = (
     ("old_nla_long", "ppl_long_old"),
     ("fixed_nla_long", "ppl_long_old"),
+    ("fixed_nla_long", "ppl_long_current"),
     ("fixed_nla_smoke_q35", "ppl_smoke_q35"),
     ("candidate6_smoke", "ppl_smoke_q35"),
     ("candidate10_smoke", "ppl_smoke_q35"),
@@ -577,6 +579,14 @@ def observation_lines(runs: dict[str, dict[str, Any]], comparisons: list[dict[st
     old_nla = runs.get("old_nla_long")
     cand10 = runs.get("candidate10_smoke")
     cand6 = runs.get("candidate6_smoke")
+    fixed_vs_current = next(
+        (
+            comp
+            for comp in comparisons
+            if comp["treatment"] == "fixed_nla_long" and comp["control"] == "ppl_long_current"
+        ),
+        None,
+    )
     summeval = next((c for c in comparisons if c["treatment"] == "summeval_nla"), None)
     if fixed:
         prompt = fixed["prompt"]
@@ -588,6 +598,20 @@ def observation_lines(runs: dict[str, dict[str, Any]], comparisons: list[dict[st
         lines.append(
             f"- `fixed_nla_long` NLA health improved over the first old NLA run on token status and length, but still has "
             f"{nla['duplicate_pct']:.2f}% duplicate verbalization rows and {nla['completion_like_pct']:.2f}% completion-like text."
+        )
+    if fixed_vs_current:
+        deltas = fixed_vs_current["metric_deltas"]
+        move = fixed_vs_current["prediction_movement"]
+        lines.append(
+            "- Against the matched current-code PPL long control, `fixed_nla_long` is slightly better on all recorded metrics "
+            f"(pearson {deltas['pearson']['delta']:+.4f}, spearman {deltas['spearman']['delta']:+.4f}, "
+            f"kendall {deltas['kendall_tau']['delta']:+.4f}, mae {deltas['mae']['delta']:+.4f}), but both runs selected "
+            "the byte-identical seed prompt."
+        )
+        lines.append(
+            f"- The matched long delta is therefore weak evidence: only {move['improved_abs_error']} final-test examples improved, "
+            f"{move['worsened_abs_error']} worsened, and {move['unchanged_abs_error']} were unchanged. It is not evidence that GEPA "
+            "found a better prompt under NLA."
         )
     if old_nla:
         nla = old_nla["nla"]
