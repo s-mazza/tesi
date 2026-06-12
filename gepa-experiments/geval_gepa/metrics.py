@@ -13,6 +13,7 @@ class RegressionMetrics:
     n: int
     pearson: float
     spearman: float
+    kendall_tau: float
     mae: float
 
     def as_dict(self) -> dict[str, float | int]:
@@ -20,6 +21,7 @@ class RegressionMetrics:
             "n": self.n,
             "pearson": self.pearson,
             "spearman": self.spearman,
+            "kendall_tau": self.kendall_tau,
             "mae": self.mae,
         }
 
@@ -63,6 +65,7 @@ def compute_regression_metrics(predictions: Iterable[float], targets: Iterable[f
         n=len(pred),
         pearson=_pearson(pred, gold),
         spearman=_pearson(_rank(pred), _rank(gold)),
+        kendall_tau=_kendall_tau_b(pred, gold),
         mae=sum(errors) / len(errors),
     )
 
@@ -93,3 +96,40 @@ def _rank(values: list[float]) -> list[float]:
             ranks[indexed[k][0]] = average_rank
         i = j
     return ranks
+
+
+def _kendall_tau_b(xs: list[float], ys: list[float]) -> float:
+    if len(xs) != len(ys):
+        raise ValueError("Inputs must have equal length")
+
+    concordant = 0
+    discordant = 0
+    ties_x = 0
+    ties_y = 0
+    for i in range(len(xs)):
+        for j in range(i + 1, len(xs)):
+            dx = _sign(xs[i] - xs[j])
+            dy = _sign(ys[i] - ys[j])
+            if dx == 0 and dy == 0:
+                continue
+            if dx == 0:
+                ties_x += 1
+            elif dy == 0:
+                ties_y += 1
+            elif dx == dy:
+                concordant += 1
+            else:
+                discordant += 1
+
+    denom = math.sqrt((concordant + discordant + ties_x) * (concordant + discordant + ties_y))
+    if denom == 0:
+        return 0.0
+    return (concordant - discordant) / denom
+
+
+def _sign(value: float) -> int:
+    if value > 0:
+        return 1
+    if value < 0:
+        return -1
+    return 0

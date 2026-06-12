@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_FILE="${CONFIG_FILE:-gepa-experiments/config/geval_gepa_engaging_qwen25.env}"
+CONFIG_FILE="${CONFIG_FILE:-gepa-experiments/config/experimental_nla_candidate_content_6_topical_chat_smoke.env}"
 if [[ ! -f "$CONFIG_FILE" ]]; then
-  echo "Missing config file: $CONFIG_FILE" >&2
+  echo "Missing config file: ${CONFIG_FILE}" >&2
   exit 2
 fi
 
@@ -12,12 +12,12 @@ set -a
 source "$CONFIG_FILE"
 set +a
 
-GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:1}"
+GPU_SPEC="${GPU_SPEC:-nvidia_geforce_rtx_3090:2}"
 SLURM_NODE="${SLURM_NODE:-}"
 SLURM_EXCLUDE="${SLURM_EXCLUDE:-}"
 IMAGE_NAME="${IMAGE_NAME:-geval_gepa:latest}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-gepa-experiments/results/slurm}"
-JOB_SLUG="${JOB_SLUG:-geval-gepa-${DATASET:-topical_chat}-${DIMENSION:-${LABEL:-run}}}"
+JOB_SLUG="${JOB_SLUG:-experimental-nla-${EXPERIMENTAL_NLA_TOKEN_STRATEGY:-strategy}-${DATASET:-topical_chat}-${DIMENSION:-${LABEL:-run}}}"
 JOB_SLUG="${JOB_SLUG// /_}"
 SLURM_TIME="${SLURM_TIME:-}"
 SLURM_MEM="${SLURM_MEM:-}"
@@ -113,7 +113,7 @@ SBATCH_OUTPUT="$(sbatch \
   --output="${OUTPUT_ROOT}/slurm-%j-${JOB_SLUG}.out" \
   --export=ALL,IMAGE_NAME="$IMAGE_NAME",CONFIG_FILE="$CONFIG_FILE" \
   gepa-experiments/slurm/run_docker.sh \
-  "bash gepa-experiments/slurm/run_gepa_engaging_job.sh")"
+  "bash gepa-experiments/slurm/run_experimental_nla_strategy_job.sh")"
 
 JOB_ID="${SBATCH_OUTPUT%%;*}"
 echo "Submitted batch job ${JOB_ID}"
@@ -133,7 +133,7 @@ start_telegram_monitor() {
   fi
 
   mkdir -p "$TELEGRAM_MONITOR_ROOT"
-  local monitor_label="${TELEGRAM_MONITOR_LABEL:-GEPA ${DATASET:-topical_chat}/${DIMENSION:-${LABEL:-run}} ${JOB_ID}}"
+  local monitor_label="${TELEGRAM_MONITOR_LABEL:-GEPA experimental NLA ${EXPERIMENTAL_NLA_TOKEN_STRATEGY:-strategy} ${JOB_ID}}"
   local monitor_log="${TELEGRAM_MONITOR_ROOT}/telegram_monitor_${JOB_ID}.out"
   local monitor_pid="${TELEGRAM_MONITOR_ROOT}/telegram_monitor_${JOB_ID}.pid"
   local monitor_state="${TELEGRAM_MONITOR_ROOT}/.state_${JOB_ID}"

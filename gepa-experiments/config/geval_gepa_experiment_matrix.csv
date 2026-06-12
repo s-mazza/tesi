@@ -1,0 +1,41 @@
+dataset,dimension,variant,scientific_use
+summeval,fluency,base_gepa,baseline ablation
+summeval,fluency,ppl,perplexity ablation
+summeval,fluency,ppl_nla,NLA ablation
+summeval,fluency,ppl_nla_auxjudge,auxiliary judge ablation
+summeval,coherence,base_gepa,baseline ablation
+summeval,coherence,ppl,perplexity ablation
+summeval,coherence,ppl_nla,NLA ablation
+summeval,coherence,ppl_nla_auxjudge,auxiliary judge ablation
+summeval,consistency,base_gepa,baseline ablation
+summeval,consistency,ppl,perplexity ablation
+summeval,consistency,ppl_nla,NLA ablation
+summeval,consistency,ppl_nla_auxjudge,auxiliary judge ablation
+summeval,relevance,base_gepa,baseline ablation
+summeval,relevance,ppl,perplexity ablation
+summeval,relevance,ppl_nla,NLA ablation
+summeval,relevance,ppl_nla_auxjudge,auxiliary judge ablation
+topical_chat,naturalness,base_gepa,baseline ablation
+topical_chat,naturalness,ppl,perplexity ablation
+topical_chat,naturalness,ppl_nla,NLA ablation
+topical_chat,naturalness,ppl_nla_auxjudge,auxiliary judge ablation
+topical_chat,coherence,base_gepa,baseline ablation
+topical_chat,coherence,ppl,perplexity ablation
+topical_chat,coherence,ppl_nla,NLA ablation
+topical_chat,coherence,ppl_nla_auxjudge,auxiliary judge ablation
+topical_chat,engagingness,base_gepa,baseline ablation
+topical_chat,engagingness,ppl,perplexity ablation
+topical_chat,engagingness,ppl_nla,NLA ablation
+topical_chat,engagingness,ppl_nla_auxjudge,auxiliary judge ablation
+topical_chat,groundedness,base_gepa,baseline ablation
+topical_chat,groundedness,ppl,perplexity ablation
+topical_chat,groundedness,ppl_nla,NLA ablation
+topical_chat,groundedness,ppl_nla_auxjudge,auxiliary judge ablation
+qags_cnn,consistency,base_gepa,baseline ablation
+qags_cnn,consistency,ppl,perplexity ablation
+qags_cnn,consistency,ppl_nla,NLA ablation
+qags_cnn,consistency,ppl_nla_auxjudge,auxiliary judge ablation
+qags_xsum,consistency,base_gepa,baseline ablation
+qags_xsum,consistency,ppl,perplexity ablation
+qags_xsum,consistency,ppl_nla,NLA ablation
+qags_xsum,consistency,ppl_nla_auxjudge,auxiliary judge ablation

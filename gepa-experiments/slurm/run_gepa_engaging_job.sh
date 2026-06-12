@@ -14,14 +14,56 @@ set +a
 
 SERVER_HOST="${SERVER_HOST:-127.0.0.1}"
 SERVER_PORT="${SERVER_PORT:-8000}"
+DATASET="${DATASET:-topical_chat}"
+DIMENSION="${DIMENSION:-}"
 MAX_MODEL_LEN="${MAX_MODEL_LEN:-4096}"
+MAX_NUM_SEQS="${MAX_NUM_SEQS:-4}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
+MAX_TOKENS="${MAX_TOKENS:-512}"
+INSTRUCTION_PROPOSER="${INSTRUCTION_PROPOSER:-default}"
+PERPLEXITY_FEEDBACK="${PERPLEXITY_FEEDBACK:-0}"
+PERPLEXITY_PROMPT_LOGPROBS="${PERPLEXITY_PROMPT_LOGPROBS:-20}"
+NLA_FEEDBACK="${NLA_FEEDBACK:-0}"
+NLA_BACKEND="${NLA_BACKEND:-precomputed}"
+NLA_PRECOMPUTED_PATH="${NLA_PRECOMPUTED_PATH:-}"
+NLA_MAX_TOKENS_PER_EXAMPLE="${NLA_MAX_TOKENS_PER_EXAMPLE:-6}"
+NLA_MIN_COVERAGE="${NLA_MIN_COVERAGE:-0.95}"
+ALLOW_DRY_RUN_NLA="${ALLOW_DRY_RUN_NLA:-0}"
+NLA_PRECOMPUTED_AUTO="${NLA_PRECOMPUTED_AUTO:-0}"
+NLA_PRECOMPUTE_SPLIT="${NLA_PRECOMPUTE_SPLIT:-gepa}"
+NLA_PRECOMPUTE_LIMIT="${NLA_PRECOMPUTE_LIMIT:-}"
+NLA_PRECOMPUTE_DRY_RUN="${NLA_PRECOMPUTE_DRY_RUN:-0}"
+NLA_PRECOMPUTE_BACKEND="${NLA_PRECOMPUTE_BACKEND:-transformers}"
+NLA_PRECOMPUTE_MAX_NEW_TOKENS="${NLA_PRECOMPUTE_MAX_NEW_TOKENS:-200}"
+NLA_PRECOMPUTE_TEMPERATURE="${NLA_PRECOMPUTE_TEMPERATURE:-0.0}"
+NLA_ACTIVATION_DTYPE="${NLA_ACTIVATION_DTYPE:-float16}"
+NLA_VERBALIZER_DTYPE="${NLA_VERBALIZER_DTYPE:-float16}"
+NLA_DEVICE_MAP="${NLA_DEVICE_MAP:-auto}"
+PROPOSER_MODEL="${PROPOSER_MODEL:-local-llamacpp}"
+PROPOSER_API_BASE="${PROPOSER_API_BASE:-}"
+PROPOSER_API_KEY="${PROPOSER_API_KEY:-}"
+PROPOSER_TEMPERATURE="${PROPOSER_TEMPERATURE:-0.7}"
+PROPOSER_MAX_TOKENS="${PROPOSER_MAX_TOKENS:-4096}"
+AUX_JUDGE_FEEDBACK="${AUX_JUDGE_FEEDBACK:-0}"
+AUX_JUDGE_MODEL="${AUX_JUDGE_MODEL:-$PROPOSER_MODEL}"
+AUX_JUDGE_API_BASE="${AUX_JUDGE_API_BASE:-}"
+AUX_JUDGE_API_KEY="${AUX_JUDGE_API_KEY:-$PROPOSER_API_KEY}"
+AUX_JUDGE_MAX_TOKENS="${AUX_JUDGE_MAX_TOKENS:-512}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
 
 VLLM_LOG="${LOG_DIR}/vllm_${SLURM_JOB_ID:-local}.log"
 HEALTH_URL="http://${SERVER_HOST}:${SERVER_PORT}/v1/models"
+MODEL_CACHE_DIR="/llms/hub/models--${JUDGE_MODEL//\//--}"
+VLLM_MODEL_ARG="${JUDGE_MODEL}"
+
+if [[ -d "${MODEL_CACHE_DIR}/snapshots" ]]; then
+  MODEL_SNAPSHOT="$(find "${MODEL_CACHE_DIR}/snapshots" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
+  if [[ -n "$MODEL_SNAPSHOT" ]]; then
+    VLLM_MODEL_ARG="$MODEL_SNAPSHOT"
+  fi
+fi
 
 cleanup() {
   if [[ -n "${VLLM_PID:-}" ]] && kill -0 "$VLLM_PID" 2>/dev/null; then
@@ -30,17 +72,131 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+write_dependency_manifest() {
+  local manifest_dir="${LOG_DIR}/dependency_manifest_${SLURM_JOB_ID:-local}"
+  mkdir -p "$manifest_dir"
+
+  python --version >"${manifest_dir}/python_version.txt" 2>&1
+  python -m pip freeze --all >"${manifest_dir}/pip_freeze.txt" 2>&1
+  set +e
+  python -m pip check >"${manifest_dir}/pip_check.txt" 2>&1
+  echo "$?" >"${manifest_dir}/pip_check.exit"
+  set -e
+
+  if command -v dpkg-query >/dev/null 2>&1; then
+    dpkg-query -W >"${manifest_dir}/apt_packages.txt" 2>&1
+  fi
+  if command -v gcc >/dev/null 2>&1; then
+    gcc --version >"${manifest_dir}/gcc_version.txt" 2>&1
+  fi
+  if command -v g++ >/dev/null 2>&1; then
+    g++ --version >"${manifest_dir}/gxx_version.txt" 2>&1
+  fi
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi >"${manifest_dir}/nvidia_smi.txt" 2>&1 || true
+  fi
+
+  echo "Dependency manifest: ${manifest_dir}"
+}
+
 echo "Starting vLLM judge server"
+echo "  config: ${CONFIG_FILE}"
 echo "  model: ${JUDGE_MODEL}"
+echo "  dataset: ${DATASET}"
+echo "  dimension: ${DIMENSION:-${LABEL:-legacy-label}}"
+echo "  vLLM model path: ${VLLM_MODEL_ARG}"
 echo "  NLA AV checkpoint reserved for next phase: ${NLA_AV_CHECKPOINT}"
 echo "  health: ${HEALTH_URL}"
 echo "  log: ${VLLM_LOG}"
+echo "  max tokens: ${MAX_TOKENS}"
+echo "  perplexity feedback: ${PERPLEXITY_FEEDBACK}"
+echo "  nla feedback: ${NLA_FEEDBACK}"
+if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
+  echo "  nla backend: ${NLA_BACKEND}"
+  echo "  nla precomputed path: ${NLA_PRECOMPUTED_PATH:-none}"
+  echo "  nla max tokens/example: ${NLA_MAX_TOKENS_PER_EXAMPLE}"
+  echo "  nla min coverage: ${NLA_MIN_COVERAGE}"
+  echo "  nla precomputed auto: ${NLA_PRECOMPUTED_AUTO}"
+fi
+if [[ -n "$PROPOSER_API_BASE" ]]; then
+  echo "  proposer model: ${PROPOSER_MODEL}"
+  echo "  proposer api: ${PROPOSER_API_BASE}"
+  echo "  proposer max tokens: ${PROPOSER_MAX_TOKENS}"
+  echo "  proposer temperature: ${PROPOSER_TEMPERATURE}"
+else
+  echo "  proposer model: same as judge"
+fi
+echo "  aux judge feedback: ${AUX_JUDGE_FEEDBACK}"
+if [[ "$AUX_JUDGE_FEEDBACK" == "1" || "$AUX_JUDGE_FEEDBACK" == "true" ]]; then
+  echo "  aux judge model: ${AUX_JUDGE_MODEL}"
+  echo "  aux judge api: ${AUX_JUDGE_API_BASE:-${PROPOSER_API_BASE:-none}}"
+fi
 
-vllm serve "$JUDGE_MODEL" \
+write_dependency_manifest
+
+python -m geval_gepa.preflight \
+  --data-source "$DATA_SOURCE" \
+  --dataset "$DATASET" \
+  --dimension "$DIMENSION" \
+  --judge-model "$JUDGE_MODEL" \
+  --nla-av-checkpoint "$NLA_AV_CHECKPOINT" \
+  --train-contexts "$TRAIN_CONTEXTS" \
+  --val-contexts "$VAL_CONTEXTS" \
+  --test-contexts "$TEST_CONTEXTS" \
+  --seed "$SEED"
+
+if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]] \
+  && [[ "$NLA_BACKEND" == "precomputed" ]] \
+  && [[ "$NLA_PRECOMPUTED_AUTO" == "1" || "$NLA_PRECOMPUTED_AUTO" == "true" ]]; then
+  NLA_MANIFEST_PATH="${OUTPUT_DIR}/nla_manifest_${SLURM_JOB_ID:-local}.jsonl"
+  if [[ -z "$NLA_PRECOMPUTED_PATH" ]]; then
+    NLA_PRECOMPUTED_PATH="${OUTPUT_DIR}/nla_precomputed_${SLURM_JOB_ID:-local}.jsonl"
+  fi
+  echo "Building NLA precomputed feedback before vLLM startup"
+  echo "  manifest: ${NLA_MANIFEST_PATH}"
+  echo "  output: ${NLA_PRECOMPUTED_PATH}"
+  python gepa-experiments/scripts/export_nla_manifest.py \
+    --dataset "$DATASET" \
+    --dimension "$DIMENSION" \
+    --data-source "$DATA_SOURCE" \
+    --split "$NLA_PRECOMPUTE_SPLIT" \
+    --train-groups "$TRAIN_CONTEXTS" \
+    --val-groups "$VAL_CONTEXTS" \
+    --test-groups "$TEST_CONTEXTS" \
+    --seed "$SEED" \
+    --output "$NLA_MANIFEST_PATH"
+
+  NLA_PRECOMPUTE_ARGS=()
+  if [[ -n "$NLA_PRECOMPUTE_LIMIT" ]]; then
+    NLA_PRECOMPUTE_ARGS+=(--limit "$NLA_PRECOMPUTE_LIMIT")
+  fi
+  if [[ "$NLA_PRECOMPUTE_DRY_RUN" == "1" || "$NLA_PRECOMPUTE_DRY_RUN" == "true" ]]; then
+    NLA_PRECOMPUTE_ARGS+=(--dry-run)
+  fi
+
+  python gepa-experiments/scripts/build_nla_precomputed.py \
+    --manifest "$NLA_MANIFEST_PATH" \
+    --output "$NLA_PRECOMPUTED_PATH" \
+    --activation-model "$JUDGE_MODEL" \
+    --nla-checkpoint "$NLA_AV_CHECKPOINT" \
+    --layer "$NLA_EXTRACTION_LAYER" \
+    --max-tokens-per-example "$NLA_MAX_TOKENS_PER_EXAMPLE" \
+    --backend "$NLA_PRECOMPUTE_BACKEND" \
+    --max-new-tokens "$NLA_PRECOMPUTE_MAX_NEW_TOKENS" \
+    --temperature "$NLA_PRECOMPUTE_TEMPERATURE" \
+    --activation-dtype "$NLA_ACTIVATION_DTYPE" \
+    --nla-dtype "$NLA_VERBALIZER_DTYPE" \
+    --device-map "$NLA_DEVICE_MAP" \
+    --trust-remote-code \
+    "${NLA_PRECOMPUTE_ARGS[@]}"
+fi
+
+vllm serve "$VLLM_MODEL_ARG" \
   --host "$SERVER_HOST" \
   --port "$SERVER_PORT" \
   --served-model-name "$JUDGE_MODEL" \
   --max-model-len "$MAX_MODEL_LEN" \
+  --max-num-seqs "$MAX_NUM_SEQS" \
   --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
   --dtype auto \
   --download-dir /llms \
@@ -68,6 +224,23 @@ if ! curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
   exit 1
 fi
 
+PROPOSER_ARGS=()
+if [[ -n "$PROPOSER_API_BASE" ]]; then
+  PROPOSER_HEALTH_URL="${PROPOSER_API_BASE%/}/models"
+  echo "Checking proposer readiness at ${PROPOSER_HEALTH_URL}..."
+  if ! curl -fsS -H "Authorization: Bearer ${PROPOSER_API_KEY}" "$PROPOSER_HEALTH_URL" >/dev/null 2>&1; then
+    echo "Proposer endpoint is not ready: ${PROPOSER_HEALTH_URL}" >&2
+    exit 1
+  fi
+  PROPOSER_ARGS=(
+    --proposer-model "$PROPOSER_MODEL"
+    --proposer-api-base "$PROPOSER_API_BASE"
+    --proposer-api-key "$PROPOSER_API_KEY"
+    --proposer-temperature "$PROPOSER_TEMPERATURE"
+    --proposer-max-tokens "$PROPOSER_MAX_TOKENS"
+  )
+fi
+
 BUDGET_ARGS=()
 if [[ -n "${GEPA_AUTO:-}" ]]; then
   BUDGET_ARGS=(--gepa-auto "$GEPA_AUTO")
@@ -80,8 +253,54 @@ else
   exit 2
 fi
 
+PERPLEXITY_ARGS=()
+if [[ "$PERPLEXITY_FEEDBACK" == "1" || "$PERPLEXITY_FEEDBACK" == "true" ]]; then
+  PERPLEXITY_ARGS=(
+    --perplexity-feedback
+    --perplexity-hf-home /llms
+    --perplexity-prompt-logprobs "$PERPLEXITY_PROMPT_LOGPROBS"
+  )
+fi
+
+NLA_ARGS=()
+if [[ "$NLA_FEEDBACK" == "1" || "$NLA_FEEDBACK" == "true" ]]; then
+  NLA_ARGS=(
+    --nla-feedback
+    --nla-backend "$NLA_BACKEND"
+    --nla-max-tokens-per-example "$NLA_MAX_TOKENS_PER_EXAMPLE"
+    --nla-min-coverage "$NLA_MIN_COVERAGE"
+  )
+  if [[ "$ALLOW_DRY_RUN_NLA" == "1" || "$ALLOW_DRY_RUN_NLA" == "true" ]]; then
+    NLA_ARGS+=(--allow-dry-run-nla)
+  fi
+  if [[ -n "$NLA_PRECOMPUTED_PATH" ]]; then
+    NLA_ARGS+=(--nla-precomputed-path "$NLA_PRECOMPUTED_PATH")
+  fi
+fi
+
+AUX_JUDGE_ARGS=()
+if [[ "$AUX_JUDGE_FEEDBACK" == "1" || "$AUX_JUDGE_FEEDBACK" == "true" ]]; then
+  AUX_JUDGE_ARGS=(
+    --aux-judge-feedback
+    --aux-judge-model "$AUX_JUDGE_MODEL"
+    --aux-judge-max-tokens "$AUX_JUDGE_MAX_TOKENS"
+  )
+  if [[ -n "$AUX_JUDGE_API_BASE" ]]; then
+    AUX_JUDGE_ARGS+=(--aux-judge-api-base "$AUX_JUDGE_API_BASE")
+  fi
+  if [[ -n "$AUX_JUDGE_API_KEY" ]]; then
+    AUX_JUDGE_ARGS+=(--aux-judge-api-key "$AUX_JUDGE_API_KEY")
+  fi
+fi
+
+TASK_ARGS=(--dataset "$DATASET")
+if [[ -n "$DIMENSION" ]]; then
+  TASK_ARGS+=(--dimension "$DIMENSION")
+fi
+
 python -m geval_gepa.runner \
   --data-source "$DATA_SOURCE" \
+  "${TASK_ARGS[@]}" \
   --label "$LABEL" \
   --train-contexts "$TRAIN_CONTEXTS" \
   --val-contexts "$VAL_CONTEXTS" \
@@ -92,5 +311,11 @@ python -m geval_gepa.runner \
   --nla-av-checkpoint "$NLA_AV_CHECKPOINT" \
   --nla-extraction-layer "$NLA_EXTRACTION_LAYER" \
   --api-base "http://${SERVER_HOST}:${SERVER_PORT}/v1" \
+  --max-tokens "$MAX_TOKENS" \
   --num-threads "$NUM_THREADS" \
+  --instruction-proposer "$INSTRUCTION_PROPOSER" \
+  "${PROPOSER_ARGS[@]}" \
+  "${PERPLEXITY_ARGS[@]}" \
+  "${NLA_ARGS[@]}" \
+  "${AUX_JUDGE_ARGS[@]}" \
   "${BUDGET_ARGS[@]}"
