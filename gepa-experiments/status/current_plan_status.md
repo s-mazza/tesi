@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 ## Objective
 
@@ -33,6 +33,62 @@ For each dataset/dimension target, run:
 - `ppl_nla_auxjudge`: GEPA with perplexity, NLA, and optional 35B auxiliary judge feedback
 
 The 35B llama.cpp model is used as GEPA proposer. The NLA and perplexity signals are computed on the base Qwen 7B model.
+
+## 2026-06-13 Matrix Expansion
+
+The plan now includes an exhaustive job matrix and a new independent
+multi-dimension prompt family. The full details, job ordering, artifact
+requirements, and runtime estimates are archived in:
+
+- `gepa-experiments/status/full_matrix_execution_plan_20260613.md`
+
+This addition does not replace the current single-dimension pipeline. The
+existing runner/configs remain the paper-aligned primary path. The new
+multi-dimension path must be implemented separately so future readers can
+reproduce both experimental families independently.
+
+New multi-dimension requirement:
+
+- For each dataset family, run a joint-prompt setting where one prompt scores
+  every available dimension for that dataset in one response.
+- Topical-Chat joint prompt scores naturalness, coherence, engagingness, and
+  groundedness.
+- SummEval joint prompt scores fluency, coherence, consistency, and relevance.
+- QAGS-CNN and QAGS-XSUM have only consistency, so their joint-prompt jobs are
+  symmetry/control jobs rather than true multi-dimension jobs.
+- Joint-prompt results must be stored under separate output namespaces and
+  marked as `joint_prompt` in result tables. They must not be mixed with
+  paper-aligned single-dimension G-Eval comparisons.
+
+Complete exhaustive matrix:
+
+- Single-dimension paper-aligned jobs: 10 dataset/dimension targets x 4
+  variants = 40 jobs.
+- Joint-prompt multi-dimension jobs: 4 dataset families x 4 variants = 16 jobs.
+- Total planned matrix: 56 jobs.
+- Estimated total wall-clock job time: about 600 hours before queueing and
+  failures; about 583 hours remain after counting the already completed
+  Topical-Chat engagingness long PPL and fixed-NLA equivalents.
+
+Required timing improvement before launching the full long matrix:
+
+- Current artifacts store total elapsed time in `runtime_manifest_*.json`.
+- Future long jobs must also write per-stage timing, at minimum for data
+  loading/splitting, preflight, NLA manifest export, NLA precompute, vLLM
+  startup, llama.cpp startup, perplexity precompute, GEPA compile, baseline
+  final-test evaluation, optimized final-test evaluation, and artifact export.
+
+Launch priority from the expanded plan:
+
+1. Complete the thesis-core missing ablations: Topical-Chat engagingness
+   `ppl_nla_auxjudge`, Topical-Chat engagingness `base_gepa`, and SummEval
+   consistency `base_gepa`/`ppl`/`ppl_nla`.
+2. Fill remaining paper dimensions for Topical-Chat, SummEval, QAGS-CNN, and
+   QAGS-XSUM.
+3. Scale auxiliary-judge variants after the first aux-judge evidence is known.
+4. Run joint-prompt Topical-Chat and SummEval.
+5. Run joint-prompt QAGS-CNN and QAGS-XSUM only after the main joint-prompt
+   path has been validated.
 
 Auxiliary judge meaning:
 
@@ -438,15 +494,30 @@ Step 3: add Qwen 35B auxiliary LLM-as-a-judge feedback.
 - If the future aux-judge smoke improves over both `ppl_smoke_q35` and `fixed_nla_smoke_q35`, the next action is a matched longer `ppl_nla_auxjudge` Topical-Chat run with the same 40/10/10 context split as `11913284` and the completed current-code PPL control.
 - If it fails, do not launch another raw NLA long run. Instead inspect its auxiliary-judge records to decide whether the judge ignored NLA, copied noisy token strings, or produced rubric feedback that GEPA still overfit.
 
-Step 4: if Topical-Chat diagnostics are positive, scale to paper-aligned dimensions.
+Step 4: scale to the paper-aligned dimension matrix.
 
-- Start with one dimension per dataset family:
-  - SummEval consistency
-  - Topical-Chat engagingness
-  - QAGS-CNN consistency
-  - QAGS-XSUM consistency
-- Then expand to all G-Eval dimensions listed above.
-- For each target, preserve all prompt artifacts, NLA artifacts, diagnostic reports, and paper-aligned metrics.
+- The full thesis matrix is no longer limited to one representative dimension
+  per dataset family. It must cover all paper-aligned G-Eval dimensions listed
+  in `Paper-Aligned Targets`.
+- The exhaustive matrix is documented in
+  `gepa-experiments/status/full_matrix_execution_plan_20260613.md`.
+- For each dataset/dimension target, preserve all prompt artifacts, NLA
+  artifacts, diagnostic reports, final predictions, paper-aligned metrics, and
+  runtime/stage-timing artifacts.
+- Prioritize jobs according to the matrix document rather than launching
+  duplicates of already completed smoke/long runs.
+
+Step 4b: add a separate multi-dimension joint-prompt pipeline.
+
+- This is an additive experimental family, not a replacement for Step 4.
+- It should optimize one prompt that scores all dimensions for one dataset in a
+  single response.
+- It must use separate entrypoints/configs/output directories and explicit
+  `joint_prompt` result labels.
+- Reuse common loaders, metrics, feedback providers, Slurm/Docker helpers, and
+  artifact writers where that avoids duplication.
+- Do not change the current single-dimension runner semantics while adding this
+  path.
 
 Step 5: if NLA remains negative or unstable after the fixed selector.
 

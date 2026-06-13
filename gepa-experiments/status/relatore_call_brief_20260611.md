@@ -255,7 +255,9 @@ Prima di 12-16h raw NLA conviene provare feedback semanticamente compresso.
 - Decidere con il relatore se la claim è positiva su NLA o diagnostica/negativa su raw NLA.
 - Eseguire o rimandare esplicitamente l’aux judge smoke Qwen35B.
 - Se si vuole claim positiva, ottenere una run dove GEPA seleziona davvero un prompt migliore con NLA/aux-NLA.
-- Espandere la matrice full paper-aligned o dichiarare chiaramente che i dataset extra sono smoke/pilot.
+- Espandere la matrice full paper-aligned o dichiarare chiaramente che i dataset extra sono smoke/pilot. La matrice completa aggiornata è in `gepa-experiments/status/full_matrix_execution_plan_20260613.md`.
+- Tenere separata la nuova pipeline joint-prompt multi-dimensione: può produrre metriche per tutte le dimensioni in una sola run per dataset, ma non sostituisce i risultati single-dimension paper-aligned.
+- Prima delle run lunghe finali, aggiungere timing per fase oltre al runtime totale, così si possono riportare anche i costi di processing.
 - Preparare tabella finale con n, split, modello proposer, feedback variant, Pearson/Spearman/Kendall, MAE/agreement, prompt changed yes/no, artifact path.
 - Recuperare prompt rappresentativi per appendice: seed, PPL optimized, old NLA optimized, fixed-NLA final, candidate-only failed prompt.
 
