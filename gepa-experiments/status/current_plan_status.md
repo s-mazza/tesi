@@ -78,17 +78,23 @@ Required timing improvement before launching the full long matrix:
   startup, llama.cpp startup, perplexity precompute, GEPA compile, baseline
   final-test evaluation, optimized final-test evaluation, and artifact export.
 
-Launch priority from the expanded plan:
+Deadline and launch priority from the expanded plan:
 
-1. Complete the thesis-core missing ablations: Topical-Chat engagingness
-   `ppl_nla_auxjudge`, Topical-Chat engagingness `base_gepa`, and SummEval
-   consistency `base_gepa`/`ppl`/`ppl_nla`.
-2. Fill remaining paper dimensions for Topical-Chat, SummEval, QAGS-CNN, and
-   QAGS-XSUM.
-3. Scale auxiliary-judge variants after the first aux-judge evidence is known.
-4. Run joint-prompt Topical-Chat and SummEval.
-5. Run joint-prompt QAGS-CNN and QAGS-XSUM only after the main joint-prompt
-   path has been validated.
+- Target completion date: before 2026-06-29, meaning by the end of
+  2026-06-28 CEST.
+- `base_gepa` jobs are now lowest priority because they are not currently
+  needed for the main thesis decision.
+- Priority 1: Topical-Chat engagingness `ppl_nla_auxjudge`, SummEval
+  consistency `ppl`/`ppl_nla`, and one joint-prompt benchmark:
+  Topical-Chat all-dimensions `ppl`.
+- Priority 2: remaining non-base paper dimensions for Topical-Chat, SummEval,
+  QAGS-CNN, and QAGS-XSUM.
+- Priority 3: broader auxiliary-judge variants after the first aux-judge result
+  is known.
+- Priority 4: remaining Topical-Chat/SummEval joint-prompt jobs.
+- Priority 5: QAGS joint-prompt symmetry jobs.
+- Priority 6: all `base_gepa` jobs, launched only if spare GPU capacity would
+  otherwise be unused or after the non-base matrix is queued.
 
 Auxiliary judge meaning:
 

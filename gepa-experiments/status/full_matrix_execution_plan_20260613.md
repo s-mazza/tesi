@@ -15,6 +15,27 @@ The planning assumption is intentionally exhaustive: first define everything
 that could be useful, with expected runtime and artifacts, then decide what to
 launch.
 
+## Deadline Constraint
+
+The operational target is to have all selected jobs completed before
+2026-06-29. In practice this means the useful deadline is the end of
+2026-06-28 CEST.
+
+Because the remaining exhaustive matrix is estimated at about 583 h of
+wall-clock job time before queueing/failures, this deadline changes launch
+priority:
+
+- `base_gepa` jobs are currently low priority and should be pushed as far back
+  as possible.
+- `ppl`, `ppl_nla`, and `ppl_nla_auxjudge` jobs are the main thesis-relevant
+  queue.
+- At least one multi-dimension joint-prompt job must be launched with similar
+  priority to the single-dimension jobs, so there is a real benchmark for that
+  independent pipeline before the deadline.
+- The first joint-prompt benchmark should be Topical-Chat all-dimensions with
+  `ppl` feedback (`MD-02`): it is cheaper and less confounded than starting
+  with aux-judge, while still matching the current non-base feedback family.
+
 ## Non-Negotiable Invariants
 
 - Keep the current single-dimension runner reproducible. Existing configs,
@@ -204,43 +225,43 @@ thesis-level long job already exists locally.
 
 | id | priority | dataset | dimension | variant | status | estimate |
 |---|---:|---|---|---|---|---:|
-| SD-01 | 1 | topical_chat | engagingness | base_gepa | needed | 7.5 h |
+| SD-01 | 6 | topical_chat | engagingness | base_gepa | needed | 7.5 h |
 | SD-02 | 1 | topical_chat | engagingness | ppl | done: current-code long control | 8.4 h |
 | SD-03 | 1 | topical_chat | engagingness | ppl_nla | done: fixed-NLA long | 8.5 h |
 | SD-04 | 1 | topical_chat | engagingness | ppl_nla_auxjudge | needed | 12.0 h |
-| SD-05 | 2 | topical_chat | naturalness | base_gepa | needed | 7.5 h |
+| SD-05 | 6 | topical_chat | naturalness | base_gepa | needed | 7.5 h |
 | SD-06 | 2 | topical_chat | naturalness | ppl | needed | 8.5 h |
 | SD-07 | 2 | topical_chat | naturalness | ppl_nla | needed | 9.0 h |
 | SD-08 | 3 | topical_chat | naturalness | ppl_nla_auxjudge | needed | 12.0 h |
-| SD-09 | 2 | topical_chat | coherence | base_gepa | needed | 7.5 h |
+| SD-09 | 6 | topical_chat | coherence | base_gepa | needed | 7.5 h |
 | SD-10 | 2 | topical_chat | coherence | ppl | needed | 8.5 h |
 | SD-11 | 2 | topical_chat | coherence | ppl_nla | needed | 9.0 h |
 | SD-12 | 3 | topical_chat | coherence | ppl_nla_auxjudge | needed | 12.0 h |
-| SD-13 | 2 | topical_chat | groundedness | base_gepa | needed | 7.5 h |
+| SD-13 | 6 | topical_chat | groundedness | base_gepa | needed | 7.5 h |
 | SD-14 | 2 | topical_chat | groundedness | ppl | needed | 8.5 h |
 | SD-15 | 2 | topical_chat | groundedness | ppl_nla | needed | 9.0 h |
 | SD-16 | 3 | topical_chat | groundedness | ppl_nla_auxjudge | needed | 12.0 h |
-| SD-17 | 2 | summeval | fluency | base_gepa | needed | 11.0 h |
+| SD-17 | 6 | summeval | fluency | base_gepa | needed | 11.0 h |
 | SD-18 | 2 | summeval | fluency | ppl | needed | 12.0 h |
 | SD-19 | 2 | summeval | fluency | ppl_nla | needed | 13.0 h |
 | SD-20 | 3 | summeval | fluency | ppl_nla_auxjudge | needed | 17.0 h |
-| SD-21 | 2 | summeval | coherence | base_gepa | needed | 11.0 h |
+| SD-21 | 6 | summeval | coherence | base_gepa | needed | 11.0 h |
 | SD-22 | 2 | summeval | coherence | ppl | needed | 12.0 h |
 | SD-23 | 2 | summeval | coherence | ppl_nla | needed | 13.0 h |
 | SD-24 | 3 | summeval | coherence | ppl_nla_auxjudge | needed | 17.0 h |
-| SD-25 | 1 | summeval | consistency | base_gepa | needed | 11.0 h |
+| SD-25 | 6 | summeval | consistency | base_gepa | needed | 11.0 h |
 | SD-26 | 1 | summeval | consistency | ppl | needed | 12.0 h |
 | SD-27 | 1 | summeval | consistency | ppl_nla | needed | 13.0 h |
 | SD-28 | 2 | summeval | consistency | ppl_nla_auxjudge | needed | 17.0 h |
-| SD-29 | 2 | summeval | relevance | base_gepa | needed | 11.0 h |
+| SD-29 | 6 | summeval | relevance | base_gepa | needed | 11.0 h |
 | SD-30 | 2 | summeval | relevance | ppl | needed | 12.0 h |
 | SD-31 | 2 | summeval | relevance | ppl_nla | needed | 13.0 h |
 | SD-32 | 3 | summeval | relevance | ppl_nla_auxjudge | needed | 17.0 h |
-| SD-33 | 2 | qags_cnn | consistency | base_gepa | needed | 4.0 h |
+| SD-33 | 6 | qags_cnn | consistency | base_gepa | needed | 4.0 h |
 | SD-34 | 2 | qags_cnn | consistency | ppl | needed | 4.5 h |
 | SD-35 | 2 | qags_cnn | consistency | ppl_nla | needed | 5.0 h |
 | SD-36 | 3 | qags_cnn | consistency | ppl_nla_auxjudge | needed | 7.0 h |
-| SD-37 | 2 | qags_xsum | consistency | base_gepa | needed | 4.0 h |
+| SD-37 | 6 | qags_xsum | consistency | base_gepa | needed | 4.0 h |
 | SD-38 | 2 | qags_xsum | consistency | ppl | needed | 4.5 h |
 | SD-39 | 2 | qags_xsum | consistency | ppl_nla | needed | 5.0 h |
 | SD-40 | 3 | qags_xsum | consistency | ppl_nla_auxjudge | needed | 7.0 h |
@@ -261,19 +282,19 @@ once.
 
 | id | priority | dataset | dimensions scored together | variant | status | estimate |
 |---|---:|---|---|---|---|---:|
-| MD-01 | 4 | topical_chat | all 4 | base_gepa | needed | 14.0 h |
-| MD-02 | 4 | topical_chat | all 4 | ppl | needed | 15.0 h |
+| MD-01 | 6 | topical_chat | all 4 | base_gepa | needed | 14.0 h |
+| MD-02 | 1 | topical_chat | all 4 | ppl | needed | 15.0 h |
 | MD-03 | 4 | topical_chat | all 4 | ppl_nla | needed | 16.0 h |
 | MD-04 | 5 | topical_chat | all 4 | ppl_nla_auxjudge | needed | 22.0 h |
-| MD-05 | 4 | summeval | all 4 | base_gepa | needed | 20.0 h |
+| MD-05 | 6 | summeval | all 4 | base_gepa | needed | 20.0 h |
 | MD-06 | 4 | summeval | all 4 | ppl | needed | 21.0 h |
 | MD-07 | 4 | summeval | all 4 | ppl_nla | needed | 22.0 h |
 | MD-08 | 5 | summeval | all 4 | ppl_nla_auxjudge | needed | 28.0 h |
-| MD-09 | 5 | qags_cnn | consistency only | base_gepa | needed | 4.0 h |
+| MD-09 | 6 | qags_cnn | consistency only | base_gepa | needed | 4.0 h |
 | MD-10 | 5 | qags_cnn | consistency only | ppl | needed | 4.5 h |
 | MD-11 | 5 | qags_cnn | consistency only | ppl_nla | needed | 5.0 h |
 | MD-12 | 5 | qags_cnn | consistency only | ppl_nla_auxjudge | needed | 7.0 h |
-| MD-13 | 5 | qags_xsum | consistency only | base_gepa | needed | 4.0 h |
+| MD-13 | 6 | qags_xsum | consistency only | base_gepa | needed | 4.0 h |
 | MD-14 | 5 | qags_xsum | consistency only | ppl | needed | 4.5 h |
 | MD-15 | 5 | qags_xsum | consistency only | ppl_nla | needed | 5.0 h |
 | MD-16 | 5 | qags_xsum | consistency only | ppl_nla_auxjudge | needed | 7.0 h |
@@ -297,21 +318,24 @@ make the calendar time substantially longer.
 
 ## Launch Priority
 
-Priority 1: thesis-core missing ablations.
+Priority 1: deadline-critical non-base evidence.
 
 - SD-04 Topical-Chat engagingness `ppl_nla_auxjudge`.
-- SD-01 Topical-Chat engagingness `base_gepa`.
-- SD-25 to SD-27 SummEval consistency `base_gepa`, `ppl`, `ppl_nla`.
+- SD-26 and SD-27 SummEval consistency `ppl` and `ppl_nla`.
+- MD-02 Topical-Chat all-dimensions `ppl` joint-prompt benchmark.
 
-Reason: these give the most direct context for the existing NLA story and for
-the dataset family already partially tested.
+Reason: these give the most direct context for the current NLA/PPL story and
+ensure that at least one independent joint-prompt benchmark exists before the
+2026-06-29 excluded deadline.
 
-Priority 2: complete paper dimensions for the two main multi-dimension
-datasets.
+Priority 2: complete non-base paper dimensions for the two main
+multi-dimension datasets.
 
-- Topical-Chat naturalness, coherence, groundedness: SD-05 to SD-15.
-- SummEval fluency, coherence, relevance: SD-17 to SD-24 and SD-29 to SD-31.
-- QAGS-CNN and QAGS-XSUM consistency: SD-33 to SD-39.
+- Topical-Chat naturalness, coherence, groundedness: SD-06, SD-07, SD-10,
+  SD-11, SD-14, SD-15.
+- SummEval fluency, coherence, consistency, relevance: SD-18, SD-19, SD-22,
+  SD-23, SD-26, SD-27, SD-30, SD-31.
+- QAGS-CNN and QAGS-XSUM consistency: SD-34, SD-35, SD-38, SD-39.
 
 Reason: these produce the table coverage needed to say whether current findings
 are specific to engagingness/consistency or general across paper dimensions.
@@ -324,20 +348,32 @@ Reason: aux-judge is important for the NLA thesis angle, but expensive. If the
 first aux-judge Topical-Chat run is clearly negative, these should be reviewed
 before launch rather than blindly executed.
 
-Priority 4: joint-prompt multi-dimension jobs for Topical-Chat and SummEval.
+Priority 4: remaining non-base joint-prompt multi-dimension jobs for
+Topical-Chat and SummEval.
 
-- MD-01 to MD-08.
+- MD-03, MD-04, MD-06, MD-07, MD-08.
 
 Reason: these are scientifically useful but not a direct paper reproduction.
 They should start after the single-dimension paper-aligned table is underway or
-when there is spare GPU capacity.
+when there is spare GPU capacity. MD-02 is intentionally promoted to Priority 1
+so the joint-prompt pipeline gets at least one real benchmark early.
 
 Priority 5: joint-prompt QAGS symmetry jobs.
 
-- MD-09 to MD-16.
+- MD-10 to MD-12 and MD-14 to MD-16.
 
 Reason: QAGS has only one dimension, so these mostly test that the independent
 multi-dimension pipeline behaves consistently on all dataset families.
+
+Priority 6: deferred `base_gepa` jobs.
+
+- SD-01, SD-05, SD-09, SD-13, SD-17, SD-21, SD-25, SD-29, SD-33, SD-37.
+- MD-01, MD-05, MD-09, MD-13.
+
+Reason: `base_gepa` is not currently needed for the main thesis decision before
+the deadline. Keep these jobs in the plan for completeness, but launch them only
+after the non-base matrix has been queued or if spare GPU capacity would
+otherwise sit idle.
 
 ## Implementation Decisions For Multi-Dimension Pipeline
 
@@ -369,4 +405,3 @@ multi-dimension pipeline behaves consistently on all dataset families.
 - Whether bootstrap confidence intervals should be added to final metrics
   before long jobs, so statistical uncertainty is archived alongside point
   estimates.
-

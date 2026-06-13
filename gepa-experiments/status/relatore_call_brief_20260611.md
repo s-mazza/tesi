@@ -257,6 +257,7 @@ Prima di 12-16h raw NLA conviene provare feedback semanticamente compresso.
 - Se si vuole claim positiva, ottenere una run dove GEPA seleziona davvero un prompt migliore con NLA/aux-NLA.
 - Espandere la matrice full paper-aligned o dichiarare chiaramente che i dataset extra sono smoke/pilot. La matrice completa aggiornata è in `gepa-experiments/status/full_matrix_execution_plan_20260613.md`.
 - Tenere separata la nuova pipeline joint-prompt multi-dimensione: può produrre metriche per tutte le dimensioni in una sola run per dataset, ma non sostituisce i risultati single-dimension paper-aligned.
+- Nuovo vincolo operativo: provare a completare i job selezionati entro il 28 giugno incluso; per questo i `base_gepa` sono stati messi in fondo e un primo joint-prompt Topical-Chat `ppl` è stato alzato di priorità come benchmark.
 - Prima delle run lunghe finali, aggiungere timing per fase oltre al runtime totale, così si possono riportare anche i costi di processing.
 - Preparare tabella finale con n, split, modello proposer, feedback variant, Pearson/Spearman/Kendall, MAE/agreement, prompt changed yes/no, artifact path.
 - Recuperare prompt rappresentativi per appendice: seed, PPL optimized, old NLA optimized, fixed-NLA final, candidate-only failed prompt.
