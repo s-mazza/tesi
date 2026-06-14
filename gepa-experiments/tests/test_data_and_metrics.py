@@ -15,7 +15,14 @@ from geval_gepa.nla_precompute import SemanticTokenSelector, fake_activation_row
 from geval_gepa.perplexity import PerplexityResult
 from geval_gepa.preflight import build_report as build_preflight_report
 from geval_gepa.proposers import _format_reflection_examples, sanitize_proposed_instruction, sanitize_reflection_feedback
-from geval_gepa.runner import _abstract_rubric_signals, _validate_nla_feedback_ready, configure_lms, create_metric_fn, evaluate_program
+from geval_gepa.runner import (
+    _abstract_rubric_signals,
+    _validate_aux_judge_feedback_success,
+    _validate_nla_feedback_ready,
+    configure_lms,
+    create_metric_fn,
+    evaluate_program,
+)
 from geval_gepa.tasks import get_task, split_examples
 from geval_gepa.trajectory import export_prompt_trajectory
 
@@ -777,6 +784,23 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(row["status"], "error")
         self.assertEqual(row["raw_response"], "")
         self.assertIn("reasoning_content", row["response_json"])
+
+    def test_aux_judge_success_validation_rejects_low_coverage(self) -> None:
+        class FakeAuxJudgeProvider:
+            def status_counts(self):
+                return {"ok": 2, "error": 1}
+
+        with TemporaryDirectory() as tmpdir:
+            artifact = Path(tmpdir) / "aux.jsonl"
+            with self.assertRaises(ValueError) as ctx:
+                _validate_aux_judge_feedback_success(
+                    FakeAuxJudgeProvider(),
+                    min_success_rate=0.95,
+                    artifact_path=artifact,
+                )
+
+        self.assertIn("success rate is below threshold", str(ctx.exception))
+        self.assertIn("'error': 1", str(ctx.exception))
 
     def test_configure_lms_keeps_judge_global_and_returns_separate_proposer(self) -> None:
         configured = {}

@@ -439,6 +439,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aux-judge-api-key", default="")
     parser.add_argument("--aux-judge-timeout-seconds", type=float, default=120.0)
     parser.add_argument("--aux-judge-max-tokens", type=int, default=512)
+    parser.add_argument("--aux-judge-min-success-rate", type=float, default=0.95)
 
     budget = parser.add_mutually_exclusive_group(required=True)
     budget.add_argument("--gepa-auto", choices=["light", "medium", "heavy"])
@@ -657,6 +658,12 @@ def main() -> None:
     aux_judge_artifact_count = 0
     if aux_judge_provider is not None:
         aux_judge_artifact_count = aux_judge_provider.write_artifact(aux_judge_artifact_path)
+        if not args.skip_gepa:
+            _validate_aux_judge_feedback_success(
+                aux_judge_provider,
+                min_success_rate=args.aux_judge_min_success_rate,
+                artifact_path=aux_judge_artifact_path,
+            )
     finished_at = datetime.now(timezone.utc)
     (output_dir / f"run_config_{timestamp}.json").write_text(
         json.dumps(
@@ -683,6 +690,7 @@ def main() -> None:
                 "aux_judge_model": (args.aux_judge_model or args.proposer_model) if args.aux_judge_feedback else "",
                 "aux_judge_api_base": (args.aux_judge_api_base or args.proposer_api_base) if args.aux_judge_feedback else "",
                 "aux_judge_max_tokens": args.aux_judge_max_tokens if args.aux_judge_feedback else 0,
+                "aux_judge_min_success_rate": args.aux_judge_min_success_rate if args.aux_judge_feedback else 0.0,
                 "max_tokens": args.max_tokens,
                 "proposer_model": args.proposer_model if args.proposer_api_base else args.judge_model,
                 "proposer_api_base": args.proposer_api_base if args.proposer_api_base else args.api_base,
@@ -791,6 +799,31 @@ def _validate_nla_feedback_ready(provider: Any, examples: list[Any], *, min_cove
         raise ValueError(
             "NLA precomputed feedback has fewer useful rows than covered examples: "
             f"useful_rows={useful_rows}, covered_examples={stats['covered_examples']}"
+        )
+
+
+def _validate_aux_judge_feedback_success(
+    provider: Any,
+    *,
+    min_success_rate: float,
+    artifact_path: Path,
+) -> None:
+    status_counts = provider.status_counts()
+    total = sum(status_counts.values())
+    ok = status_counts.get("ok", 0)
+    success_rate = ok / total if total else 0.0
+    print(
+        "Aux judge feedback status: "
+        f"ok={ok}/{total}, success_rate={success_rate:.3f}, statuses={status_counts}.",
+        flush=True,
+    )
+    if total == 0:
+        raise ValueError(f"Aux judge feedback produced no rows. Artifact: {artifact_path}")
+    if success_rate < min_success_rate:
+        raise ValueError(
+            "Aux judge feedback success rate is below threshold: "
+            f"{success_rate:.3f} < {min_success_rate:.3f}. "
+            f"Statuses={status_counts}. Artifact: {artifact_path}"
         )
 
 

@@ -125,6 +125,14 @@ class AuxJudgeFeedbackProvider:
                 handle.write(json.dumps(asdict(row), ensure_ascii=False, sort_keys=True) + "\n")
         return len(rows)
 
+    def status_counts(self) -> dict[str, int]:
+        with self._lock:
+            rows = list(self._records.values())
+        counts: dict[str, int] = {}
+        for row in rows:
+            counts[row.status] = counts.get(row.status, 0) + 1
+        return counts
+
     def _chat_completion(self, prompt: str) -> _ChatCompletionResult:
         payload = {
             "model": self.model,
