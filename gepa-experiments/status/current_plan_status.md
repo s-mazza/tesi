@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 ## Objective
 
@@ -95,6 +95,22 @@ Deadline and launch priority from the expanded plan:
 - Priority 5: QAGS joint-prompt symmetry jobs.
 - Priority 6: all `base_gepa` jobs, launched only if spare GPU capacity would
   otherwise be unused or after the non-base matrix is queued.
+
+2026-06-14 launch update:
+
+- Added a matrix-wide smoke gate policy in
+  `gepa-experiments/status/full_matrix_execution_plan_20260613.md`. Smokes are
+  evaluated for every job class, not only for auxiliary-judge jobs.
+- Added long config
+  `gepa-experiments/config/geval_gepa_topical_chat_engagingness_8h_ppl_nla_auxjudge_llamacpp35b.env`
+  for `SD-04`.
+- Submitted fresh `SD-04` smoke after the auxiliary-judge fix:
+  job `11913885`.
+- Submitted `SD-04` long run with Slurm dependency `afterok:11913885`:
+  job `11913886`.
+- Rationale: the previous aux-judge smoke was not scientifically valid because
+  Qwen35B feedback was empty but marked as `ok`. The new smoke must verify the
+  fixed aux-judge success-rate guard before the long job can consume GPU time.
 
 Auxiliary judge meaning:
 

@@ -1,6 +1,6 @@
 # Full G-Eval / GEPA Matrix Execution Plan
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 ## Purpose
 
@@ -228,7 +228,7 @@ thesis-level long job already exists locally.
 | SD-01 | 6 | topical_chat | engagingness | base_gepa | needed | 7.5 h |
 | SD-02 | 1 | topical_chat | engagingness | ppl | done: current-code long control | 8.4 h |
 | SD-03 | 1 | topical_chat | engagingness | ppl_nla | done: fixed-NLA long | 8.5 h |
-| SD-04 | 1 | topical_chat | engagingness | ppl_nla_auxjudge | needed | 12.0 h |
+| SD-04 | 1 | topical_chat | engagingness | ppl_nla_auxjudge | queued after smoke: 11913886 depends on 11913885 | 12.0 h |
 | SD-05 | 6 | topical_chat | naturalness | base_gepa | needed | 7.5 h |
 | SD-06 | 2 | topical_chat | naturalness | ppl | needed | 8.5 h |
 | SD-07 | 2 | topical_chat | naturalness | ppl_nla | needed | 9.0 h |
@@ -353,7 +353,9 @@ Current top-priority smoke-gate implications:
 
 - `SD-04` Topical-Chat engagingness `ppl_nla_auxjudge`: requires a fresh smoke
   after the 2026-06-14 auxiliary-judge fix, because the previous smoke exposed
-  empty 35B feedback that was incorrectly marked as successful.
+  empty 35B feedback that was incorrectly marked as successful. Submitted
+  smoke job `11913885`; submitted long job `11913886` with
+  `afterok:11913885`, so the long run starts only if the smoke passes.
 - `SD-26` and `SD-27` SummEval consistency `ppl` / `ppl_nla`: existing small
   smokes cover the dataset and feedback path, but before launching Qwen35B
   long jobs verify whether a Qwen35B proposer smoke exists for SummEval. If not,
