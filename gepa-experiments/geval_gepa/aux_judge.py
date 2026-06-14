@@ -24,6 +24,19 @@ class AuxJudgeRecord:
     feedback: str
     extra_feedback: str
     status: str
+    response_json: str = ""
+
+
+@dataclass(frozen=True)
+class _ChatCompletionResult:
+    content: str
+    response_json: str
+
+
+class _AuxJudgeResponseError(ValueError):
+    def __init__(self, message: str, *, response_json: str = "") -> None:
+        super().__init__(message)
+        self.response_json = response_json
 
 
 class AuxJudgeFeedbackProvider:
@@ -75,11 +88,14 @@ class AuxJudgeFeedbackProvider:
             extra_feedback=extra_feedback,
         )
         try:
-            raw = self._chat_completion(prompt)
+            result = self._chat_completion(prompt)
+            raw = result.content
+            response_json = result.response_json
             feedback = raw.strip()
             status = "ok"
         except Exception as exc:
             raw = ""
+            response_json = str(getattr(exc, "response_json", ""))
             feedback = f"Auxiliary judge feedback unavailable: {type(exc).__name__}: {exc}"
             status = "error"
 
@@ -95,6 +111,7 @@ class AuxJudgeFeedbackProvider:
             feedback=feedback,
             extra_feedback=extra_feedback,
             status=status,
+            response_json=response_json,
         )
         with self._lock:
             self._records[example_id] = record
@@ -108,7 +125,7 @@ class AuxJudgeFeedbackProvider:
                 handle.write(json.dumps(asdict(row), ensure_ascii=False, sort_keys=True) + "\n")
         return len(rows)
 
-    def _chat_completion(self, prompt: str) -> str:
+    def _chat_completion(self, prompt: str) -> _ChatCompletionResult:
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
@@ -127,14 +144,17 @@ class AuxJudgeFeedbackProvider:
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
             raise RuntimeError(f"HTTP {exc.code}: {body}") from exc
+        response_json = json.dumps(data, ensure_ascii=False, sort_keys=True)
         choices = data.get("choices")
         if not isinstance(choices, list) or not choices:
-            raise ValueError(f"Aux judge response has no choices: {data}")
+            raise _AuxJudgeResponseError("Aux judge response has no choices", response_json=response_json)
         message = choices[0].get("message") if isinstance(choices[0], dict) else None
         content = message.get("content") if isinstance(message, dict) else None
         if not isinstance(content, str):
-            raise ValueError(f"Aux judge response has no message content: {data}")
-        return content
+            raise _AuxJudgeResponseError("Aux judge response has no message content", response_json=response_json)
+        if not content.strip():
+            raise _AuxJudgeResponseError("Aux judge response message content is empty", response_json=response_json)
+        return _ChatCompletionResult(content=content, response_json=response_json)
 
 
 def _build_aux_judge_prompt(

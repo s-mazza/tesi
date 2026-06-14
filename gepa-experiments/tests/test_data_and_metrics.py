@@ -7,6 +7,7 @@ from argparse import Namespace
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from geval_gepa.aux_judge import AuxJudgeFeedbackProvider
 from geval_gepa.data import load_usr_examples, split_by_context
 from geval_gepa.metrics import compute_regression_metrics, normalized_absolute_score, parse_discrete_score
 from geval_gepa.nla_feedback import NlaFeedbackProvider
@@ -713,6 +714,69 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIn("NLA multi-token verbalizations", result.feedback)
         self.assertIn("Auxiliary 35B judge feedback", result.feedback)
         self.assertIn("concrete music-topic signal", aux_provider.kwargs["extra_feedback"])
+
+    def test_aux_judge_empty_response_is_error_and_keeps_response_json(self) -> None:
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "finish_reason": "stop",
+                                "message": {
+                                    "content": "   ",
+                                    "reasoning_content": "The endpoint returned reasoning but no final feedback.",
+                                },
+                            }
+                        ]
+                    }
+                ).encode("utf-8")
+
+        example = load_usr_examples_from_fixture()[0]
+        provider = AuxJudgeFeedbackProvider(
+            api_base="http://127.0.0.1:1/v1",
+            model="local-llamacpp",
+            api_key="EMPTY",
+        )
+        dspy_example = type(
+            "Example",
+            (),
+            {
+                "human_score": example.human_score("Engaging"),
+                "context": example.context,
+                "fact": example.fact,
+                "response": example.response,
+                "context_id": example.context_id,
+                "response_id": example.response_id,
+                "example_id": example.response_id,
+            },
+        )()
+
+        with patch("urllib.request.urlopen", return_value=FakeResponse()):
+            feedback = provider.feedback_for(
+                example=dspy_example,
+                pred=type("Pred", (), {"score": "2", "rationale": "It is acceptable."})(),
+                parsed=2,
+                target=example.human_score("Engaging"),
+                agreement=1.0,
+                dimension="Engaging",
+            )
+
+        self.assertIn("status=error", feedback)
+        self.assertIn("message content is empty", feedback)
+        with TemporaryDirectory() as tmpdir:
+            artifact = Path(tmpdir) / "aux.jsonl"
+            self.assertEqual(provider.write_artifact(artifact), 1)
+            row = json.loads(artifact.read_text(encoding="utf-8"))
+        self.assertEqual(row["status"], "error")
+        self.assertEqual(row["raw_response"], "")
+        self.assertIn("reasoning_content", row["response_json"])
 
     def test_configure_lms_keeps_judge_global_and_returns_separate_proposer(self) -> None:
         configured = {}
