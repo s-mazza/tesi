@@ -1,0 +1,13 @@
+example_id,group_id,target,control_prediction,nla_prediction,control_abs_error,nla_abs_error,abs_error_delta_nla_minus_control,control_parse_status,nla_parse_status
+context_055_response_00,context_055,3.0,2.0,1.0,1.0,2.0,1.0,ok,ok
+context_055_response_01,context_055,1.3333333333333333,1.0,1.0,0.33333333333333326,0.33333333333333326,0.0,ok,ok
+context_055_response_02,context_055,1.3333333333333333,2.0,2.0,0.6666666666666667,0.6666666666666667,0.0,ok,ok
+context_055_response_03,context_055,1.3333333333333333,1.0,2.0,0.33333333333333326,0.6666666666666667,0.3333333333333335,ok,ok
+context_055_response_04,context_055,2.6666666666666665,1.0,1.0,1.6666666666666665,1.6666666666666665,0.0,ok,ok
+context_055_response_05,context_055,3.0,3.0,2.0,0.0,1.0,1.0,ok,ok
+context_058_response_00,context_058,3.0,2.0,3.0,1.0,0.0,-1.0,ok,ok
+context_058_response_01,context_058,1.6666666666666667,1.0,1.0,0.6666666666666667,0.6666666666666667,0.0,ok,ok
+context_058_response_02,context_058,2.3333333333333335,2.0,2.0,0.3333333333333335,0.3333333333333335,0.0,ok,ok
+context_058_response_03,context_058,1.6666666666666667,1.0,1.0,0.6666666666666667,0.6666666666666667,0.0,ok,ok
+context_058_response_04,context_058,3.0,1.0,2.0,2.0,1.0,-1.0,ok,ok
+context_058_response_05,context_058,3.0,3.0,2.0,0.0,1.0,1.0,ok,ok

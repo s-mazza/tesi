@@ -1,0 +1,38 @@
+{
+  "label": "Engaging",
+  "seed": 42,
+  "train_contexts": 40,
+  "val_contexts": 10,
+  "test_contexts": 10,
+  "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+  "judge_api_base": "http://127.0.0.1:18013/v1",
+  "judge_temperature": 0.0,
+  "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+  "nla_extraction_layer": 20,
+  "max_tokens": 4096,
+  "proposer_model": "local-llamacpp",
+  "proposer_api_base": "http://127.0.0.1:18014/v1",
+  "proposer_temperature": 0.7,
+  "proposer_max_tokens": 4096,
+  "proposer_is_separate_lm": true,
+  "instruction_proposer": "generalizing",
+  "perplexity_feedback": true,
+  "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+  "perplexity_scope": "response_only_conditioned_on_context_fact",
+  "perplexity_numeric_fields": [
+    "response_mean_nll",
+    "response_perplexity",
+    "response_token_count"
+  ],
+  "perplexity_prompt_logprobs": 20,
+  "split_semantics": {
+    "gepa_train": "Used by GEPA during prompt search.",
+    "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+    "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+  },
+  "rows": {
+    "gepa_train": 240,
+    "gepa_validation": 60,
+    "final_test": 60
+  }
+}

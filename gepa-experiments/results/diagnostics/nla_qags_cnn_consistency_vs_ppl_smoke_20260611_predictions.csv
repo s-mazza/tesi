@@ -1,0 +1,3 @@
+example_id,group_id,target,control_prediction,nla_prediction,control_abs_error,nla_abs_error,abs_error_delta_nla_minus_control,control_parse_status,nla_parse_status
+qags_00081_81_consistency,qags_00081,1.4444444444444444,2.0,1.0,0.5555555555555556,0.4444444444444444,-0.11111111111111116,ok,ok
+qags_00204_204_consistency,qags_00204,3.6666666666666665,3.0,2.0,0.6666666666666665,1.6666666666666665,1.0,ok,ok

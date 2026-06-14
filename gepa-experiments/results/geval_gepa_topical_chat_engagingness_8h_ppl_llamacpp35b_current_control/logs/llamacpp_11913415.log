@@ -1,0 +1,39 @@
+0.00.040.729 I log_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.040.733 I device_info:
+0.00.103.137 I   - CUDA0   : NVIDIA GeForce RTX 3090 (24252 MiB, 23982 MiB free)
+0.00.103.151 I   - CPU     : AMD EPYC 7443 24-Core Processor (128741 MiB, 128741 MiB free)
+0.00.103.259 I system_info: n_threads = 24 (n_threads_batch = 24) / 48 | CUDA : ARCHS = 860 | USE_GRAPHS = 1 | PEER_MAX_BATCH_SIZE = 128 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.00.103.309 I srv          init: running without SSL
+0.00.103.345 I srv          init: api_keys: ****-key
+0.00.103.355 I srv          init: using 47 threads for HTTP server
+0.00.103.465 I srv         start: binding port with default address family
+0.00.104.775 I srv  llama_server: loading model
+0.00.104.791 I srv    load_model: loading model '/models/opensota_Qwen3.6-35B-A3B-GGUF_Qwen3.6-35B-A3B-UD-Q4_K_M.gguf'
+0.00.104.859 I common_init_result: fitting params to device memory ...
+0.00.104.862 I common_init_result: (for bugs during this step try to reproduce them with -fit off, or provide --verbose logs if the bug only occurs with -fit on)
+0.10.809.989 W llama_context: n_ctx_seq (8192) < n_ctx_train (262144) -- the full capacity of the model will not be utilized
+0.10.825.961 I common_init_from_params: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+0.10.897.118 I srv    load_model: initializing slots, n_slots = 1
+0.10.914.549 W srv    load_model: speculative decoding will use checkpoints
+0.10.914.560 W common_speculative_init: no implementations specified for speculative decoding
+0.10.914.561 I slot   load_model: id  0 | task -1 | new slot, n_ctx = 8192
+0.10.914.588 I srv    load_model: prompt cache is enabled, size limit: 8192 MiB
+0.10.914.589 I srv    load_model: use `--cache-ram 0` to disable the prompt cache
+0.10.914.590 I srv    load_model: for more info see https://github.com/ggml-org/llama.cpp/pull/16391
+0.10.914.594 I srv    load_model: context checkpoints enabled, max = 32, min spacing = 256
+0.10.914.626 W srv          init: --cache-idle-slots requires --kv-unified, disabling
+0.10.930.451 I init: chat template, example_format: '<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+<think>
+'
+0.10.949.687 I srv          init: init: chat template, thinking = 1
+0.10.949.728 I srv  llama_server: model loaded
+0.10.949.733 I srv  llama_server: server is listening on http://0.0.0.0:8080
+0.10.949.739 I srv  update_slots: all slots are idle

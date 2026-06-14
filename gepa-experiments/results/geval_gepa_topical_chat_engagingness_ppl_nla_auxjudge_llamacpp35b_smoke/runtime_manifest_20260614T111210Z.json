@@ -1,0 +1,11 @@
+{
+  "started_at": "2026-06-14T11:12:10.994227+00:00",
+  "finished_at": "2026-06-14T11:18:39.836963+00:00",
+  "elapsed_seconds": 388.843,
+  "slurm_job_id": "11913731",
+  "slurm_job_name": "",
+  "slurm_nodelist": "",
+  "cuda_visible_devices": "",
+  "output_dir": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke",
+  "timestamp": "20260614T111210Z"
+}

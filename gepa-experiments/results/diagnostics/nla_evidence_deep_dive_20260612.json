@@ -1,0 +1,3002 @@
+{
+  "runs": {
+    "ppl_long_old": {
+      "name": "ppl_long_old",
+      "kind": "long",
+      "path": "gepa-experiments/results/geval_gepa_engaging_qwen25_8h_ppl_llamacpp35b_proposer",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_engaging_qwen25_8h_ppl_llamacpp35b_proposer/metrics_20260605T161254Z.csv",
+      "config": {
+        "label": "Engaging",
+        "seed": 42,
+        "train_contexts": 40,
+        "val_contexts": 10,
+        "test_contexts": 10,
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18013/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18014/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 240,
+          "gepa_validation": 60,
+          "final_test": 60
+        },
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "train_groups": 40,
+        "val_groups": 10,
+        "test_groups": 10
+      },
+      "metrics": {
+        "baseline": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.7611111111111111,
+          "n": 60.0,
+          "pearson": 0.5518314545627534,
+          "spearman": 0.5478475856990007,
+          "mae": 0.47777777777777775
+        },
+        "optimized": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.7888888888888891,
+          "n": 60.0,
+          "pearson": 0.6328116381188503,
+          "spearman": 0.6198930390556152,
+          "mae": 0.422222222222222
+        }
+      },
+      "prompt": {
+        "seed_words": 0,
+        "optimized_words": 337,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 0,
+        "accepted_candidates": 0,
+        "unique_prompt_texts": 0,
+        "best_trajectory_score": NaN,
+        "seed_trajectory_score": NaN,
+        "optimized_trajectory_score": NaN,
+        "candidates_above_seed": 0
+      },
+      "nla": {
+        "rows": 0,
+        "covered_examples": 0,
+        "covered_groups": 0,
+        "unique_texts": 0,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 0.0,
+        "median_words": 0.0,
+        "completion_like_pct": 0.0,
+        "rubric_like_pct": 0.0,
+        "token_positions": {},
+        "token_categories": {},
+        "token_status": {},
+        "parse_status": {},
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 14,
+          "2": 36,
+          "3": 10
+        },
+        "mean_abs_error_from_predictions": 0.4222222222222222
+      },
+      "baseline_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 11,
+          "2": 32,
+          "3": 17
+        },
+        "mean_abs_error_from_predictions": 0.4777777777777778
+      }
+    },
+    "ppl_long_current": {
+      "name": "ppl_long_current",
+      "kind": "long",
+      "path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_llamacpp35b_current_control",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_llamacpp35b_current_control/metrics_20260611T155014Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 40,
+        "val_groups": 10,
+        "test_groups": 10,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18173/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": false,
+        "nla_backend": "",
+        "nla_precomputed_path": "",
+        "nla_max_tokens_per_example": 0,
+        "nla_min_coverage": 0,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18174/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 240,
+          "gepa_validation": 60,
+          "final_test": 60
+        },
+        "groups": {
+          "gepa_train": 40,
+          "gepa_validation": 10,
+          "final_test": 10
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_llamacpp35b_current_control/gepa_viz_run_20260611T155014Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_llamacpp35b_current_control/prompt_trajectory_20260611T155014Z.jsonl",
+          "prompt_trajectory_candidates": 799,
+          "nla_verbalizations": "",
+          "nla_verbalization_rows": 0,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.7416666666666667,
+          "n": 60.0,
+          "pearson": 0.658217763896482,
+          "spearman": 0.6582034782118851,
+          "kendall_tau": 0.5553089426210346,
+          "mae": 0.5166666666666667
+        },
+        "optimized": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.7416666666666667,
+          "n": 60.0,
+          "pearson": 0.658217763896482,
+          "spearman": 0.6582034782118851,
+          "kendall_tau": 0.5553089426210346,
+          "mae": 0.5166666666666667
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 192,
+        "seed_equals_optimized": true,
+        "trajectory_candidates": 799,
+        "accepted_candidates": 130,
+        "unique_prompt_texts": 603,
+        "best_trajectory_score": 0.7083333333333333,
+        "seed_trajectory_score": 0.7083333333333333,
+        "optimized_trajectory_score": 0.7083333333333333,
+        "candidates_above_seed": 0
+      },
+      "nla": {
+        "rows": 0,
+        "covered_examples": 0,
+        "covered_groups": 0,
+        "unique_texts": 0,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 0.0,
+        "median_words": 0.0,
+        "completion_like_pct": 0.0,
+        "rubric_like_pct": 0.0,
+        "token_positions": {},
+        "token_categories": {},
+        "token_status": {},
+        "parse_status": {},
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 23,
+          "2": 21,
+          "3": 16
+        },
+        "mean_abs_error_from_predictions": 0.5166666666666667
+      },
+      "baseline_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 23,
+          "2": 21,
+          "3": 16
+        },
+        "mean_abs_error_from_predictions": 0.5166666666666667
+      }
+    },
+    "old_nla_long": {
+      "name": "old_nla_long",
+      "kind": "long",
+      "path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_nla_llamacpp35b",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_nla_llamacpp35b/metrics_20260608T061600Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 40,
+        "val_groups": 10,
+        "test_groups": 10,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18113/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_nla_llamacpp35b/nla_precomputed_11912657.jsonl",
+        "nla_max_tokens_per_example": 3,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18114/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 240,
+          "gepa_validation": 60,
+          "final_test": 60
+        },
+        "groups": {
+          "gepa_train": 40,
+          "gepa_validation": 10,
+          "final_test": 10
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_nla_llamacpp35b/gepa_viz_run_20260608T061600Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_nla_llamacpp35b/prompt_trajectory_20260608T061600Z.jsonl",
+          "prompt_trajectory_candidates": 631,
+          "nla_verbalizations": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_nla_llamacpp35b/nla_verbalizations_20260608T061600Z.jsonl",
+          "nla_verbalization_rows": 900,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.7694444444444446,
+          "n": 60.0,
+          "pearson": 0.723364434615753,
+          "spearman": 0.7215589340941447,
+          "mae": 0.46111111111111114
+        },
+        "optimized": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.6916666666666665,
+          "n": 60.0,
+          "pearson": 0.5111436706356804,
+          "spearman": 0.4908149626970947,
+          "mae": 0.6166666666666666
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 339,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 631,
+        "accepted_candidates": 147,
+        "unique_prompt_texts": 629,
+        "best_trajectory_score": 0.7055555555555557,
+        "seed_trajectory_score": 0.6916666666666665,
+        "optimized_trajectory_score": 0.7055555555555557,
+        "candidates_above_seed": 7
+      },
+      "nla": {
+        "rows": 900,
+        "covered_examples": 300,
+        "covered_groups": 50,
+        "unique_texts": 347,
+        "duplicate_rows": 553,
+        "duplicate_pct": 61.44444444444444,
+        "avg_words": 73.54444444444445,
+        "median_words": 74.0,
+        "completion_like_pct": 97.11111111111111,
+        "rubric_like_pct": 91.66666666666666,
+        "token_positions": {
+          "source_first": 300,
+          "candidate_first": 300,
+          "reference_first": 300
+        },
+        "token_categories": {
+          "source": 300,
+          "candidate": 300,
+          "reference": 300
+        },
+        "token_status": {
+          "unknown": 900
+        },
+        "parse_status": {
+          "partial_tags": 900
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 30,
+          "2": 21,
+          "3": 9
+        },
+        "mean_abs_error_from_predictions": 0.6166666666666667
+      },
+      "baseline_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 24,
+          "2": 19,
+          "3": 17
+        },
+        "mean_abs_error_from_predictions": 0.46111111111111114
+      }
+    },
+    "fixed_nla_long": {
+      "name": "fixed_nla_long",
+      "kind": "long",
+      "path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b/metrics_20260610T163111Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 40,
+        "val_groups": 10,
+        "test_groups": 10,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18163/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b/nla_precomputed_11913284.jsonl",
+        "nla_max_tokens_per_example": 6,
+        "nla_min_coverage": 0.95,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18164/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 240,
+          "gepa_validation": 60,
+          "final_test": 60
+        },
+        "groups": {
+          "gepa_train": 40,
+          "gepa_validation": 10,
+          "final_test": 10
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b/gepa_viz_run_20260610T163111Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b/prompt_trajectory_20260610T163111Z.jsonl",
+          "prompt_trajectory_candidates": 740,
+          "nla_verbalizations": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_fixed_nla_llamacpp35b/nla_verbalizations_20260610T163111Z.jsonl",
+          "nla_verbalization_rows": 1752,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.7527777777777779,
+          "n": 60.0,
+          "pearson": 0.6811579340256497,
+          "spearman": 0.6770757902646776,
+          "kendall_tau": 0.5711502062183231,
+          "mae": 0.49444444444444446
+        },
+        "optimized": {
+          "total": 60.0,
+          "parsed": 60.0,
+          "coverage": 1.0,
+          "agreement": 0.7527777777777779,
+          "n": 60.0,
+          "pearson": 0.6811579340256497,
+          "spearman": 0.6770757902646776,
+          "kendall_tau": 0.5711502062183231,
+          "mae": 0.49444444444444446
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 192,
+        "seed_equals_optimized": true,
+        "trajectory_candidates": 740,
+        "accepted_candidates": 136,
+        "unique_prompt_texts": 590,
+        "best_trajectory_score": 0.6972222222222223,
+        "seed_trajectory_score": 0.6972222222222223,
+        "optimized_trajectory_score": 0.6972222222222223,
+        "candidates_above_seed": 0
+      },
+      "nla": {
+        "rows": 1752,
+        "covered_examples": 300,
+        "covered_groups": 50,
+        "unique_texts": 1013,
+        "duplicate_rows": 739,
+        "duplicate_pct": 42.18036529680365,
+        "avg_words": 10.549086757990867,
+        "median_words": 11.0,
+        "completion_like_pct": 89.72602739726028,
+        "rubric_like_pct": 8.447488584474886,
+        "token_positions": {
+          "candidate_middle": 300,
+          "source_middle": 300,
+          "reference_middle": 300,
+          "candidate_last": 298,
+          "candidate_first": 290,
+          "reference_last": 264
+        },
+        "token_categories": {
+          "candidate": 888,
+          "reference": 564,
+          "source": 300
+        },
+        "token_status": {
+          "ok": 1752
+        },
+        "parse_status": {
+          "partial_tags": 1752
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 23,
+          "2": 19,
+          "3": 18
+        },
+        "mean_abs_error_from_predictions": 0.49444444444444446
+      },
+      "baseline_predictions": {
+        "n": 60,
+        "target_distribution": {
+          "high": 21,
+          "low": 21,
+          "mid": 18
+        },
+        "prediction_distribution": {
+          "1": 23,
+          "2": 19,
+          "3": 18
+        },
+        "mean_abs_error_from_predictions": 0.49444444444444446
+      }
+    },
+    "ppl_smoke_q35": {
+      "name": "ppl_smoke_q35",
+      "kind": "smoke",
+      "path": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke/metrics_20260610T113849Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18143/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": false,
+        "nla_backend": "",
+        "nla_precomputed_path": "",
+        "nla_max_tokens_per_example": 0,
+        "nla_min_coverage": 0,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18144/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 24,
+          "gepa_validation": 12,
+          "final_test": 12
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke/gepa_viz_run_20260610T113849Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_llamacpp35b_smoke/prompt_trajectory_20260610T113849Z.jsonl",
+          "prompt_trajectory_candidates": 7,
+          "nla_verbalizations": "",
+          "nla_verbalization_rows": 0,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7222222222222222,
+          "n": 12.0,
+          "pearson": 0.6031355196718399,
+          "spearman": 0.5908789478687515,
+          "kendall_tau": 0.5315876880491779,
+          "mae": 0.5555555555555556
+        },
+        "optimized": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.638888888888889,
+          "n": 12.0,
+          "pearson": 0.5363996186596366,
+          "spearman": 0.5274096316339225,
+          "kendall_tau": 0.45993310550389993,
+          "mae": 0.7222222222222223
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 219,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 7,
+        "accepted_candidates": 3,
+        "unique_prompt_texts": 6,
+        "best_trajectory_score": 0.6666666666666666,
+        "seed_trajectory_score": 0.5972222222222222,
+        "optimized_trajectory_score": 0.6666666666666666,
+        "candidates_above_seed": 2
+      },
+      "nla": {
+        "rows": 0,
+        "covered_examples": 0,
+        "covered_groups": 0,
+        "unique_texts": 0,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 0.0,
+        "median_words": 0.0,
+        "completion_like_pct": 0.0,
+        "rubric_like_pct": 0.0,
+        "token_positions": {},
+        "token_categories": {},
+        "token_status": {},
+        "parse_status": {},
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 6,
+          "2": 4,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.7222222222222222
+      },
+      "baseline_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 8,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.5555555555555556
+      }
+    },
+    "fixed_nla_smoke_q35": {
+      "name": "fixed_nla_smoke_q35",
+      "kind": "smoke",
+      "path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke/metrics_20260610T143229Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18103/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke/nla_precomputed_11913262.jsonl",
+        "nla_max_tokens_per_example": 6,
+        "nla_min_coverage": 0.95,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18104/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 24,
+          "gepa_validation": 12,
+          "final_test": 12
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke/gepa_viz_run_20260610T143229Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke/prompt_trajectory_20260610T143229Z.jsonl",
+          "prompt_trajectory_candidates": 9,
+          "nla_verbalizations": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_llamacpp35b_smoke/nla_verbalizations_20260610T143229Z.jsonl",
+          "nla_verbalization_rows": 210,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7222222222222222,
+          "n": 12.0,
+          "pearson": 0.6031355196718399,
+          "spearman": 0.5908789478687515,
+          "kendall_tau": 0.5315876880491779,
+          "mae": 0.5555555555555556
+        },
+        "optimized": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7638888888888888,
+          "n": 12.0,
+          "pearson": 0.6749794663663768,
+          "spearman": 0.6746930620432885,
+          "kendall_tau": 0.606407314553894,
+          "mae": 0.47222222222222227
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 244,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 9,
+        "accepted_candidates": 2,
+        "unique_prompt_texts": 5,
+        "best_trajectory_score": 0.6944444444444443,
+        "seed_trajectory_score": 0.5972222222222222,
+        "optimized_trajectory_score": 0.6944444444444443,
+        "candidates_above_seed": 1
+      },
+      "nla": {
+        "rows": 210,
+        "covered_examples": 36,
+        "covered_groups": 6,
+        "unique_texts": 123,
+        "duplicate_rows": 87,
+        "duplicate_pct": 41.42857142857143,
+        "avg_words": 10.776190476190477,
+        "median_words": 10.5,
+        "completion_like_pct": 87.61904761904762,
+        "rubric_like_pct": 8.095238095238095,
+        "token_positions": {
+          "candidate_middle": 36,
+          "candidate_last": 36,
+          "candidate_first": 36,
+          "source_middle": 36,
+          "reference_middle": 36,
+          "reference_last": 30
+        },
+        "token_categories": {
+          "candidate": 108,
+          "reference": 66,
+          "source": 36
+        },
+        "token_status": {
+          "ok": 210
+        },
+        "parse_status": {
+          "partial_tags": 210
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 7,
+          "3": 3
+        },
+        "mean_abs_error_from_predictions": 0.4722222222222222
+      },
+      "baseline_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 8,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.5555555555555556
+      }
+    },
+    "candidate6_smoke": {
+      "name": "candidate6_smoke",
+      "kind": "smoke",
+      "path": "gepa-experiments/results/experimental_nla_candidate_content_6_topical_chat_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/experimental_nla_candidate_content_6_topical_chat_smoke/metrics_20260610T144951Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18123/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/experimental_nla_candidate_content_6_topical_chat_smoke/experimental_nla_precomputed_candidate_content_6_11912947.jsonl",
+        "nla_max_tokens_per_example": 6,
+        "nla_min_coverage": 0.95,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18124/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 24,
+          "gepa_validation": 12,
+          "final_test": 12
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/experimental_nla_candidate_content_6_topical_chat_smoke/gepa_viz_run_20260610T144951Z.json",
+          "prompt_trajectory": "gepa-experiments/results/experimental_nla_candidate_content_6_topical_chat_smoke/prompt_trajectory_20260610T144951Z.jsonl",
+          "prompt_trajectory_candidates": 9,
+          "nla_verbalizations": "gepa-experiments/results/experimental_nla_candidate_content_6_topical_chat_smoke/nla_verbalizations_20260610T144951Z.jsonl",
+          "nla_verbalization_rows": 187,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7222222222222222,
+          "n": 12.0,
+          "pearson": 0.6031355196718399,
+          "spearman": 0.5908789478687515,
+          "kendall_tau": 0.5315876880491779,
+          "mae": 0.5555555555555556
+        },
+        "optimized": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.5833333333333334,
+          "n": 12.0,
+          "pearson": 0.3309007330364163,
+          "spearman": 0.3013737874993063,
+          "kendall_tau": 0.259888849094526,
+          "mae": 0.8333333333333334
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 263,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 9,
+        "accepted_candidates": 2,
+        "unique_prompt_texts": 4,
+        "best_trajectory_score": 0.7083333333333334,
+        "seed_trajectory_score": 0.5972222222222222,
+        "optimized_trajectory_score": 0.7083333333333334,
+        "candidates_above_seed": 1
+      },
+      "nla": {
+        "rows": 187,
+        "covered_examples": 36,
+        "covered_groups": 6,
+        "unique_texts": 187,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 10.737967914438503,
+        "median_words": 11,
+        "completion_like_pct": 92.51336898395722,
+        "rubric_like_pct": 9.090909090909092,
+        "token_positions": {
+          "experimental_candidate_content_6_candidate_last": 33,
+          "experimental_candidate_content_6_candidate_middle": 28,
+          "experimental_candidate_content_6_candidate_content_2": 25,
+          "experimental_candidate_content_6_candidate_content_1": 19,
+          "experimental_candidate_content_6_candidate_content_4": 19,
+          "experimental_candidate_content_6_candidate_content_5": 12,
+          "experimental_candidate_content_6_candidate_content_3": 12,
+          "experimental_candidate_content_6_candidate_content_6": 11,
+          "experimental_candidate_content_6_candidate_content_8": 7,
+          "experimental_candidate_content_6_candidate_content_10": 7,
+          "experimental_candidate_content_6_candidate_content_12": 5,
+          "experimental_candidate_content_6_candidate_content_7": 2,
+          "experimental_candidate_content_6_candidate_content_9": 2,
+          "experimental_candidate_content_6_candidate_content_15": 2,
+          "experimental_candidate_content_6_candidate_content_16": 1,
+          "experimental_candidate_content_6_candidate_content_20": 1,
+          "experimental_candidate_content_6_candidate_content_14": 1
+        },
+        "token_categories": {
+          "experimental": 187
+        },
+        "token_status": {
+          "ok": 187
+        },
+        "parse_status": {
+          "partial_tags": 187
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 5,
+          "2": 6,
+          "3": 1
+        },
+        "mean_abs_error_from_predictions": 0.8333333333333334
+      },
+      "baseline_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 8,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.5555555555555556
+      }
+    },
+    "candidate10_smoke": {
+      "name": "candidate10_smoke",
+      "kind": "smoke",
+      "path": "gepa-experiments/results/experimental_nla_candidate_content_10_topical_chat_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/experimental_nla_candidate_content_10_topical_chat_smoke/metrics_20260611T025149Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18133/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/experimental_nla_candidate_content_10_topical_chat_smoke/experimental_nla_precomputed_candidate_content_10_11912948.jsonl",
+        "nla_max_tokens_per_example": 10,
+        "nla_min_coverage": 0.95,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "local-llamacpp",
+        "proposer_api_base": "http://127.0.0.1:18134/v1",
+        "proposer_temperature": 0.7,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": true,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 24,
+          "gepa_validation": 12,
+          "final_test": 12
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/experimental_nla_candidate_content_10_topical_chat_smoke/gepa_viz_run_20260611T025149Z.json",
+          "prompt_trajectory": "gepa-experiments/results/experimental_nla_candidate_content_10_topical_chat_smoke/prompt_trajectory_20260611T025149Z.jsonl",
+          "prompt_trajectory_candidates": 7,
+          "nla_verbalizations": "gepa-experiments/results/experimental_nla_candidate_content_10_topical_chat_smoke/nla_verbalizations_20260611T025149Z.jsonl",
+          "nla_verbalization_rows": 213,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7222222222222222,
+          "n": 12.0,
+          "pearson": 0.6031355196718399,
+          "spearman": 0.5908789478687515,
+          "kendall_tau": 0.5315876880491779,
+          "mae": 0.5555555555555556
+        },
+        "optimized": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.625,
+          "n": 12.0,
+          "pearson": 0.40209034644789327,
+          "spearman": 0.3717273860119789,
+          "kendall_tau": 0.31008683647302115,
+          "mae": 0.75
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 242,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 7,
+        "accepted_candidates": 3,
+        "unique_prompt_texts": 4,
+        "best_trajectory_score": 0.6805555555555555,
+        "seed_trajectory_score": 0.5972222222222222,
+        "optimized_trajectory_score": 0.6805555555555555,
+        "candidates_above_seed": 2
+      },
+      "nla": {
+        "rows": 213,
+        "covered_examples": 30,
+        "covered_groups": 6,
+        "unique_texts": 213,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 10.657276995305164,
+        "median_words": 11,
+        "completion_like_pct": 90.14084507042254,
+        "rubric_like_pct": 8.450704225352112,
+        "token_positions": {
+          "experimental_candidate_content_10_candidate_last": 27,
+          "experimental_candidate_content_10_candidate_middle": 23,
+          "experimental_candidate_content_10_candidate_content_1": 23,
+          "experimental_candidate_content_10_candidate_content_2": 23,
+          "experimental_candidate_content_10_candidate_content_5": 21,
+          "experimental_candidate_content_10_candidate_content_4": 17,
+          "experimental_candidate_content_10_candidate_content_3": 16,
+          "experimental_candidate_content_10_candidate_content_6": 13,
+          "experimental_candidate_content_10_candidate_content_7": 11,
+          "experimental_candidate_content_10_candidate_content_8": 10,
+          "experimental_candidate_content_10_candidate_content_10": 9,
+          "experimental_candidate_content_10_candidate_content_9": 7,
+          "experimental_candidate_content_10_candidate_content_11": 3,
+          "experimental_candidate_content_10_candidate_content_12": 3,
+          "experimental_candidate_content_10_candidate_content_16": 2,
+          "experimental_candidate_content_10_candidate_content_18": 2,
+          "experimental_candidate_content_10_candidate_content_20": 1,
+          "experimental_candidate_content_10_candidate_content_22": 1,
+          "experimental_candidate_content_10_candidate_content_14": 1
+        },
+        "token_categories": {
+          "experimental": 213
+        },
+        "token_status": {
+          "ok": 213
+        },
+        "parse_status": {
+          "partial_tags": 213
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 5,
+          "2": 5,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.75
+      },
+      "baseline_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 8,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.5555555555555556
+      }
+    },
+    "single_gpu_ppl": {
+      "name": "single_gpu_ppl",
+      "kind": "single_gpu",
+      "path": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_smoke/metrics_20260610T191755Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:8000/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": false,
+        "nla_backend": "",
+        "nla_precomputed_path": "",
+        "nla_max_tokens_per_example": 0,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:8000/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 24,
+          "gepa_validation": 12,
+          "final_test": 12
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_smoke/gepa_viz_run_20260610T191755Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_engaging_qwen25_ppl_smoke/prompt_trajectory_20260610T191755Z.jsonl",
+          "prompt_trajectory_candidates": 7,
+          "nla_verbalizations": "",
+          "nla_verbalization_rows": 0,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7222222222222222,
+          "n": 12.0,
+          "pearson": 0.6031355196718399,
+          "spearman": 0.5908789478687515,
+          "mae": 0.5555555555555556
+        },
+        "optimized": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.625,
+          "n": 12.0,
+          "pearson": 0.3142710975831766,
+          "spearman": 0.3450823497856016,
+          "mae": 0.7500000000000001
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 211,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 7,
+        "accepted_candidates": 4,
+        "unique_prompt_texts": 7,
+        "best_trajectory_score": 0.6388888888888888,
+        "seed_trajectory_score": 0.5972222222222222,
+        "optimized_trajectory_score": 0.6388888888888888,
+        "candidates_above_seed": 3
+      },
+      "nla": {
+        "rows": 0,
+        "covered_examples": 0,
+        "covered_groups": 0,
+        "unique_texts": 0,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 0.0,
+        "median_words": 0.0,
+        "completion_like_pct": 0.0,
+        "rubric_like_pct": 0.0,
+        "token_positions": {},
+        "token_categories": {},
+        "token_status": {},
+        "parse_status": {},
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 3,
+          "2": 5,
+          "3": 4
+        },
+        "mean_abs_error_from_predictions": 0.75
+      },
+      "baseline_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 8,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.5555555555555556
+      }
+    },
+    "single_gpu_nla_matched": {
+      "name": "single_gpu_nla_matched",
+      "kind": "single_gpu",
+      "path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_matched_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_matched_smoke/metrics_20260610T203931Z.csv",
+      "config": {
+        "dataset": "topical_chat",
+        "dimension": "engagingness",
+        "legacy_label": "Engaging",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 3
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18213/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_matched_smoke/nla_precomputed_11913388.jsonl",
+        "nla_max_tokens_per_example": 6,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:18213/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 24,
+          "gepa_validation": 12,
+          "final_test": 12
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_matched_smoke/gepa_viz_run_20260610T203931Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_matched_smoke/prompt_trajectory_20260610T203931Z.jsonl",
+          "prompt_trajectory_candidates": 11,
+          "nla_verbalizations": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_single_gpu_matched_smoke/nla_verbalizations_20260610T203931Z.jsonl",
+          "nla_verbalization_rows": 216,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7222222222222222,
+          "n": 12.0,
+          "pearson": 0.6031355196718399,
+          "spearman": 0.5908789478687515,
+          "mae": 0.5555555555555556
+        },
+        "optimized": {
+          "total": 12.0,
+          "parsed": 12.0,
+          "coverage": 1.0,
+          "agreement": 0.7222222222222222,
+          "n": 12.0,
+          "pearson": 0.6031355196718399,
+          "spearman": 0.5908789478687515,
+          "mae": 0.5555555555555556
+        }
+      },
+      "prompt": {
+        "seed_words": 192,
+        "optimized_words": 192,
+        "seed_equals_optimized": true,
+        "trajectory_candidates": 11,
+        "accepted_candidates": 1,
+        "unique_prompt_texts": 7,
+        "best_trajectory_score": 0.5972222222222222,
+        "seed_trajectory_score": 0.5972222222222222,
+        "optimized_trajectory_score": 0.5972222222222222,
+        "candidates_above_seed": 0
+      },
+      "nla": {
+        "rows": 216,
+        "covered_examples": 36,
+        "covered_groups": 6,
+        "unique_texts": 123,
+        "duplicate_rows": 93,
+        "duplicate_pct": 43.05555555555556,
+        "avg_words": 11.523148148148149,
+        "median_words": 11.0,
+        "completion_like_pct": 87.96296296296296,
+        "rubric_like_pct": 13.425925925925927,
+        "token_positions": {
+          "source_first": 36,
+          "source_middle": 36,
+          "source_last": 36,
+          "candidate_first": 36,
+          "candidate_middle": 36,
+          "candidate_last": 36
+        },
+        "token_categories": {
+          "source": 108,
+          "candidate": 108
+        },
+        "token_status": {
+          "ok": 216
+        },
+        "parse_status": {
+          "missing_tags": 216
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 8,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.5555555555555556
+      },
+      "baseline_predictions": {
+        "n": 12,
+        "target_distribution": {
+          "high": 6,
+          "low": 5,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 8,
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 0.5555555555555556
+      }
+    },
+    "summeval_ppl": {
+      "name": "summeval_ppl",
+      "kind": "dataset_smoke",
+      "path": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_smoke/metrics_20260610T221535Z.csv",
+      "config": {
+        "dataset": "summeval",
+        "dimension": "consistency",
+        "legacy_label": "Consistency",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 5
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18230/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": false,
+        "nla_backend": "",
+        "nla_precomputed_path": "",
+        "nla_max_tokens_per_example": 0,
+        "nla_min_coverage": 0,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:18230/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 64,
+          "gepa_validation": 32,
+          "final_test": 32
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_smoke/gepa_viz_run_20260610T221535Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_smoke/prompt_trajectory_20260610T221535Z.jsonl",
+          "prompt_trajectory_candidates": 15,
+          "nla_verbalizations": "",
+          "nla_verbalization_rows": 0,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 32.0,
+          "parsed": 32.0,
+          "coverage": 1.0,
+          "agreement": 0.65625,
+          "n": 32.0,
+          "pearson": 0.6355454540055874,
+          "spearman": 0.505233306362356,
+          "kendall_tau": 0.46918269373085547,
+          "mae": 1.375
+        },
+        "optimized": {
+          "total": 32.0,
+          "parsed": 32.0,
+          "coverage": 1.0,
+          "agreement": 0.7239583333333334,
+          "n": 32.0,
+          "pearson": 0.7012811542886347,
+          "spearman": 0.7908602157581046,
+          "kendall_tau": 0.7168527566401743,
+          "mae": 1.1041666666666667
+        }
+      },
+      "prompt": {
+        "seed_words": 151,
+        "optimized_words": 186,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 15,
+        "accepted_candidates": 4,
+        "unique_prompt_texts": 14,
+        "best_trajectory_score": 0.8125,
+        "seed_trajectory_score": 0.71875,
+        "optimized_trajectory_score": 0.8125,
+        "candidates_above_seed": 3
+      },
+      "nla": {
+        "rows": 0,
+        "covered_examples": 0,
+        "covered_groups": 0,
+        "unique_texts": 0,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 0.0,
+        "median_words": 0.0,
+        "completion_like_pct": 0.0,
+        "rubric_like_pct": 0.0,
+        "token_positions": {},
+        "token_categories": {},
+        "token_status": {},
+        "parse_status": {},
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 32,
+        "target_distribution": {
+          "high": 28,
+          "low": 2,
+          "mid": 2
+        },
+        "prediction_distribution": {
+          "2": 4,
+          "3": 4,
+          "4": 24
+        },
+        "mean_abs_error_from_predictions": 1.1041666666666667
+      },
+      "baseline_predictions": {
+        "n": 32,
+        "target_distribution": {
+          "high": 28,
+          "low": 2,
+          "mid": 2
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 1,
+          "3": 14,
+          "4": 15
+        },
+        "mean_abs_error_from_predictions": 1.375
+      }
+    },
+    "summeval_nla": {
+      "name": "summeval_nla",
+      "kind": "dataset_smoke",
+      "path": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_real_nla_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_real_nla_smoke/metrics_20260609T231749Z.csv",
+      "config": {
+        "dataset": "summeval",
+        "dimension": "consistency",
+        "legacy_label": "Consistency",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 5
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18220/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_real_nla_smoke/nla_precomputed_11913111.jsonl",
+        "nla_max_tokens_per_example": 2,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:18220/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 64,
+          "gepa_validation": 32,
+          "final_test": 32
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_real_nla_smoke/gepa_viz_run_20260609T231749Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_real_nla_smoke/prompt_trajectory_20260609T231749Z.jsonl",
+          "prompt_trajectory_candidates": 7,
+          "nla_verbalizations": "gepa-experiments/results/geval_gepa_summeval_consistency_ppl_real_nla_smoke/nla_verbalizations_20260609T231749Z.jsonl",
+          "nla_verbalization_rows": 100,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 32.0,
+          "parsed": 32.0,
+          "coverage": 1.0,
+          "agreement": 0.65625,
+          "n": 32.0,
+          "pearson": 0.6593598035701996,
+          "spearman": 0.615213200407873,
+          "mae": 1.375
+        },
+        "optimized": {
+          "total": 32.0,
+          "parsed": 32.0,
+          "coverage": 1.0,
+          "agreement": 0.71875,
+          "n": 32.0,
+          "pearson": 0.6185117075033962,
+          "spearman": 0.6965820419721742,
+          "mae": 1.125
+        }
+      },
+      "prompt": {
+        "seed_words": 151,
+        "optimized_words": 201,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 7,
+        "accepted_candidates": 5,
+        "unique_prompt_texts": 7,
+        "best_trajectory_score": 0.796875,
+        "seed_trajectory_score": 0.71875,
+        "optimized_trajectory_score": 0.796875,
+        "candidates_above_seed": 1
+      },
+      "nla": {
+        "rows": 100,
+        "covered_examples": 50,
+        "covered_groups": 6,
+        "unique_texts": 32,
+        "duplicate_rows": 68,
+        "duplicate_pct": 68.0,
+        "avg_words": 48.46,
+        "median_words": 48.0,
+        "completion_like_pct": 77.0,
+        "rubric_like_pct": 95.0,
+        "token_positions": {
+          "source_first": 50,
+          "candidate_first": 50
+        },
+        "token_categories": {
+          "source": 50,
+          "candidate": 50
+        },
+        "token_status": {
+          "unknown": 100
+        },
+        "parse_status": {
+          "partial_tags": 100
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 32,
+        "target_distribution": {
+          "high": 28,
+          "low": 2,
+          "mid": 2
+        },
+        "prediction_distribution": {
+          "1": 3,
+          "2": 1,
+          "3": 2,
+          "4": 25,
+          "5": 1
+        },
+        "mean_abs_error_from_predictions": 1.125
+      },
+      "baseline_predictions": {
+        "n": 32,
+        "target_distribution": {
+          "high": 28,
+          "low": 2,
+          "mid": 2
+        },
+        "prediction_distribution": {
+          "1": 2,
+          "2": 1,
+          "3": 14,
+          "4": 15
+        },
+        "mean_abs_error_from_predictions": 1.375
+      }
+    },
+    "qags_cnn_ppl": {
+      "name": "qags_cnn_ppl",
+      "kind": "dataset_smoke",
+      "path": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_smoke/metrics_20260610T222825Z.csv",
+      "config": {
+        "dataset": "qags_cnn",
+        "dimension": "consistency",
+        "legacy_label": "Consistency",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 5
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18231/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": false,
+        "nla_backend": "",
+        "nla_precomputed_path": "",
+        "nla_max_tokens_per_example": 0,
+        "nla_min_coverage": 0,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:18231/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_smoke/gepa_viz_run_20260610T222825Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_smoke/prompt_trajectory_20260610T222825Z.jsonl",
+          "prompt_trajectory_candidates": 3,
+          "nla_verbalizations": "",
+          "nla_verbalization_rows": 0,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.7361111111111112,
+          "n": 2.0,
+          "pearson": 1.0,
+          "spearman": 1.0,
+          "kendall_tau": 1.0,
+          "mae": 1.0555555555555554
+        },
+        "optimized": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.8472222222222223,
+          "n": 2.0,
+          "pearson": 1.0,
+          "spearman": 1.0,
+          "kendall_tau": 1.0,
+          "mae": 0.611111111111111
+        }
+      },
+      "prompt": {
+        "seed_words": 151,
+        "optimized_words": 173,
+        "seed_equals_optimized": false,
+        "trajectory_candidates": 3,
+        "accepted_candidates": 2,
+        "unique_prompt_texts": 3,
+        "best_trajectory_score": 0.9305555555555556,
+        "seed_trajectory_score": 0.8055555555555556,
+        "optimized_trajectory_score": 0.9305555555555556,
+        "candidates_above_seed": 1
+      },
+      "nla": {
+        "rows": 0,
+        "covered_examples": 0,
+        "covered_groups": 0,
+        "unique_texts": 0,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 0.0,
+        "median_words": 0.0,
+        "completion_like_pct": 0.0,
+        "rubric_like_pct": 0.0,
+        "token_positions": {},
+        "token_categories": {},
+        "token_status": {},
+        "parse_status": {},
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "low": 1
+        },
+        "prediction_distribution": {
+          "2": 1,
+          "3": 1
+        },
+        "mean_abs_error_from_predictions": 0.611111111111111
+      },
+      "baseline_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "low": 1
+        },
+        "prediction_distribution": {
+          "1": 1,
+          "2": 1
+        },
+        "mean_abs_error_from_predictions": 1.0555555555555554
+      }
+    },
+    "qags_cnn_nla": {
+      "name": "qags_cnn_nla",
+      "kind": "dataset_smoke",
+      "path": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_real_nla_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_real_nla_smoke/metrics_20260609T233336Z.csv",
+      "config": {
+        "dataset": "qags_cnn",
+        "dimension": "consistency",
+        "legacy_label": "Consistency",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 5
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18221/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_real_nla_smoke/nla_precomputed_11913112.jsonl",
+        "nla_max_tokens_per_example": 2,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:18221/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_real_nla_smoke/gepa_viz_run_20260609T233336Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_real_nla_smoke/prompt_trajectory_20260609T233336Z.jsonl",
+          "prompt_trajectory_candidates": 3,
+          "nla_verbalizations": "gepa-experiments/results/geval_gepa_qags_cnn_consistency_ppl_real_nla_smoke/nla_verbalizations_20260609T233336Z.jsonl",
+          "nla_verbalization_rows": 12,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.7361111111111112,
+          "n": 2.0,
+          "pearson": 1.0,
+          "spearman": 1.0,
+          "mae": 1.0555555555555554
+        },
+        "optimized": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.7361111111111112,
+          "n": 2.0,
+          "pearson": 1.0,
+          "spearman": 1.0,
+          "mae": 1.0555555555555554
+        }
+      },
+      "prompt": {
+        "seed_words": 151,
+        "optimized_words": 151,
+        "seed_equals_optimized": true,
+        "trajectory_candidates": 3,
+        "accepted_candidates": 2,
+        "unique_prompt_texts": 3,
+        "best_trajectory_score": 0.8055555555555556,
+        "seed_trajectory_score": 0.8055555555555556,
+        "optimized_trajectory_score": 0.8055555555555556,
+        "candidates_above_seed": 0
+      },
+      "nla": {
+        "rows": 12,
+        "covered_examples": 6,
+        "covered_groups": 6,
+        "unique_texts": 12,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 49.333333333333336,
+        "median_words": 49.5,
+        "completion_like_pct": 91.66666666666666,
+        "rubric_like_pct": 100.0,
+        "token_positions": {
+          "source_first": 6,
+          "candidate_first": 6
+        },
+        "token_categories": {
+          "source": 6,
+          "candidate": 6
+        },
+        "token_status": {
+          "unknown": 12
+        },
+        "parse_status": {
+          "partial_tags": 12
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "low": 1
+        },
+        "prediction_distribution": {
+          "1": 1,
+          "2": 1
+        },
+        "mean_abs_error_from_predictions": 1.0555555555555554
+      },
+      "baseline_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "low": 1
+        },
+        "prediction_distribution": {
+          "1": 1,
+          "2": 1
+        },
+        "mean_abs_error_from_predictions": 1.0555555555555554
+      }
+    },
+    "qags_xsum_ppl": {
+      "name": "qags_xsum_ppl",
+      "kind": "dataset_smoke",
+      "path": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_smoke/metrics_20260610T223115Z.csv",
+      "config": {
+        "dataset": "qags_xsum",
+        "dimension": "consistency",
+        "legacy_label": "Consistency",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 5
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18232/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": false,
+        "nla_backend": "",
+        "nla_precomputed_path": "",
+        "nla_max_tokens_per_example": 0,
+        "nla_min_coverage": 0,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:18232/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_smoke/gepa_viz_run_20260610T223115Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_smoke/prompt_trajectory_20260610T223115Z.jsonl",
+          "prompt_trajectory_candidates": 3,
+          "nla_verbalizations": "",
+          "nla_verbalization_rows": 0,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.7083333333333334,
+          "n": 2.0,
+          "pearson": 1.0,
+          "spearman": 1.0,
+          "kendall_tau": 1.0,
+          "mae": 1.1666666666666665
+        },
+        "optimized": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.7083333333333334,
+          "n": 2.0,
+          "pearson": 1.0,
+          "spearman": 1.0,
+          "kendall_tau": 1.0,
+          "mae": 1.1666666666666665
+        }
+      },
+      "prompt": {
+        "seed_words": 151,
+        "optimized_words": 151,
+        "seed_equals_optimized": true,
+        "trajectory_candidates": 3,
+        "accepted_candidates": 1,
+        "unique_prompt_texts": 3,
+        "best_trajectory_score": 0.8333333333333333,
+        "seed_trajectory_score": 0.8333333333333333,
+        "optimized_trajectory_score": 0.8333333333333333,
+        "candidates_above_seed": 0
+      },
+      "nla": {
+        "rows": 0,
+        "covered_examples": 0,
+        "covered_groups": 0,
+        "unique_texts": 0,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 0.0,
+        "median_words": 0.0,
+        "completion_like_pct": 0.0,
+        "rubric_like_pct": 0.0,
+        "token_positions": {},
+        "token_categories": {},
+        "token_status": {},
+        "parse_status": {},
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "2": 1,
+          "3": 1
+        },
+        "mean_abs_error_from_predictions": 1.1666666666666665
+      },
+      "baseline_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "2": 1,
+          "3": 1
+        },
+        "mean_abs_error_from_predictions": 1.1666666666666665
+      }
+    },
+    "qags_xsum_nla": {
+      "name": "qags_xsum_nla",
+      "kind": "dataset_smoke",
+      "path": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_real_nla_smoke",
+      "exists": true,
+      "metrics_path": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_real_nla_smoke/metrics_20260609T234041Z.csv",
+      "config": {
+        "dataset": "qags_xsum",
+        "dimension": "consistency",
+        "legacy_label": "Consistency",
+        "seed": 42,
+        "train_groups": 4,
+        "val_groups": 2,
+        "test_groups": 2,
+        "score_scale": {
+          "min": 1,
+          "max": 5
+        },
+        "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+        "judge_api_base": "http://127.0.0.1:18222/v1",
+        "judge_temperature": 0.0,
+        "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+        "nla_extraction_layer": 20,
+        "nla_feedback": true,
+        "nla_backend": "precomputed",
+        "nla_precomputed_path": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_real_nla_smoke/nla_precomputed_11913113.jsonl",
+        "nla_max_tokens_per_example": 2,
+        "aux_judge_feedback": false,
+        "aux_judge_model": "",
+        "aux_judge_api_base": "",
+        "aux_judge_max_tokens": 0,
+        "max_tokens": 4096,
+        "proposer_model": "Qwen/Qwen2.5-7B-Instruct",
+        "proposer_api_base": "http://127.0.0.1:18222/v1",
+        "proposer_temperature": 0.0,
+        "proposer_max_tokens": 4096,
+        "proposer_is_separate_lm": false,
+        "instruction_proposer": "generalizing",
+        "perplexity_feedback": true,
+        "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+        "perplexity_scope": "response_only_conditioned_on_context_fact",
+        "perplexity_numeric_fields": [
+          "response_mean_nll",
+          "response_perplexity",
+          "response_token_count"
+        ],
+        "perplexity_prompt_logprobs": 20,
+        "split_semantics": {
+          "gepa_train": "Used by GEPA during prompt search.",
+          "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+          "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+        },
+        "rows": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "groups": {
+          "gepa_train": 4,
+          "gepa_validation": 2,
+          "final_test": 2
+        },
+        "artifacts": {
+          "gepa_viz_run": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_real_nla_smoke/gepa_viz_run_20260609T234041Z.json",
+          "prompt_trajectory": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_real_nla_smoke/prompt_trajectory_20260609T234041Z.jsonl",
+          "prompt_trajectory_candidates": 3,
+          "nla_verbalizations": "gepa-experiments/results/geval_gepa_qags_xsum_consistency_ppl_real_nla_smoke/nla_verbalizations_20260609T234041Z.jsonl",
+          "nla_verbalization_rows": 12,
+          "aux_judge_feedback": "",
+          "aux_judge_feedback_rows": 0
+        }
+      },
+      "metrics": {
+        "baseline": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.6666666666666666,
+          "n": 2.0,
+          "pearson": 0.0,
+          "spearman": 0.0,
+          "mae": 1.3333333333333335
+        },
+        "optimized": {
+          "total": 2.0,
+          "parsed": 2.0,
+          "coverage": 1.0,
+          "agreement": 0.6666666666666666,
+          "n": 2.0,
+          "pearson": 0.0,
+          "spearman": 0.0,
+          "mae": 1.3333333333333335
+        }
+      },
+      "prompt": {
+        "seed_words": 151,
+        "optimized_words": 151,
+        "seed_equals_optimized": true,
+        "trajectory_candidates": 3,
+        "accepted_candidates": 2,
+        "unique_prompt_texts": 3,
+        "best_trajectory_score": 0.8333333333333333,
+        "seed_trajectory_score": 0.8333333333333333,
+        "optimized_trajectory_score": 0.8333333333333333,
+        "candidates_above_seed": 0
+      },
+      "nla": {
+        "rows": 12,
+        "covered_examples": 6,
+        "covered_groups": 6,
+        "unique_texts": 12,
+        "duplicate_rows": 0,
+        "duplicate_pct": 0.0,
+        "avg_words": 49.333333333333336,
+        "median_words": 49.5,
+        "completion_like_pct": 83.33333333333334,
+        "rubric_like_pct": 83.33333333333334,
+        "token_positions": {
+          "source_first": 6,
+          "candidate_first": 6
+        },
+        "token_categories": {
+          "source": 6,
+          "candidate": 6
+        },
+        "token_status": {
+          "unknown": 12
+        },
+        "parse_status": {
+          "partial_tags": 12
+        },
+        "rows_with_activation_stats": 0
+      },
+      "optimized_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 1.3333333333333335
+      },
+      "baseline_predictions": {
+        "n": 2,
+        "target_distribution": {
+          "high": 1,
+          "mid": 1
+        },
+        "prediction_distribution": {
+          "3": 2
+        },
+        "mean_abs_error_from_predictions": 1.3333333333333335
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "treatment": "old_nla_long",
+      "control": "ppl_long_old",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.6328116381188503,
+          "treatment": 0.5111436706356804,
+          "delta": -0.12166796748316988,
+          "rel_pct": -19.226569195985462,
+          "improved": false
+        },
+        "spearman": {
+          "control": 0.6198930390556152,
+          "treatment": 0.4908149626970947,
+          "delta": -0.12907807635852053,
+          "rel_pct": -20.822636846376973,
+          "improved": false
+        },
+        "agreement": {
+          "control": 0.7888888888888891,
+          "treatment": 0.6916666666666665,
+          "delta": -0.09722222222222254,
+          "rel_pct": -12.32394366197187,
+          "improved": false
+        },
+        "mae": {
+          "control": 0.422222222222222,
+          "treatment": 0.6166666666666666,
+          "delta": 0.1944444444444446,
+          "rel_pct": 46.05263157894743,
+          "improved": false
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 60,
+        "improved_abs_error": 6,
+        "worsened_abs_error": 18,
+        "unchanged_abs_error": 36,
+        "mean_abs_error_delta": 0.19444444444444445
+      }
+    },
+    {
+      "treatment": "fixed_nla_long",
+      "control": "ppl_long_old",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.6328116381188503,
+          "treatment": 0.6811579340256497,
+          "delta": 0.0483462959067994,
+          "rel_pct": 7.639918894430846,
+          "improved": true
+        },
+        "spearman": {
+          "control": 0.6198930390556152,
+          "treatment": 0.6770757902646776,
+          "delta": 0.057182751209062355,
+          "rel_pct": 9.224615797618606,
+          "improved": true
+        },
+        "agreement": {
+          "control": 0.7888888888888891,
+          "treatment": 0.7527777777777779,
+          "delta": -0.036111111111111205,
+          "rel_pct": -4.577464788732405,
+          "improved": false
+        },
+        "mae": {
+          "control": 0.422222222222222,
+          "treatment": 0.49444444444444446,
+          "delta": 0.07222222222222247,
+          "rel_pct": 17.105263157894804,
+          "improved": false
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 60,
+        "improved_abs_error": 8,
+        "worsened_abs_error": 15,
+        "unchanged_abs_error": 37,
+        "mean_abs_error_delta": 0.07222222222222224
+      }
+    },
+    {
+      "treatment": "fixed_nla_long",
+      "control": "ppl_long_current",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.658217763896482,
+          "treatment": 0.6811579340256497,
+          "delta": 0.022940170129167714,
+          "rel_pct": 3.4851946251598758,
+          "improved": true
+        },
+        "spearman": {
+          "control": 0.6582034782118851,
+          "treatment": 0.6770757902646776,
+          "delta": 0.018872312052792495,
+          "rel_pct": 2.867245871149473,
+          "improved": true
+        },
+        "kendall_tau": {
+          "control": 0.5553089426210346,
+          "treatment": 0.5711502062183231,
+          "delta": 0.015841263597288546,
+          "rel_pct": 2.8526937676383266,
+          "improved": true
+        },
+        "agreement": {
+          "control": 0.7416666666666667,
+          "treatment": 0.7527777777777779,
+          "delta": 0.011111111111111183,
+          "rel_pct": 1.4981273408239797,
+          "improved": true
+        },
+        "mae": {
+          "control": 0.5166666666666667,
+          "treatment": 0.49444444444444446,
+          "delta": -0.022222222222222254,
+          "rel_pct": -4.30107526881721,
+          "improved": true
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 60,
+        "improved_abs_error": 2,
+        "worsened_abs_error": 0,
+        "unchanged_abs_error": 58,
+        "mean_abs_error_delta": -0.022222222222222216
+      }
+    },
+    {
+      "treatment": "fixed_nla_smoke_q35",
+      "control": "ppl_smoke_q35",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.5363996186596366,
+          "treatment": 0.6749794663663768,
+          "delta": 0.13857984770674026,
+          "rel_pct": 25.835187588877425,
+          "improved": true
+        },
+        "spearman": {
+          "control": 0.5274096316339225,
+          "treatment": 0.6746930620432885,
+          "delta": 0.14728343040936598,
+          "rel_pct": 27.925813556548036,
+          "improved": true
+        },
+        "kendall_tau": {
+          "control": 0.45993310550389993,
+          "treatment": 0.606407314553894,
+          "delta": 0.14647420904999403,
+          "rel_pct": 31.846850617443113,
+          "improved": true
+        },
+        "agreement": {
+          "control": 0.638888888888889,
+          "treatment": 0.7638888888888888,
+          "delta": 0.12499999999999989,
+          "rel_pct": 19.56521739130433,
+          "improved": true
+        },
+        "mae": {
+          "control": 0.7222222222222223,
+          "treatment": 0.47222222222222227,
+          "delta": -0.25000000000000006,
+          "rel_pct": -34.61538461538462,
+          "improved": true
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 12,
+        "improved_abs_error": 4,
+        "worsened_abs_error": 1,
+        "unchanged_abs_error": 7,
+        "mean_abs_error_delta": -0.25
+      }
+    },
+    {
+      "treatment": "candidate6_smoke",
+      "control": "ppl_smoke_q35",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.5363996186596366,
+          "treatment": 0.3309007330364163,
+          "delta": -0.20549888562322027,
+          "rel_pct": -38.31078145370871,
+          "improved": false
+        },
+        "spearman": {
+          "control": 0.5274096316339225,
+          "treatment": 0.3013737874993063,
+          "delta": -0.2260358441346162,
+          "rel_pct": -42.857739141841975,
+          "improved": false
+        },
+        "kendall_tau": {
+          "control": 0.45993310550389993,
+          "treatment": 0.259888849094526,
+          "delta": -0.20004425640937396,
+          "rel_pct": -43.494206878238664,
+          "improved": false
+        },
+        "agreement": {
+          "control": 0.638888888888889,
+          "treatment": 0.5833333333333334,
+          "delta": -0.05555555555555558,
+          "rel_pct": -8.695652173913047,
+          "improved": false
+        },
+        "mae": {
+          "control": 0.7222222222222223,
+          "treatment": 0.8333333333333334,
+          "delta": 0.11111111111111105,
+          "rel_pct": 15.384615384615374,
+          "improved": false
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 12,
+        "improved_abs_error": 2,
+        "worsened_abs_error": 4,
+        "unchanged_abs_error": 6,
+        "mean_abs_error_delta": 0.11111111111111112
+      }
+    },
+    {
+      "treatment": "candidate10_smoke",
+      "control": "ppl_smoke_q35",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.5363996186596366,
+          "treatment": 0.40209034644789327,
+          "delta": -0.13430927221174332,
+          "rel_pct": -25.0390320088887,
+          "improved": false
+        },
+        "spearman": {
+          "control": 0.5274096316339225,
+          "treatment": 0.3717273860119789,
+          "delta": -0.1556822456219436,
+          "rel_pct": -29.51827882620152,
+          "improved": false
+        },
+        "kendall_tau": {
+          "control": 0.45993310550389993,
+          "treatment": 0.31008683647302115,
+          "delta": -0.14984626903087878,
+          "rel_pct": -32.58001375367579,
+          "improved": false
+        },
+        "agreement": {
+          "control": 0.638888888888889,
+          "treatment": 0.625,
+          "delta": -0.01388888888888895,
+          "rel_pct": -2.17391304347827,
+          "improved": false
+        },
+        "mae": {
+          "control": 0.7222222222222223,
+          "treatment": 0.75,
+          "delta": 0.02777777777777768,
+          "rel_pct": 3.8461538461538316,
+          "improved": false
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 12,
+        "improved_abs_error": 1,
+        "worsened_abs_error": 2,
+        "unchanged_abs_error": 9,
+        "mean_abs_error_delta": 0.02777777777777779
+      }
+    },
+    {
+      "treatment": "single_gpu_nla_matched",
+      "control": "single_gpu_ppl",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.3142710975831766,
+          "treatment": 0.6031355196718399,
+          "delta": 0.28886442208866325,
+          "rel_pct": 91.91568181423712,
+          "improved": true
+        },
+        "spearman": {
+          "control": 0.3450823497856016,
+          "treatment": 0.5908789478687515,
+          "delta": 0.2457965980831499,
+          "rel_pct": 71.22838888626511,
+          "improved": true
+        },
+        "agreement": {
+          "control": 0.625,
+          "treatment": 0.7222222222222222,
+          "delta": 0.09722222222222221,
+          "rel_pct": 15.555555555555554,
+          "improved": true
+        },
+        "mae": {
+          "control": 0.7500000000000001,
+          "treatment": 0.5555555555555556,
+          "delta": -0.19444444444444453,
+          "rel_pct": -25.925925925925934,
+          "improved": true
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 12,
+        "improved_abs_error": 3,
+        "worsened_abs_error": 0,
+        "unchanged_abs_error": 9,
+        "mean_abs_error_delta": -0.19444444444444442
+      }
+    },
+    {
+      "treatment": "summeval_nla",
+      "control": "summeval_ppl",
+      "metric_deltas": {
+        "pearson": {
+          "control": 0.7012811542886347,
+          "treatment": 0.6185117075033962,
+          "delta": -0.08276944678523845,
+          "rel_pct": -11.802605314440267,
+          "improved": false
+        },
+        "spearman": {
+          "control": 0.7908602157581046,
+          "treatment": 0.6965820419721742,
+          "delta": -0.0942781737859304,
+          "rel_pct": -11.920965539473622,
+          "improved": false
+        },
+        "agreement": {
+          "control": 0.7239583333333334,
+          "treatment": 0.71875,
+          "delta": -0.00520833333333337,
+          "rel_pct": -0.7194244604316598,
+          "improved": false
+        },
+        "mae": {
+          "control": 1.1041666666666667,
+          "treatment": 1.125,
+          "delta": 0.02083333333333326,
+          "rel_pct": 1.886792452830182,
+          "improved": false
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 32,
+        "improved_abs_error": 3,
+        "worsened_abs_error": 3,
+        "unchanged_abs_error": 26,
+        "mean_abs_error_delta": 0.020833333333333336
+      }
+    },
+    {
+      "treatment": "qags_cnn_nla",
+      "control": "qags_cnn_ppl",
+      "metric_deltas": {
+        "pearson": {
+          "control": 1.0,
+          "treatment": 1.0,
+          "delta": 0.0,
+          "rel_pct": 0.0,
+          "improved": false
+        },
+        "spearman": {
+          "control": 1.0,
+          "treatment": 1.0,
+          "delta": 0.0,
+          "rel_pct": 0.0,
+          "improved": false
+        },
+        "agreement": {
+          "control": 0.8472222222222223,
+          "treatment": 0.7361111111111112,
+          "delta": -0.11111111111111116,
+          "rel_pct": -13.11475409836066,
+          "improved": false
+        },
+        "mae": {
+          "control": 0.611111111111111,
+          "treatment": 1.0555555555555554,
+          "delta": 0.4444444444444443,
+          "rel_pct": 72.7272727272727,
+          "improved": false
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 2,
+        "improved_abs_error": 1,
+        "worsened_abs_error": 1,
+        "unchanged_abs_error": 0,
+        "mean_abs_error_delta": 0.4444444444444444
+      }
+    },
+    {
+      "treatment": "qags_xsum_nla",
+      "control": "qags_xsum_ppl",
+      "metric_deltas": {
+        "pearson": {
+          "control": 1.0,
+          "treatment": 0.0,
+          "delta": -1.0,
+          "rel_pct": -100.0,
+          "improved": false
+        },
+        "spearman": {
+          "control": 1.0,
+          "treatment": 0.0,
+          "delta": -1.0,
+          "rel_pct": -100.0,
+          "improved": false
+        },
+        "agreement": {
+          "control": 0.7083333333333334,
+          "treatment": 0.6666666666666666,
+          "delta": -0.04166666666666674,
+          "rel_pct": -5.882352941176481,
+          "improved": false
+        },
+        "mae": {
+          "control": 1.1666666666666665,
+          "treatment": 1.3333333333333335,
+          "delta": 0.16666666666666696,
+          "rel_pct": 14.285714285714313,
+          "improved": false
+        }
+      },
+      "prediction_movement": {
+        "joined_examples": 2,
+        "improved_abs_error": 0,
+        "worsened_abs_error": 1,
+        "unchanged_abs_error": 1,
+        "mean_abs_error_delta": 0.16666666666666696
+      }
+    }
+  ]
+}

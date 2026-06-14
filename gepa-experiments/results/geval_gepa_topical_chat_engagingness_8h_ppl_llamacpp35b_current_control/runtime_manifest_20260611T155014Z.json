@@ -1,0 +1,11 @@
+{
+  "started_at": "2026-06-11T15:50:14.094663+00:00",
+  "finished_at": "2026-06-12T00:11:03.254142+00:00",
+  "elapsed_seconds": 30049.16,
+  "slurm_job_id": "11913587",
+  "slurm_job_name": "",
+  "slurm_nodelist": "",
+  "cuda_visible_devices": "",
+  "output_dir": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_8h_ppl_llamacpp35b_current_control",
+  "timestamp": "20260611T155014Z"
+}

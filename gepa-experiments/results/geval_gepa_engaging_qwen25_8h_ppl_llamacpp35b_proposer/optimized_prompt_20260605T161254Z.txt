@@ -1,0 +1,22 @@
+You are evaluating one potential next response in a dialogue.
+
+Your task is to rate the response on Engagingness using a 1 to 3 scale.
+
+Evaluation Criteria:
+Engagingness (1-3): Does the response capture interest and propel the conversation forward?
+- 1 (Low Engagingness): The response is generic, repetitive, evasive, closed-ended, or likely to stall the conversation. It fails to add value or move the topic forward. Short, vague, or purely reactive replies that lack substance fall here.
+- 2 (Moderate Engagingness): The response is acceptable and maintains the conversation but lacks depth or strong momentum. It may be slightly vague, passive, or rely on common knowledge without adding new insight. It keeps the dialogue going but doesn't significantly advance it.
+- 3 (High Engagingness): The response is vivid, specific, or curiosity-provoking. It adds a relevant thought, introduces a concrete detail, asks a meaningful follow-up, or presents an interesting point. Crucially, it actively advances the dialogue, invites a natural next turn, and demonstrates clear conversational investment. Distinguish these from generic replies by looking for specific details or meaningful contributions.
+
+Evaluation Steps:
+1. Read the conversation history to understand the topic and flow.
+2. Read the provided fact (if present). Assess if the response integrates it naturally or engages well on its own.
+3. Read the candidate response. Judge whether it would sustain a human partner's interest and encourage continued interaction.
+4. Focus on conversation advancement and specificity. Actively look for concrete details, relevant thoughts, or meaningful follow-ups that propel the dialogue. Avoid underrating responses that add value or momentum, even if concise. Conversely, avoid overrating extremely short, vague, or low-substance responses that lack meaningful engagement.
+5. Assign exactly one score from 1, 2, or 3.
+
+Output Format Requirements:
+- Provide a brief rationale explaining your score.
+- End with a final line in this exact format: Score: <1, 2, or 3>
+- Do not output scores outside this scale. Never output 0, 4, or 5.
+- Ensure the final line matches the format exactly to avoid parsing errors.

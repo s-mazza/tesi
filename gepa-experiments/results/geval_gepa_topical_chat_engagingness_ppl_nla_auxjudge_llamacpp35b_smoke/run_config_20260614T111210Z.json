@@ -1,0 +1,67 @@
+{
+  "dataset": "topical_chat",
+  "dimension": "engagingness",
+  "legacy_label": "Engaging",
+  "seed": 42,
+  "train_groups": 4,
+  "val_groups": 2,
+  "test_groups": 2,
+  "score_scale": {
+    "min": 1,
+    "max": 3
+  },
+  "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+  "judge_api_base": "http://127.0.0.1:18183/v1",
+  "judge_temperature": 0.0,
+  "nla_av_checkpoint": "kitft/nla-qwen2.5-7b-L20-av",
+  "nla_extraction_layer": 20,
+  "nla_feedback": true,
+  "nla_backend": "precomputed",
+  "nla_precomputed_path": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke/nla_precomputed_11913731.jsonl",
+  "nla_max_tokens_per_example": 6,
+  "nla_min_coverage": 0.95,
+  "aux_judge_feedback": true,
+  "aux_judge_model": "local-llamacpp",
+  "aux_judge_api_base": "http://127.0.0.1:18184/v1",
+  "aux_judge_max_tokens": 512,
+  "max_tokens": 4096,
+  "proposer_model": "local-llamacpp",
+  "proposer_api_base": "http://127.0.0.1:18184/v1",
+  "proposer_temperature": 0.7,
+  "proposer_max_tokens": 4096,
+  "proposer_is_separate_lm": true,
+  "instruction_proposer": "generalizing",
+  "perplexity_feedback": true,
+  "perplexity_model": "Qwen/Qwen2.5-7B-Instruct",
+  "perplexity_scope": "response_only_conditioned_on_context_fact",
+  "perplexity_numeric_fields": [
+    "response_mean_nll",
+    "response_perplexity",
+    "response_token_count"
+  ],
+  "perplexity_prompt_logprobs": 20,
+  "split_semantics": {
+    "gepa_train": "Used by GEPA during prompt search.",
+    "gepa_validation": "Used by GEPA for candidate prompt validation/selection.",
+    "final_test": "Never passed to GEPA; evaluated only after the final prompt is selected."
+  },
+  "rows": {
+    "gepa_train": 24,
+    "gepa_validation": 12,
+    "final_test": 12
+  },
+  "groups": {
+    "gepa_train": 4,
+    "gepa_validation": 2,
+    "final_test": 2
+  },
+  "artifacts": {
+    "gepa_viz_run": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke/gepa_viz_run_20260614T111210Z.json",
+    "prompt_trajectory": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke/prompt_trajectory_20260614T111210Z.jsonl",
+    "prompt_trajectory_candidates": 9,
+    "nla_verbalizations": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke/nla_verbalizations_20260614T111210Z.jsonl",
+    "nla_verbalization_rows": 210,
+    "aux_judge_feedback": "gepa-experiments/results/geval_gepa_topical_chat_engagingness_ppl_nla_auxjudge_llamacpp35b_smoke/aux_judge_feedback_20260614T111210Z.jsonl",
+    "aux_judge_feedback_rows": 36
+  }
+}
