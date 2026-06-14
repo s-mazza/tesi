@@ -328,6 +328,40 @@ Reason: these give the most direct context for the current NLA/PPL story and
 ensure that at least one independent joint-prompt benchmark exists before the
 2026-06-29 excluded deadline.
 
+## Smoke Gate Policy
+
+Before submitting any long matrix job, check whether an equivalent smoke has
+already completed successfully for the same experimental class:
+
+- same runner family: single-dimension or joint-prompt;
+- same dataset family and score scale;
+- same feedback variant: `base_gepa`, `ppl`, `ppl_nla`, or
+  `ppl_nla_auxjudge`;
+- same proposer family when it changes runtime behavior, especially Qwen35B
+  via llama.cpp versus the in-container proposer;
+- same newly modified code path when a recent fix changed validation,
+  parsing, provider behavior, or launcher behavior.
+
+Do not run extra smokes for configurations that already have a matched healthy
+smoke and only differ by long split size or GEPA budget. Do run a smoke when a
+job class has never been exercised, when the runner is new, when a provider has
+just been fixed, or when the config changes a failure-prone startup path such
+as llama.cpp sidecar, vLLM model loading, NLA precompute, or auxiliary judge
+feedback.
+
+Current top-priority smoke-gate implications:
+
+- `SD-04` Topical-Chat engagingness `ppl_nla_auxjudge`: requires a fresh smoke
+  after the 2026-06-14 auxiliary-judge fix, because the previous smoke exposed
+  empty 35B feedback that was incorrectly marked as successful.
+- `SD-26` and `SD-27` SummEval consistency `ppl` / `ppl_nla`: existing small
+  smokes cover the dataset and feedback path, but before launching Qwen35B
+  long jobs verify whether a Qwen35B proposer smoke exists for SummEval. If not,
+  run the cheapest matched Qwen35B smoke first.
+- `MD-02` Topical-Chat all-dimensions `ppl`: requires an initial smoke because
+  the joint-prompt runner is a separate pipeline and should not be launched
+  directly as a 15 h long job before parser/artifact validation.
+
 Priority 2: complete non-base paper dimensions for the two main
 multi-dimension datasets.
 
