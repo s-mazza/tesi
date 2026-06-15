@@ -40,7 +40,6 @@ Planned sections:
 - GEPA and reflective prompt optimization.
 - Prior work on prompt optimization and prompt search.
 - Perplexity/confidence signals in evaluation or feedback.
-- Efficient local inference for LLM experiments.
 
 Each section must end by clarifying what this thesis does differently.
 
