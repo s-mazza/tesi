@@ -9,6 +9,25 @@ This document tracks the literature to cover before writing Chapter 2.
 - Avoid URLs in bibliography entries. Use footnotes for software/project links
   when needed.
 - For each cited paper, record the specific reason it matters to this thesis.
+- The concrete paper inventory lives in `10_paper_reading_list.md`. This file
+  keeps the conceptual map; the reading list keeps canonical URLs, local PDF
+  paths, duplicate local copies, and priority notes.
+
+## Core Reading List
+
+Use `10_paper_reading_list.md` as the source of truth for the current paper
+inventory. The highest-priority items are:
+
+- SIPIT and its repository, for hidden-state inversion.
+- Natural Language Autoencoders, for activation verbalization.
+- GEPA, for prompt optimization.
+- G-EVAL, for the evaluation task and reported dimensions.
+- Prompt Waywardness and Towards Interpretable Soft Prompts, for cautionary
+  framing around textual interpretations of continuous prompt-like objects.
+- Embedding-inversion papers such as GEIA, ZSinvert, Zero2Text, and the Jina
+  conditional masked diffusion work, for the broader inversion background.
+- Negation-focused papers and datasets, for the logical semantic faithfulness
+  motivation.
 
 ## Required Work Groups
 

@@ -31,6 +31,8 @@ claims, experiments, and writing rules are stable.
 - `docs/08_overleaf_sync.md`: local Git and Overleaf synchronization workflow.
 - `docs/09_prior_work_census.md`: full census of local and cluster work to
   include in the thesis, covering embedding inversion, SIPIT, NLA, and GEPA.
+- `docs/10_paper_reading_list.md`: advisor-provided and locally downloaded
+  papers, deduplicated and mapped to the thesis related-work groups.
 
 ## Local Source Of Truth
 
