@@ -27,7 +27,6 @@ Planned sections:
 - LLMs as judges and automatic evaluation.
 - Prompting and prompt optimization.
 - Metrics for agreement with human judgments.
-- Efficient inference with vLLM, llama.cpp, quantization, and flash attention.
 
 ## Chapter 2: Related Work
 

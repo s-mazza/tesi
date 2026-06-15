@@ -33,6 +33,8 @@ claims, experiments, and writing rules are stable.
   include in the thesis, covering embedding inversion, SIPIT, NLA, and GEPA.
 - `docs/10_paper_reading_list.md`: advisor-provided and locally downloaded
   papers, deduplicated and mapped to the thesis related-work groups.
+- `docs/11_chapter_1_theoretical_framework.md`: detailed writing plan and
+  scope boundary for Chapter 1.
 
 ## Local Source Of Truth
 
