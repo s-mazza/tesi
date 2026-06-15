@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
 ## Objective
 
@@ -111,6 +111,30 @@ Deadline and launch priority from the expanded plan:
 - Rationale: the previous aux-judge smoke was not scientifically valid because
   Qwen35B feedback was empty but marked as `ok`. The new smoke must verify the
   fixed aux-judge success-rate guard before the long job can consume GPU time.
+
+2026-06-15 launch update:
+
+- Smoke job `11913885` started on `faretra` and failed after 23 seconds before
+  GEPA began.
+- Root cause: llama.cpp tried to load the Qwen35B GGUF sidecar on a GPU with
+  only about 1.7 GiB free. The model load then failed with CUDA OOM while
+  allocating about 20.6 GiB. This was a cluster/GPU allocation contamination
+  issue, not a GEPA metric/proposer error.
+- The dependent long job `11913886` was left in `DependencyNeverSatisfied` and
+  was cancelled.
+- Launcher fix: for llama.cpp proposer jobs, `run_docker.sh` now selects the
+  proposer GPU from the allocated Slurm devices by highest free memory when no
+  explicit `PROPOSER_GPU_DEVICE` is set, keeps judge/proposer devices distinct,
+  and uses config-level startup memory gates.
+- Aux-judge smoke/long configs now require:
+  - `JUDGE_MIN_FREE_MEMORY_MIB=18000`
+  - `PROPOSER_MIN_FREE_MEMORY_MIB=22500`
+  - `GPU_MEMORY_WAIT_SECONDS=0`
+- The zero-second wait is intentional: if Slurm assigns a GPU that is already
+  polluted by unrelated processes, the job should fail cleanly and release the
+  allocation instead of holding the slot for hours.
+- Replacement smoke submitted: job `11913922`.
+- Replacement long submitted with `afterok:11913922`: job `11913923`.
 
 Auxiliary judge meaning:
 

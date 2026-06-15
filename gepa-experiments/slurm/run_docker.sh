@@ -85,6 +85,37 @@ gpu_memory_mib() {
     | tr -d ' '
 }
 
+gpu_free_memory_mib() {
+  local device="$1"
+  local values
+  values="$(gpu_memory_mib "$device" || true)"
+  if [[ -z "$values" ]]; then
+    echo "-1"
+    return 0
+  fi
+  echo "${values%,*}"
+}
+
+select_highest_free_gpu_except() {
+  local excluded_csv="$1"
+  shift
+  local best_device=""
+  local best_free=-1
+  local device
+  for device in "$@"; do
+    if [[ ",${excluded_csv}," == *",${device},"* ]]; then
+      continue
+    fi
+    local free_mib
+    free_mib="$(gpu_free_memory_mib "$device")"
+    if [[ "$free_mib" -gt "$best_free" ]]; then
+      best_free="$free_mib"
+      best_device="$device"
+    fi
+  done
+  echo "$best_device"
+}
+
 default_judge_min_free_memory_mib() {
   local device="$1"
   local values
@@ -178,8 +209,20 @@ start_llamacpp_sidecar() {
     exit 2
   fi
 
-  JUDGE_GPU_DEVICE="${JUDGE_GPU_DEVICE:-${allocated_gpus[0]}}"
-  PROPOSER_GPU_DEVICE="${PROPOSER_GPU_DEVICE:-${allocated_gpus[1]}}"
+  if [[ -z "${PROPOSER_GPU_DEVICE:-}" ]]; then
+    PROPOSER_GPU_DEVICE="$(select_highest_free_gpu_except "${JUDGE_GPU_DEVICE:-}" "${allocated_gpus[@]}")"
+  fi
+  if [[ -z "${JUDGE_GPU_DEVICE:-}" ]]; then
+    JUDGE_GPU_DEVICE="$(select_highest_free_gpu_except "$PROPOSER_GPU_DEVICE" "${allocated_gpus[@]}")"
+  fi
+  if [[ -z "$JUDGE_GPU_DEVICE" || -z "$PROPOSER_GPU_DEVICE" ]]; then
+    echo "Could not select distinct judge/proposer GPUs from CUDA_VISIBLE_DEVICES=${VISIBLE_DEVICES}" >&2
+    exit 2
+  fi
+  if [[ "$JUDGE_GPU_DEVICE" == "$PROPOSER_GPU_DEVICE" ]]; then
+    echo "JUDGE_GPU_DEVICE and PROPOSER_GPU_DEVICE must be distinct; both are ${JUDGE_GPU_DEVICE}." >&2
+    exit 2
+  fi
   MAIN_VISIBLE_DEVICES="$JUDGE_GPU_DEVICE"
   DOCKER_NETWORK_ARGS=(--network=host)
 
