@@ -49,6 +49,32 @@ Exclude:
 - final result interpretation; this belongs to Chapter 5;
 - operational cluster troubleshooting unless it affects reproducibility.
 
+## Advisor Guideline Coverage
+
+The final LaTeX chapter must explicitly satisfy the advisor's experimental
+setup checklist. The current plan maps those requirements as follows:
+
+| Advisor requirement | Where this plan covers it | Still to verify before writing |
+|---|---|---|
+| Implementation details | Sections 4.3, 4.4, 4.6 | Add exact final container image, dependency versions, and launch command snippets for thesis-grade runs |
+| Libraries used | Sections 4.3, 4.4, 4.6 | Record exact versions for Python, PyTorch, vLLM, llama.cpp, transformers, DSPy/GEPA, NLA code, and flash-attention |
+| Models used | Section 4.2 | Confirm final checkpoints and local cache paths for every reported run |
+| Why those models and not others | Sections 4.2, 4.7 | Write explicit justifications: Qwen2.5-7B for NLA compatibility, Qwen35B for stronger proposer/aux feedback, GPT-2 for clean SIPIT reproduction |
+| Optional snippets or pseudocode | Sections 4.4, 4.8 | Include only compact snippets if they clarify split semantics, scoring, or run configuration |
+| Datasets used and why | Section 4.1 | Add final source citations and exact dataset row counts for every dataset/dimension in the result tables |
+| Dataset structure | Section 4.1 | Include fields such as source/context, candidate output, reference/fact, human score, group id, and score scale |
+| Experiment environment | Section 4.3 | Re-check hardware/driver/CUDA snapshot for final runs |
+| Metrics and boundaries | Section 4.5 | Ensure every metric table states range, direction, and interpretation |
+| Hyperparameters with tried values and final asterisk | Section 4.6 | Fill values from final run configs and mark final values with `*` in LaTeX |
+| Baselines and comparisons | Section 4.7 | Keep paper-aligned baselines separate from diagnostic/smoke controls |
+| Prompts if useful | Sections 4.4, 4.8 | Include seed/optimized prompt excerpts in main text only if short; put full prompts in appendix or artifacts |
+
+Decision:
+
+- This checklist should remain in the planning document.
+- The final thesis chapter should not contain this checklist verbatim. It should
+  be used as a pre-writing and pre-submission coverage check.
+
 ## Lessons From The Reference Thesis
 
 The previous student thesis is useful for structure, not for content. The
@@ -257,6 +283,34 @@ Direction conventions:
 - MAE, loss, NLL, perplexity, runtime, latency, and failure count: lower is
   better.
 - Diagnostic metrics must not be confused with final task metrics.
+
+Metric boundaries to define in the final thesis:
+
+| Metric | Boundary/range | How to read it |
+|---|---|---|
+| Pearson correlation | `[-1, 1]` | Higher is better; `1` is perfect linear agreement, `0` is no linear correlation, negative values indicate inverse relation |
+| Spearman correlation | `[-1, 1]` | Higher is better; rank-based agreement with human scores |
+| Kendall tau | `[-1, 1]` | Higher is better; pairwise rank agreement, more conservative under ties |
+| MAE | `[0, max_score - min_score]` | Lower is better; average absolute distance from human mean score |
+| Normalized agreement | `[0, 1]` | Higher is better; `1` means exact agreement, `0` means largest possible scale error |
+| Coverage | `[0, 1]` | Higher is better; parsed predictions divided by total predictions |
+| Exact match / accuracy | `[0, 1]` or percent | Higher is better; fraction of exactly recovered prompts/tokens/examples |
+| Loss / cross-entropy / NLL | `[0, +inf)` | Lower is better; optimization or surprisal signal |
+| Perplexity | `[1, +inf)` in normal cases | Lower is better; exponentiated mean NLL over response tokens |
+| Runtime / latency | `[0, +inf)` seconds | Lower is better for efficiency, but only comparable under similar hardware and run settings |
+| Throughput | `[0, +inf)` tokens/s or examples/s | Higher is better; only comparable under similar hardware and batching |
+
+G-EVAL score scales to state:
+
+| Dataset/dimension | Score boundary in current runner |
+|---|---|
+| Topical-Chat naturalness | 1 to 3 |
+| Topical-Chat coherence / Maintains Context | 1 to 3 |
+| Topical-Chat engagingness | 1 to 3 |
+| Topical-Chat groundedness / Uses Knowledge | 0 to 1 |
+| SummEval dimensions | 1 to 5 |
+| QAGS-CNN consistency | 1 to 5 |
+| QAGS-XSUM consistency | 1 to 5 |
 
 #### 4.5.1 Semantic-Fidelity And Embedding-Inversion Metrics
 
