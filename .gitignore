@@ -59,6 +59,7 @@ messaggio_relatore.txt
 *.md
 !README.md
 !**/README.md
+!thesis/**/*.md
 
 # Paper PDFs and generated binary assets should stay out of this progress repo.
 *.pdf
