@@ -41,8 +41,11 @@ Use this only if neither Git Bridge nor GitHub Sync is available.
 
 Expected flow:
 
-1. Generate a clean LaTeX folder locally.
-2. Upload the folder or zip to Overleaf for review.
+1. Upload the `thesis/latex/` folder or a clean zip of it to Overleaf for
+   review.
+2. Keep the same root-level structure used by the reference thesis:
+   `main.tex`, `bibliografia.bib`, `custom_import.tex`, `style/`, `images/`,
+   and `graph/`.
 3. Pull any advisor edits back manually before continuing.
 
 This is less reliable and should be avoided if Git integration is available.
@@ -55,6 +58,8 @@ This is less reliable and should be avoided if Git integration is available.
   `.synctex.gz`, or generated caches.
 - Keep large result artifacts linked through GitHub or summarized in thesis
   tables.
-- Before starting LaTeX, decide whether the Overleaf project will mirror only
-  `thesis/latex` or the entire `thesis` folder. The recommended target is a
-  dedicated `thesis/latex` folder.
+- The uploadable manuscript source is `thesis/latex/`. Inside that folder, the
+  structure mirrors the reference thesis: `main.tex`, `bibliografia.bib`,
+  `custom_import.tex`, `style/`, `images/`, and `graph/`.
+- The `docs/` folder remains local planning material and should not be uploaded
+  to Overleaf unless explicitly useful for review.

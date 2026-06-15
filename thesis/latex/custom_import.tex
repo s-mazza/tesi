@@ -1,0 +1,77 @@
+% -------------------------------
+%   PDF SETTINGS / FIXES
+% -------------------------------
+\pdfminorversion=7
+\pdfobjcompresslevel=0
+
+% -------------------------------
+%   TABLES & FIGURES
+% -------------------------------
+\usepackage{graphicx}
+\usepackage{pdfpages}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+% -------------------------------
+%   MATHEMATICS & SYMBOLS
+% -------------------------------
+\usepackage{amsmath,amsfonts,amssymb,amsthm}
+
+% -------------------------------
+%   TEXT FORMATTING & STYLE
+% -------------------------------
+\usepackage{footnote}
+\usepackage{verbatim}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{multicol}
+\usepackage{sectsty}
+\usepackage{tocloft}
+\usepackage{indentfirst}
+\usepackage{ragged2e}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{lmodern}
+\usepackage{adjustbox}
+\usepackage{csquotes}
+
+% -------------------------------
+%   PAGE STYLE & LINKS
+% -------------------------------
+\usepackage{fancyhdr}
+\usepackage[breaklinks=true]{hyperref}
+\hypersetup{
+  pdfpagemode={UseOutlines},
+  bookmarksopen,
+  pdfstartview={FitH},
+  colorlinks,
+  linkcolor={black},
+  citecolor={black},
+  urlcolor={black}
+}
+\usepackage{tcolorbox}
+
+% -------------------------------
+%   COLORS
+% -------------------------------
+\usepackage{xcolor}
+\definecolor{lightviolet}{RGB}{250,0,255}
+\definecolor{darkgreen}{RGB}{0,200,0}
+\definecolor{darkyellow}{RGB}{255,204,0}
+
+% -------------------------------
+%   PGFPLOTS / TIKZ
+% -------------------------------
+\usepackage{pgfplots,pgfplotstable}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{matrix,pgfplots.fillbetween,patterns}
+
+% -------------------------------
+%   BIBLIOGRAPHY
+% -------------------------------
+\usepackage[numbers]{natbib}
+
+% -------------------------------
+%   CUSTOM ENVIRONMENTS & COMMANDS
+% -------------------------------
+\newcommand{\quotes}[1]{``#1''}

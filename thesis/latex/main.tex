@@ -1,0 +1,468 @@
+%%%%%%%%%%%%%
+% NON SUDDIVIDERE IL TESTO DELLA TESI IN PIU' FILE LATEX
+% COMPILARE LA TESI USANDO QUESTO UNICO FILE PER I CONTENUTI TESTUALI.
+%%%%%%%%%%%%%
+
+\documentclass[12pt,a4paper,twoside,openright]{book}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{style/isi_style_lt}
+
+\input{custom_import.tex}
+\input{style/settings.tex}
+
+\universita{Alma Mater Studiorum}
+\campus{Universita di Bologna}
+\scuola{Department of Computer Science and Engineering}
+\corsodilaurea{Computer Science and Engineering}
+
+\titolo{Semantic Fidelity in Latent-to-Text Methods and Activation-Guided Evaluation}
+\materia{Artificial Intelligence}
+\laureando{Simone Mazzacano}
+\relatore[Prof.]{Gianluca Moro}
+
+\sessione{Third}
+\annoaccademico{2025 -- 2026}
+
+\parolechiave
+{Semantic Fidelity}
+{Activation Inversion}
+{Natural Language Activations}
+{LLM-as-a-Judge Evaluation}
+{Prompt Optimization}
+
+\makeindex
+
+\begin{document}
+
+\frontmatter
+
+\maketitle
+
+\chapter*{Abstract}
+\markboth{Abstract}{Abstract}
+
+Modern language models expose many representations besides their final text:
+embeddings, hidden states, logits, residual streams, and other latent signals
+are now used for retrieval, interpretability, inversion, and automatic
+evaluation. A central question is whether methods that map these
+representations back to natural language preserve the semantic content of the
+original input, or whether they merely produce fluent and plausible text. This
+distinction matters especially for inputs involving negation, logical polarity,
+counterfactual statements, or violations of commonsense, where a reconstruction
+can remain lexically similar while changing the meaning.
+
+This thesis studies semantic fidelity in latent-to-text methods and evaluates
+whether activation-derived evidence can improve prompt optimization for
+LLM-as-a-judge evaluation. The work combines dataset construction, diagnostic
+experiments on inversion and verbalization methods, and a G-EVAL-style
+evaluation pipeline optimized with GEPA. The method can be summarized as a
+two-track analysis: first, latent representations are inverted or verbalized
+and checked for semantic preservation; second, perplexity, Natural Language
+Activation verbalizations, and auxiliary-judge feedback are tested as signals
+for improving judge prompts.
+
+The experimental setup uses semantic-stress examples, SIPIT-style hidden-state
+inversion diagnostics, NLA activation verbalizations from a base language
+model, and G-EVAL-style datasets evaluated with correlation metrics against
+human judgments. Early results show that perplexity feedback can improve GEPA
+prompt optimization in this setting, while raw NLA feedback is not yet a
+reliably positive signal without further transformation. These findings frame
+the thesis as both an empirical study of semantic fidelity and a diagnostic
+analysis of how activation information can be made useful for downstream
+evaluation.
+
+\chapter*{Introduction}
+\markboth{Introduction}{Introduction}
+
+Large Language Models (LLMs) are usually observed through the text they
+generate, but their behavior is mediated by internal numerical representations.
+Embeddings, hidden states, logits, residual streams, and soft prompts encode
+information that can be reused for retrieval, analysis, generation, or
+evaluation. As a result, a growing line of work studies whether these latent
+representations can be inverted or verbalized: given a vector or an internal
+state, can we recover what the model was representing?
+
+This question is often evaluated as a reconstruction problem. If the recovered
+text overlaps with the input, has high embedding similarity, or receives a high
+semantic-similarity score, the method appears successful. However, this view can
+hide a more delicate failure mode. A reconstruction may look close while
+removing a negation, flipping a causal relation, or replacing a counterfactual
+statement with a more plausible commonsense sentence. For example, the sentence
+\quotes{The ice does not melt under the sun} and the sentence \quotes{The ice
+melts under the sun} are lexically close, but their meanings are incompatible.
+Surface-level metrics can treat them as similar even though the logical content
+has changed.
+
+The goal of this thesis is to study this mismatch between surface-form
+reconstruction and semantic fidelity. The focus is not only whether a latent
+representation can be decoded into fluent text, but whether the recovered text
+preserves meaning in cases where meaning is fragile: negation, polarity,
+contradiction, counterfactuality, and commonsense violations. These phenomena
+are important because language models are strongly biased toward plausible
+continuations. If an inversion method normalizes an unusual input into a more
+likely sentence, it may look successful by standard metrics while failing the
+semantic property that matters.
+
+The work is organized around two connected experimental tracks. The first track
+concerns latent-to-text inversion and verbalization. It includes embedding
+inversion diagnostics, SIPIT-style hidden-state prompt recovery, and Natural
+Language Activation (NLA) verbalizations. SIPIT is relevant because it treats
+hidden-state inversion as prompt recovery, while NLA is relevant because it maps
+internal activations to readable descriptions rather than necessarily trying to
+reconstruct the original prompt exactly. Together, these methods offer different
+ways to ask what information is present in a representation and how faithfully
+that information can be expressed in text.
+
+The second track uses G-EVAL-style LLM-as-a-judge tasks as a downstream testbed.
+In this setting, a language model scores generated text according to a rubric,
+and the quality of the judge is measured by agreement with human annotations.
+The thesis uses GEPA, a prompt optimization method, to improve judge prompts and
+then studies whether additional signals can help the optimization process.
+Perplexity is used as a model-confidence signal computed from the base model.
+NLA verbalizations are tested as activation-derived feedback. An optional
+auxiliary judge can also be used to compress raw feedback into a form that is
+closer to the evaluation rubric.
+
+This framing leads to the following research questions. First, do
+embedding-inversion and activation-inversion methods preserve logical semantic
+content, or do they reconstruct more plausible but altered text? Second, do
+standard reconstruction metrics capture errors such as lost negation, inverted
+polarity, or commonsense normalization? Third, can SIPIT recover prompts under
+standard and logical stress-test settings, and what changes when continuous
+random prefixes are introduced? Fourth, do NLA verbalizations preserve
+semantically important activation content, or do they produce generic
+completion-like descriptions? Fifth, can GEPA improve LLM-as-a-judge prompts on
+G-EVAL-style tasks, and does adding perplexity, NLA, or auxiliary-judge feedback
+make those improvements more reliable?
+
+The thesis does not aim to claim that every tested method is improved by NLA in
+its raw form. Instead, it treats negative results as part of the analysis. If
+raw activation verbalizations do not improve prompt optimization, the relevant
+question becomes why: whether the selected token positions are uninformative,
+whether the verbalizations are too generic, whether the proposer model cannot
+use them, or whether the signal must first be transformed into rubric-level
+feedback. This diagnostic perspective is important because the broader research
+problem is not only to use latent information, but to understand when latent
+information is aligned with the downstream task.
+
+Our thesis work is subdivided into the following structure:
+
+\vspace{4mm}
+
+\begin{itemize}
+    \item \textbf{Chapter 1 - Theoretical Framework}: This chapter introduces
+    the concepts required to understand the rest of the thesis: neural text
+    representations, latent-to-text inversion, semantic fidelity, SIPIT, NLA,
+    perplexity, LLM-as-a-judge evaluation, GEPA, and agreement metrics.
+
+    \item \textbf{Chapter 2 - Related Work}: This chapter reviews the research
+    lines most closely related to the thesis, including embedding inversion,
+    hidden-state inversion, interpretable soft prompts, NLA, G-EVAL, and prompt
+    optimization. Each section clarifies how this thesis differs from previous
+    work.
+
+    \item \textbf{Chapter 3 - Method}: This chapter defines the semantic
+    fidelity task and describes the implemented methodology, including the
+    canonical logical dataset, SIPIT diagnostics, NLA extraction, GEPA
+    optimization, perplexity feedback, auxiliary-judge feedback, and prompt
+    trajectory logging.
+
+    \item \textbf{Chapter 4 - Experimental Setup}: This chapter reports the
+    datasets, model roles, metrics, baselines, hyperparameters, cluster
+    environment, implementation details, and reproducibility constraints used in
+    the experiments.
+
+    \item \textbf{Chapter 5 - Results}: This chapter presents the experimental
+    outcomes: inversion diagnostics, SIPIT checks, NLA verbalization smokes,
+    GEPA long runs, perplexity and NLA ablations, auxiliary-judge results, and
+    efficiency measurements.
+
+    \item \textbf{Conclusion and Future Work}: This final chapter summarizes
+    what can be claimed from the experiments, discusses limitations, and
+    outlines future work on stronger NLA transformations and broader
+    paper-aligned evaluation.
+\end{itemize}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\listoffigures
+
+\newpage
+
+\listoftables
+
+\mainmatter
+
+\pagestyle{fancy}
+\fancyhead[LO]{\nouppercase{\rightmark}}
+\fancyhead[RE]{\nouppercase{\leftmark}}
+\fancyhead[LE,RO]{\thepage}
+\fancyfoot{}
+
+\chapter{Theoretical Framework}
+\label{chapter:theory}
+
+\section{Neural Text Representations}
+
+Language models process text through numerical representations. Tokens are
+mapped to vectors, vectors are transformed layer after layer, and the final
+model output is produced from a distribution over the vocabulary. This thesis
+uses several representation types, so it is useful to distinguish their roles
+before discussing inversion and evaluation.
+
+\textbf{Text embeddings} are fixed-size vectors associated with words,
+sentences, passages, or documents. They are commonly used for retrieval and
+semantic similarity because nearby vectors are expected to represent similar
+content. In this thesis, embeddings are relevant both as objects that can be
+inverted and as examples of representations whose similarity may not be
+sufficient to guarantee semantic fidelity.
+
+\textbf{Hidden states} are the internal vectors produced by a language model at
+each layer and token position. In a decoder-only model, the hidden state of a
+token is contextual: it depends on the previous tokens and on the transformations
+performed by the network. Hidden states are therefore richer than static token
+embeddings. They can contain information about the prompt, the next-token
+prediction task, and intermediate features used by the model.
+
+\textbf{Residual streams} are the running internal representations to which
+attention and feed-forward blocks add their contributions. They are especially
+important in mechanistic interpretability because they provide a common space
+where different components of the Transformer write information. NLA-style
+verbalization treats such activation vectors as objects that can be translated
+into natural-language descriptions.
+
+\textbf{Logits} are the pre-softmax scores assigned to each vocabulary token
+before the model samples or selects an output token. After applying a softmax,
+the logits become a probability distribution. Logits are useful because they
+expose not only the selected token, but also the alternatives the model
+considered likely.
+
+\textbf{Soft prompts} are continuous prompt-like vectors optimized directly in
+embedding space. Unlike ordinary prompts, they are not necessarily readable as
+text. Their existence highlights a central issue for this thesis: a
+representation can be useful to a model while remaining difficult to interpret
+for humans.
+
+\section{Latent-To-Text Inversion}
+
+Latent-to-text inversion asks what can be recovered from a latent
+representation. The input may be an embedding, a hidden state, logits, or another
+internal activation; the output is text that attempts to reconstruct or describe
+the information contained in that representation. This broad framing includes
+several related but distinct tasks.
+
+In \textbf{embedding inversion}, the input is usually a sentence or document
+embedding. The goal is to recover the original text, or at least a close
+semantic approximation. This task matters because embeddings are often treated
+as compressed semantic summaries. If sensitive or detailed text can be recovered
+from embeddings, then embeddings may leak more information than expected.
+
+In \textbf{hidden-state inversion}, the input is an internal state of a language
+model. The target is typically the prompt or prefix that produced that state.
+This task is more model-specific because hidden states depend on the architecture
+and layer where they are extracted. It is also more direct for decoder-only
+models, since the hidden state is part of the causal computation that produces
+the next token.
+
+In \textbf{activation verbalization}, the output is not necessarily the original
+text. Instead, the goal is to produce a natural-language description of what an
+activation represents. This distinction is central for NLA. A verbalization may
+say that an activation concerns a refusal, a factual correction, a sentiment, or
+a mathematical operation without reconstructing the exact input sentence.
+
+These tasks should not be collapsed into a single notion of success. Exact
+reconstruction, plausible paraphrase, semantic preservation, and useful
+description are different targets. The rest of the thesis uses this distinction
+to avoid overclaiming: a method can be useful while still failing to preserve
+the specific semantic property being tested.
+
+\section{Semantic Fidelity}
+
+Semantic fidelity is the degree to which an output preserves the meaning of the
+input, not merely its surface form. A reconstruction can share many words with
+the original and still be semantically wrong. This is especially clear when the
+input contains small linguistic markers with large logical effects.
+
+Negation is the simplest example. The sentences \quotes{The treatment did not
+improve the symptoms} and \quotes{The treatment improved the symptoms} differ
+by one word, but they support opposite conclusions. A metric based on lexical
+overlap may assign them a high score, even though the reconstruction has lost
+the most important information.
+
+Logical polarity and causal direction create similar problems. If an input says
+that an event prevents an outcome, while the reconstruction says that the event
+causes the outcome, the semantic relation has been inverted. Counterfactuals and
+commonsense violations are another stress case. Because language models are
+trained to produce likely text, they may normalize unusual statements toward
+more plausible ones. A method that reconstructs \quotes{The glass did not break
+after falling on concrete} as \quotes{The glass broke after falling on concrete}
+has produced a more typical sentence, but not a faithful one.
+
+This thesis therefore treats standard reconstruction metrics as incomplete.
+Token overlap, semantic similarity, and embedding similarity remain useful, but
+they must be complemented by targeted checks for meaning-preserving behavior.
+The central empirical question is whether inversion and verbalization methods
+preserve the aspects of meaning that are easiest to lose.
+
+\section{SIPIT And Exact Hidden-State Recovery}
+
+SIPIT is relevant to this thesis because it studies prompt recovery from hidden
+states in decoder-only language models. Conceptually, the method asks whether an
+internal representation contains enough information to identify the prompt that
+generated it. This is different from asking whether a model can generate a
+plausible continuation. The target is recovery of the input itself.
+
+The distinction between exact recovery and plausible reconstruction is important
+for semantic fidelity. If a method exactly recovers the original prompt, then
+negation, polarity, and counterfactual content are preserved by definition. If a
+method only generates a likely paraphrase, then the output must be checked more
+carefully. A fluent paraphrase may erase the unusual or logically fragile part
+of the input.
+
+SIPIT-style experiments also require controls. If a prompt can be recovered only
+because part of it is already known, the claim differs from full-sequence
+recovery. If two different prompts lead to indistinguishable internal states, a
+recovery method may face collisions. For this reason, collision checks,
+known-prefix controls, and random-prefix experiments are not implementation
+details only; they define what kind of scientific claim can be made.
+
+In this thesis, SIPIT is used as one component of the broader latent-to-text
+analysis. The goal is not only to reproduce a recovery pipeline, but to ask how
+well such recovery behaves on inputs where semantic fidelity is fragile.
+
+\section{Natural Language Activations}
+
+Natural Language Activations provide a different view of latent-to-text
+analysis. Instead of treating activations only as vectors to be decoded into the
+original prompt, NLA introduces the idea that an activation can be verbalized.
+The relevant component for this thesis is the Activation Verbalizer, which maps
+an activation vector to natural language. The inverse component, the Activation
+Reconstructor, maps text back toward an activation, but it is not the main object
+of study here.
+
+NLA verbalizations are attractive because they can make internal model states
+readable. If an activation carries information about negation, contradiction, or
+task-specific uncertainty, a verbalization might expose that information in a
+form that can be inspected or used by another model. This is why the thesis
+tests NLA both as a standalone diagnostic and as feedback for GEPA.
+
+However, a verbalization is not automatically faithful. It may be generic,
+completion-like, or focused on a token-level feature that is not useful for the
+task. The choice of token position, layer, and verbalization strategy matters.
+For example, verbalizing only the final token may give less semantic context
+than verbalizing several candidate tokens around the model's decision. Later
+experiments therefore treat raw NLA as a hypothesis, not as an already validated
+improvement signal.
+
+\section{Perplexity And Model Confidence}
+
+Perplexity is a standard way to express how surprising a sequence is under a
+language model. If a model assigns high probability to the observed tokens, the
+perplexity is low. If the model assigns low probability, the perplexity is high.
+In simplified terms, perplexity can be read as the effective number of choices
+the model considered at each step.
+
+For an output sequence $y_1, \ldots, y_n$ conditioned on a context $x$, the
+token-level negative log-likelihood is
+\[
+    -\frac{1}{n}\sum_{i=1}^{n}\log p(y_i \mid x, y_{<i}).
+\]
+Perplexity is the exponential of this value:
+\[
+    \mathrm{PPL}(y \mid x) =
+    \exp\left(-\frac{1}{n}\sum_{i=1}^{n}\log p(y_i \mid x, y_{<i})\right).
+\]
+
+In this thesis, perplexity is used as auxiliary feedback for prompt
+optimization. It is computed from the evaluated model and can indicate whether a
+generated score or explanation was natural under that model. This signal is not
+the same as correctness and it is not the same as agreement with human
+annotations. A low-perplexity answer can still be wrong. Nevertheless, it can
+provide useful evidence about model confidence or hesitation when combined with
+task metrics.
+
+\section{LLM-As-A-Judge And G-EVAL}
+
+LLM-as-a-judge evaluation uses a language model to score generated text
+according to a rubric. Instead of relying only on automatic surface metrics, the
+model receives an input, an output to evaluate, and instructions describing a
+quality dimension. It then produces a score, sometimes with an explanation. The
+appeal of this approach is that it can approximate human evaluation at a lower
+cost and at a larger scale.
+
+G-EVAL is an important instance of this idea. It evaluates generated text along
+dimensions such as coherence, consistency, fluency, relevance, or engagingness,
+depending on the dataset and task. The final result is not simply the model's
+average score. The relevant question is whether the model's scores agree with
+human judgments. This is why correlation metrics become central.
+
+For this thesis, G-EVAL-style tasks are useful because they expose a concrete
+prompt-optimization problem. A judge prompt must translate a natural-language
+rubric into stable numerical behavior. If the prompt is underspecified, the
+model may use the wrong cues. If the prompt is too rigid, it may ignore relevant
+context. GEPA is then used to search for prompts that improve agreement with
+human scores.
+
+\section{Prompt Optimization And GEPA}
+
+Prompt optimization is the process of improving a prompt so that a language
+model performs better on a target task. A prompt can define the task, specify a
+rubric, constrain the output format, provide examples, or warn the model about
+common errors. Because LLM behavior is highly prompt-sensitive, manual prompt
+engineering is often insufficient for systematic comparison.
+
+GEPA approaches prompt optimization as an iterative search process. A candidate
+prompt is evaluated on a set of examples. The failures, scores, and other
+available feedback are then used by a proposer model to suggest a revised
+prompt. The revised prompt is evaluated again, and better candidates are kept
+according to validation performance. Over time, the search can produce prompts
+that are longer, more explicit, and more aligned with the evaluation metric.
+
+This thesis uses GEPA in the LLM-as-a-judge setting. The prompt being optimized
+is the judge prompt, and the objective is agreement with human scores on
+G-EVAL-style tasks. The feedback given to the proposer can include the ordinary
+metric signal, perplexity values, NLA verbalizations, and optionally feedback
+from a stronger auxiliary judge. This makes GEPA a practical testbed for asking
+whether latent information can improve downstream evaluation behavior.
+
+\section{Agreement Metrics}
+
+When a judge model assigns scores to examples that already have human
+annotations, performance is measured by agreement between the model scores and
+the human scores. The most important distinction is that these metrics evaluate
+relative alignment, not absolute truth. A judge is useful if examples that
+humans rate higher also tend to receive higher model scores.
+
+Pearson correlation measures linear association between two sets of scores. It
+is sensitive to the scale of the values and answers the question of whether
+model scores increase proportionally with human scores. Spearman correlation
+uses ranks instead of raw values, so it measures whether the order induced by
+the model agrees with the order induced by humans. Kendall correlation also
+focuses on rank agreement and can be interpreted through concordant and
+discordant pairs.
+
+These metrics have different sensitivities, so a complete evaluation should
+report the paper-aligned set rather than selecting only the metric that improves
+most. Later chapters define the exact metric boundaries, datasets, dimensions,
+and comparison protocol used in the experiments. For Chapter 1, the key idea is
+that agreement metrics determine whether a judge prompt actually behaves more
+like human annotators.
+
+This chapter introduced the theoretical concepts needed by the rest of the
+thesis. The next chapter positions these concepts within previous work on
+embedding inversion, hidden-state inversion, activation verbalization,
+interpretable prompts, LLM-as-a-judge evaluation, and prompt optimization.
+
+\backmatter
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{unsrt}
+\bibliography{bibliografia}
+
+\end{document}

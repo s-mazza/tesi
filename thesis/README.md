@@ -8,9 +8,21 @@ there is an explicit reason to copy a template element.
 
 ## Current Phase
 
-The thesis is currently in the specification phase. We write Markdown
-documents first, then start the LaTeX manuscript only after the structure,
-claims, experiments, and writing rules are stable.
+The thesis now has an initial uploadable LaTeX manuscript in `latex/`, following
+the root-level structure of the previous student thesis inside that folder. The
+Markdown documents in `docs/` remain the planning source for chapter scope,
+experimental decisions, and result mapping.
+
+## LaTeX Manuscript
+
+- `latex/main.tex`: current thesis manuscript, written up to Chapter 1 included.
+- `latex/bibliografia.bib`: bibliography file to be filled from DBLP entries where
+  available.
+- `latex/custom_import.tex`: shared package imports and custom commands.
+- `latex/style/`: title-page and formatting files copied from the reference
+  thesis template.
+- `latex/images/` and `latex/graph/`: manuscript figure folders, currently
+  reserved for future thesis figures and plots.
 
 ## Documents
 
@@ -38,6 +50,6 @@ claims, experiments, and writing rules are stable.
 
 ## Local Source Of Truth
 
-Until the LaTeX project is created, this folder is the source of truth for
-thesis decisions. The Overleaf project is used for advisor review once the
-LaTeX manuscript exists.
+This folder is the local source of truth. The Overleaf project is used for
+advisor review, while local Git keeps the complete manuscript history. For a
+clean Overleaf upload, use only the `latex/` folder.
