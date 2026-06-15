@@ -3,7 +3,9 @@
 Reference folder: `tesi_t_simoneMazzacano/`.
 
 The reference thesis must remain unchanged. This document records the reusable
-structure and style decisions extracted from it.
+structure and style decisions extracted from it. Its structure and style are
+the default baseline for the new thesis. Any intentional change to those
+reference-derived conventions requires explicit permission first.
 
 ## Structural Lessons
 
@@ -49,8 +51,11 @@ structure and style decisions extracted from it.
 
 - Keep the same macro-level chapter structure, but rename sections to match
   GEPA, G-EVAL, NLA, LLM-as-a-judge, and prompt optimization.
-- Do not copy the reference content. Reuse only structure, formatting habits,
-  and thesis organization.
+- Do not copy the previous student's ad hoc content. Replace the topic-specific
+  material with this thesis's problem, method, experiments, figures, results,
+  and claims.
+- Reuse structure, formatting habits, tone, and thesis organization unless
+  there is a clear reason to change them and that change has been approved.
 - The theory chapter should focus on what is needed to understand the method:
   LLMs as judges, prompt optimization, evaluation metrics, NLA, perplexity,
   and efficient inference.

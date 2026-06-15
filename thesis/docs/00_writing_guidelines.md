@@ -17,6 +17,13 @@ rules for this thesis.
   test, call it that explicitly.
 - Keep the previous thesis `tesi_t_simoneMazzacano/` as the main style and
   structure reference, but adapt the content to this project.
+- Treat the reference thesis style as the default. If a change to its
+  structure, formatting, tone, or LaTeX conventions seems necessary, ask for
+  explicit permission before applying it.
+- Replace the previous student's ad hoc thesis content with content specific to
+  this thesis. In general, the parts that should change are the topic,
+  experiments, figures, results, claims, and discussion, not the validated
+  thesis skeleton unless there is a clear reason.
 
 ## Abstract
 
