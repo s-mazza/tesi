@@ -22,12 +22,15 @@ claims, experiments, and writing rules are stable.
   boundaries.
 - `docs/03_chapter_outline.md`: chapter-level thesis outline.
 - `docs/04_related_work_map.md`: papers and positioning plan.
-- `docs/05_method_spec.md`: GEPA, perplexity, NLA, and auxiliary judge method.
+- `docs/05_method_spec.md`: dataset, inversion, NLA, GEPA, perplexity, and
+  auxiliary judge method.
 - `docs/06_experimental_setup_spec.md`: datasets, models, metrics, cluster,
   and hyperparameters.
 - `docs/07_results_inventory.md`: current result artifacts and how they map to
   thesis tables.
 - `docs/08_overleaf_sync.md`: local Git and Overleaf synchronization workflow.
+- `docs/09_prior_work_census.md`: full census of local and cluster work to
+  include in the thesis, covering embedding inversion, SIPIT, NLA, and GEPA.
 
 ## Local Source Of Truth
 

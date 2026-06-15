@@ -7,29 +7,39 @@ No citations.
 
 ## Introduction
 
-Expanded motivation for LLM-as-a-judge evaluation, prompt optimization, and the
-need for better feedback signals. Close with the thesis outline.
+Expanded motivation for semantic fidelity in embedding/activation inversion:
+surface similarity can hide lost negation, polarity flips, or normalization
+toward commonsense. Introduce GEPA/G-Eval as the later branch where activation
+verbalizations are tested as feedback for improving LLM-as-a-judge prompts.
+Close with the thesis outline.
 
 ## Chapter 1: Theoretical Framework
 
 Planned sections:
 
-- Large Language Models and instruction following.
+- Text embeddings, hidden states, logits, residual streams, and soft prompts.
+- Embedding inversion and activation inversion.
+- Semantic fidelity versus surface-form reconstruction.
+- Negation, logical polarity, counterfactuals, and commonsense violations.
+- SIPIT and exact hidden-state prompt recovery.
+- Perplexity as a model confidence/surprisal signal.
+- Natural Language Activation verbalization.
 - LLMs as judges and automatic evaluation.
 - Prompting and prompt optimization.
 - Metrics for agreement with human judgments.
-- Perplexity as a model confidence/surprisal signal.
-- Natural Language Activation verbalization.
 - Efficient inference with vLLM, llama.cpp, quantization, and flash attention.
 
 ## Chapter 2: Related Work
 
 Planned sections:
 
+- Embedding inversion, including Jina-style conditional masked diffusion.
+- SIPIT and hidden-state inversion baselines.
+- Prompt waywardness and interpretable soft prompts.
+- NLA or activation verbalization work.
 - G-EVAL and LLM-as-a-judge evaluation.
 - GEPA and reflective prompt optimization.
 - Prior work on prompt optimization and prompt search.
-- NLA or activation verbalization work.
 - Perplexity/confidence signals in evaluation or feedback.
 - Efficient local inference for LLM experiments.
 
@@ -39,24 +49,32 @@ Each section must end by clarifying what this thesis does differently.
 
 Planned sections:
 
-- Task definition and notation.
-- Baseline G-EVAL prompt.
+- Overall task definition: semantic fidelity of latent-to-text methods.
+- Canonical logical/semantic-stress dataset.
+- Embedding-inversion reproduction diagnostics.
+- SIPIT reproduction, logical dataset export, and random-prefix extension.
+- Standalone NLA extraction and verbalization.
+- G-Eval task definition and baseline judge prompt.
 - GEPA optimization loop.
 - Perplexity feedback.
-- NLA feedback generation.
+- NLA feedback generation for GEPA.
 - Auxiliary 35B judge feedback.
 - Prompt trajectory and artifact logging.
 
 Required original figure:
 
-- End-to-end pipeline diagram showing dataset example -> base judge ->
-  metric feedback -> optional PPL/NLA/aux feedback -> GEPA proposer ->
-  validation selection -> final-test evaluation.
+- End-to-end thesis diagram showing dataset example -> latent representation
+  extraction -> inversion/verbalization -> semantic-fidelity evaluation, plus
+  the GEPA branch: base judge -> metric feedback -> optional PPL/NLA/aux
+  feedback -> proposer -> validation selection -> final-test evaluation.
 
 ## Chapter 4: Experimental Setup
 
 Planned sections:
 
+- Canonical semantic-fidelity dataset and logical splits.
+- SIPIT datasets and prompt-window construction.
+- NLA activation extraction targets.
 - Datasets and dimensions.
 - Models and roles.
 - Cluster environment.
@@ -70,6 +88,10 @@ Planned sections:
 
 Planned sections:
 
+- Embedding-inversion diagnostics and failure-mode summary.
+- SIPIT collision check, Table 5 interim/recovered results, logical dataset,
+  and random-prefix results if available.
+- Standalone NLA activation-verbalization smokes.
 - PPL long-run result.
 - Raw-NLA negative long-run result.
 - Fixed-NLA smoke and long comparison.
@@ -81,8 +103,9 @@ Planned sections:
 ## Chapter 6: Conclusions and Future Work
 
 Summarize what was learned, what can be claimed, and what remains open. Future
-work should include stronger NLA transformation strategies, larger matrix
-coverage, and cleaner multi-dimension prompting if developed.
+work should include stronger NLA transformation strategies, direct NLA semantic
+fidelity scoring on the canonical logical dataset, larger GEPA matrix coverage,
+and cleaner multi-dimension prompting if developed.
 
 ## Acknowledgments
 
