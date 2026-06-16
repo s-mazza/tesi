@@ -12,8 +12,10 @@ import argparse
 import os
 import re
 import signal
+import ssl
 import subprocess
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -50,20 +52,46 @@ def load_credentials(path: Path) -> tuple[str, str]:
     return values["BOT_TOKEN"], values["CHAT_ID"]
 
 
-def send(token: str, chat_id: str, message: str) -> None:
+def send(token: str, chat_id: str, message: str, *, insecure_ssl: bool = False) -> None:
     data = urllib.parse.urlencode({"chat_id": chat_id, "text": message[:3900]}).encode()
     req = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMessage",
         data=data,
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=15) as response:
+    with urllib.request.urlopen(req, timeout=15, context=telegram_ssl_context(insecure_ssl=insecure_ssl)) as response:
         response.read()
+
+
+def telegram_ssl_context(*, insecure_ssl: bool = False) -> ssl.SSLContext:
+    if insecure_ssl or os.environ.get("TELEGRAM_INSECURE_SSL", "").lower() in {"1", "true", "yes"}:
+        return ssl._create_unverified_context()
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
 
 
 def safe_send(token: str, chat_id: str, message: str) -> None:
     try:
         send(token, chat_id, message)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")[:500]
+        print(f"telegram send failed: HTTPError {exc.code}: {body}", flush=True)
+    except urllib.error.URLError as exc:
+        if isinstance(getattr(exc, "reason", None), ssl.SSLCertVerificationError):
+            print("telegram send retrying with insecure SSL after certificate verification failure", flush=True)
+            try:
+                send(token, chat_id, message, insecure_ssl=True)
+            except urllib.error.HTTPError as retry_exc:
+                body = retry_exc.read().decode("utf-8", errors="replace")[:500]
+                print(f"telegram send failed: HTTPError {retry_exc.code}: {body}", flush=True)
+            except Exception as retry_exc:
+                print(f"telegram send failed after SSL fallback: {type(retry_exc).__name__}: {retry_exc}", flush=True)
+            return
+        print(f"telegram send failed: {type(exc).__name__}: {exc}", flush=True)
     except Exception as exc:
         print(f"telegram send failed: {type(exc).__name__}: {exc}", flush=True)
 
