@@ -49,15 +49,19 @@ reference-derived conventions requires explicit permission first.
 
 ## Adaptations For This Thesis
 
-- Keep the same macro-level chapter structure, but rename sections to match
-  GEPA, G-EVAL, NLA, LLM-as-a-judge, and prompt optimization.
+- Keep the same macro-level chapter structure, but keep Chapter 1 theoretical:
+  use concept-level section names such as latent-to-text inversion, exact
+  hidden-state recovery, activation verbalization, LLM-as-a-judge evaluation,
+  and prompt optimization. Named systems and papers belong to Related Work.
 - Do not copy the previous student's ad hoc content. Replace the topic-specific
   material with this thesis's problem, method, experiments, figures, results,
   and claims.
 - Reuse structure, formatting habits, tone, and thesis organization unless
   there is a clear reason to change them and that change has been approved.
 - The theory chapter should focus on what is needed to understand the method:
-  LLMs as judges, prompt optimization, evaluation metrics, NLA, perplexity,
-  and efficient inference.
+  LLMs as judges, prompt optimization, agreement metrics, activation
+  verbalization, perplexity, and latent-to-text inversion. Efficient inference
+  belongs to the experimental setup unless it is needed only as a brief
+  implementation constraint.
 - The experimental chapter should be more detailed than the reference because
   reproducibility and cluster execution are central to this thesis.

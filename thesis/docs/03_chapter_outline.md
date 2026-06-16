@@ -21,12 +21,24 @@ Planned sections:
 - Embedding inversion and activation inversion.
 - Semantic fidelity versus surface-form reconstruction.
 - Negation, logical polarity, counterfactuals, and commonsense violations.
-- SIPIT and exact hidden-state prompt recovery.
+- Exact hidden-state prompt recovery.
 - Perplexity as a model confidence/surprisal signal.
-- Natural Language Activation verbalization.
+- Activation verbalization.
 - LLMs as judges and automatic evaluation.
-- Prompting and prompt optimization.
 - Metrics for agreement with human judgments.
+- Prompting and prompt optimization.
+
+Chapter 1 should not introduce named methods or papers in detail. Names such as
+SIPIT, NLA, G-EVAL, and GEPA belong to Chapter 2 and later chapters; Chapter 1
+only provides the conceptual blocks needed to understand them.
+
+Long Chapter 1 sections should be split into short subsections when they contain
+separate conceptual blocks, for example definition, examples, caveats, and
+evaluation consequences.
+
+For the judge-related part, keep the order clear: first define rubrics and the
+LLM-as-a-judge method, then explain agreement metrics, then introduce prompt
+optimization as a separate way to improve the judge prompt.
 
 ## Chapter 2: Related Work
 

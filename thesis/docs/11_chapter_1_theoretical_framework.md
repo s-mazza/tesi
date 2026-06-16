@@ -7,10 +7,15 @@ follow. Implementation details belong to Chapter 4.
 ## Goal
 
 Give the reader the conceptual tools needed to understand why this thesis cares
-about semantic fidelity in latent-to-text methods, and why GEPA/G-EVAL is a
-useful later testbed for NLA-derived feedback.
+about semantic fidelity in latent-to-text methods, and why activation-derived
+signals and prompt optimization are relevant later in the thesis.
 
 Target length: about ten pages.
+
+Chapter 1 must avoid presenting named methods or papers as if it were already a
+related-work chapter. Names such as SIPIT, NLA, GEPA, and G-EVAL belong to
+Chapter 2 and to the method/experimental chapters. Chapter 1 should introduce
+only the theoretical concepts needed to understand them.
 
 ## Scope Boundary
 
@@ -21,12 +26,12 @@ Include:
 - embedding inversion and activation inversion;
 - semantic fidelity versus surface-form reconstruction;
 - negation, logical polarity, counterfactuals, and commonsense violations;
-- SIPIT as hidden-state prompt recovery;
-- Natural Language Activations as activation verbalization;
+- exact hidden-state prompt recovery;
+- activation verbalization;
 - perplexity as a model confidence or surprisal signal;
 - LLM-as-a-judge evaluation;
-- prompt optimization and GEPA at a conceptual level;
-- human-agreement metrics used later in G-EVAL-style evaluation.
+- prompt optimization at a conceptual level;
+- human-agreement metrics used later in judge evaluation.
 
 Exclude from Chapter 1:
 
@@ -55,6 +60,11 @@ Explain the representations that appear later in the thesis:
 The goal is not to survey every representation, but to make clear what each
 method consumes and produces.
 
+Suggested subsections:
+
+- From Tokens To Internal States.
+- Output-Side And Prompt-Side Representations.
+
 ### 1.2 Latent-To-Text Inversion
 
 Introduce the general question: given a latent representation, what information
@@ -67,8 +77,14 @@ Cover the distinction between:
 - activation verbalization, where the output is not necessarily the original
   text, but a natural-language description of what the activation represents.
 
-This section should prepare the reader for SIPIT and NLA without becoming a
-related-work survey.
+This section should prepare the reader for later hidden-state inversion and
+activation-verbalization methods without becoming a related-work survey.
+
+Suggested subsections:
+
+- The General Recovery Question.
+- Main Inversion Targets.
+- Different Notions Of Success.
 
 ### 1.3 Semantic Fidelity
 
@@ -84,30 +100,53 @@ can look close by lexical overlap or embedding similarity while changing:
 Use one or two minimal examples. Do not overload the chapter with all dataset
 examples; dataset construction belongs to Chapters 3 and 4.
 
-### 1.4 SIPIT And Exact Hidden-State Recovery
+Suggested subsections:
 
-Explain SIPIT conceptually:
+- Surface Similarity Is Not Meaning.
+- Logical Stress Cases.
+- Consequences For Evaluation.
+
+### 1.4 Exact Hidden-State Recovery
+
+Explain the underlying concept:
 
 - decoder-only hidden states can contain enough information to recover the
   prompt;
 - exact recovery is different from generating a plausible paraphrase;
-- collision checks and known-prefix controls matter because they decide what
-  can actually be claimed.
+- exact recovery is a stronger target than generating a plausible continuation;
+- exact recovery matters because it gives a clearer upper bound for semantic
+  fidelity.
 
-The detailed SIPIT reproduction and random-prefix experiments belong to later
-chapters.
+Do not discuss implementation controls such as collision checks, known-prefix
+controls, or random-prefix experiments in Chapter 1. Those belong to the method
+and experimental chapters, where the reader has enough context.
 
-### 1.5 Natural Language Activations
+Suggested subsections:
 
-Introduce the NLA framing:
+- Input Recovery As A Stronger Target.
+- Why It Matters For Semantic Fidelity.
 
-- AV maps activation vectors to text;
-- AR maps text back to activation vectors;
-- the thesis uses AV-style verbalizations as possible semantic evidence;
+### 1.5 Activation Verbalization
+
+Introduce the general activation-to-language framing:
+
+- define activation as an intermediate numerical state produced inside a model
+  while processing an input;
+- define verbalization as translating that internal state into a
+  natural-language description of what it appears to encode;
+- verbalizers map activation vectors to text;
+- reconstructors can map text back toward activations, if relevant later;
+- activation verbalizations can be possible semantic evidence;
 - verbalizations are useful but not automatically faithful or task-aligned.
 
-This section should make the later GEPA/NLA experiments understandable without
-claiming that NLA is already a validated feedback signal.
+This section should make later activation-verbalization experiments
+understandable without introducing the named related-work system in Chapter 1.
+
+Suggested subsections:
+
+- What Is Being Verbalized.
+- Description Rather Than Reconstruction.
+- Faithfulness Caveats.
 
 ### 1.6 Perplexity And Model Confidence
 
@@ -119,31 +158,31 @@ model. Keep it conceptual:
 - response-only perplexity can be used as auxiliary feedback;
 - perplexity is not the same as human-agreement metrics.
 
-### 1.7 LLM-As-A-Judge And G-EVAL
+Suggested subsections:
 
-Introduce LLM-as-a-judge evaluation and the G-EVAL task family:
+- Definition.
+- Use As An Auxiliary Signal.
 
-- a model scores generated text according to a rubric;
-- final quality is measured by agreement with human scores;
-- dimensions such as coherence, consistency, fluency, relevance, and
-  engagingness are dataset/task dependent.
+### 1.7 LLM-As-A-Judge Evaluation
 
-Dataset-specific details and exact metrics belong to Chapter 4.
+Introduce LLM-as-a-judge evaluation:
 
-### 1.8 Prompt Optimization And GEPA
+- define a rubric as the written criteria used to evaluate an output;
+- separate the evaluation task from the method used to perform scoring;
+- explain that an LLM can be used as the scoring procedure for a rubric;
+- distinguish dataset/benchmark, judge prompt, model, and scoring method.
 
-Explain prompt optimization as the process of searching for prompts that improve
-task performance. Then introduce GEPA only at the conceptual level:
+Avoid listing benchmark-specific dimensions in Chapter 1. Use at most one
+generic example such as factual consistency to clarify what a criterion is.
+Dataset-specific dimensions and exact metrics belong to Chapter 4.
 
-- evaluate a candidate prompt on examples;
-- collect feedback from failures or trajectories;
-- use a proposer model to generate revised prompts;
-- keep better candidates according to validation performance.
+Suggested subsections:
 
-The full pipeline, feedback variants, prompt logging, and implementation details
-belong to Chapter 3 and Chapter 4.
+- Rubrics And Scoring Tasks.
+- The LLM As The Scoring Procedure.
+- The Judge Prompt As Part Of The Measurement.
 
-### 1.9 Agreement Metrics
+### 1.8 Agreement Metrics
 
 Define how agreement with human judgments is read at a high level:
 
@@ -153,8 +192,49 @@ Define how agreement with human judgments is read at a high level:
 
 The exact metric list, ranges, and paper-aligned comparisons belong to Chapter 4.
 
+Suggested subsections:
+
+- Agreement Rather Than Absolute Truth.
+- Correlation Metrics.
+- Interpreting Improvements.
+
+### 1.9 Prompt Optimization
+
+Explain prompt optimization as the process of searching for prompts that improve
+task performance:
+
+- evaluate a candidate prompt on examples;
+- collect feedback from failures or trajectories;
+- use a proposer model to generate revised prompts;
+- keep better candidates according to validation performance.
+
+In the LLM-as-a-judge setting, make clear that optimization changes the judge
+prompt, not the underlying evaluation task or human reference scores.
+
+The full pipeline, feedback variants, prompt logging, and implementation details
+belong to Chapter 3 and Chapter 4.
+
+Suggested subsections:
+
+- Prompts As Search Objects.
+- Optimization In Judge Tasks.
+
 ## Transition To Chapter 2
 
 Close the chapter by stating that the next chapter positions these concepts in
-the literature: embedding inversion, SIPIT, NLA, prompt interpretability,
-G-EVAL, and GEPA.
+the literature: embedding inversion, exact hidden-state recovery, activation
+verbalization, prompt interpretability, LLM-as-a-judge evaluation, and prompt
+optimization.
+
+## Text Structure And Formatting
+
+Use subsections whenever a section combines more than one conceptual block, for
+example definition, examples, caveats, and evaluation consequences. Prefer
+short, readable subsections over long uninterrupted sections.
+
+Use light typographic emphasis in the final LaTeX:
+
+- `\textbf{...}` for key terms when first introduced or contrasted;
+- italics only when helpful for emphasis or terminology;
+- no excessive bolding, because Chapter 1 should read like prose rather than
+  lecture notes.

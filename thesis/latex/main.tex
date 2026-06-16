@@ -14,16 +14,20 @@
 \input{style/settings.tex}
 
 \universita{Alma Mater Studiorum}
-\campus{Universita di Bologna}
+\campus{Università di Bologna}
 \scuola{Department of Computer Science and Engineering}
 \corsodilaurea{Computer Science and Engineering}
 
-\titolo{Semantic Fidelity in Latent-to-Text Methods and Activation-Guided Evaluation}
-\materia{Artificial Intelligence}
+\titolo{Latent-GEPA: Accelerating Prompt Optimization via Embedding Inversion and Latent Semantic Guidance in Large Language Models}
+\materia{Data Intensive Applications}
 \laureando{Simone Mazzacano}
 \relatore[Prof.]{Gianluca Moro}
+\correlatoreA[Dr.]{Lorenzo Molfetta}
+\correlatoreB[Dr.]{Stefano Fantazzini}
+\correlatoreB[Dr.]{Giacomo Frisoni}
 
-\sessione{Third}
+
+\sessione{First}
 \annoaccademico{2025 -- 2026}
 
 \parolechiave
@@ -155,8 +159,9 @@ Our thesis work is subdivided into the following structure:
 \begin{itemize}
     \item \textbf{Chapter 1 - Theoretical Framework}: This chapter introduces
     the concepts required to understand the rest of the thesis: neural text
-    representations, latent-to-text inversion, semantic fidelity, SIPIT, NLA,
-    perplexity, LLM-as-a-judge evaluation, GEPA, and agreement metrics.
+    representations, latent-to-text inversion, semantic fidelity, exact
+    hidden-state recovery, activation verbalization, perplexity,
+    LLM-as-a-judge evaluation, prompt optimization, and agreement metrics.
 
     \item \textbf{Chapter 2 - Related Work}: This chapter reviews the research
     lines most closely related to the thesis, including embedding inversion,
@@ -211,6 +216,8 @@ Our thesis work is subdivided into the following structure:
 
 \section{Neural Text Representations}
 
+\subsection{From Tokens To Internal States}
+
 Language models process text through numerical representations. Tokens are
 mapped to vectors, vectors are transformed layer after layer, and the final
 model output is produced from a distribution over the vocabulary. This thesis
@@ -234,9 +241,11 @@ prediction task, and intermediate features used by the model.
 \textbf{Residual streams} are the running internal representations to which
 attention and feed-forward blocks add their contributions. They are especially
 important in mechanistic interpretability because they provide a common space
-where different components of the Transformer write information. NLA-style
-verbalization treats such activation vectors as objects that can be translated
-into natural-language descriptions.
+where different components of the Transformer write information. This makes
+them natural targets for methods that try to \textbf{inspect}, \textbf{describe},
+or \textbf{decode} what a model represents internally.
+
+\subsection{Output-Side And Prompt-Side Representations}
 
 \textbf{Logits} are the pre-softmax scores assigned to each vocabulary token
 before the model samples or selects an output token. After applying a softmax,
@@ -252,11 +261,15 @@ for humans.
 
 \section{Latent-To-Text Inversion}
 
+\subsection{The General Recovery Question}
+
 Latent-to-text inversion asks what can be recovered from a latent
 representation. The input may be an embedding, a hidden state, logits, or another
 internal activation; the output is text that attempts to reconstruct or describe
 the information contained in that representation. This broad framing includes
 several related but distinct tasks.
+
+\subsection{Main Inversion Targets}
 
 In \textbf{embedding inversion}, the input is usually a sentence or document
 embedding. The goal is to recover the original text, or at least a close
@@ -272,10 +285,15 @@ models, since the hidden state is part of the causal computation that produces
 the next token.
 
 In \textbf{activation verbalization}, the output is not necessarily the original
-text. Instead, the goal is to produce a natural-language description of what an
-activation represents. This distinction is central for NLA. A verbalization may
-say that an activation concerns a refusal, a factual correction, a sentiment, or
-a mathematical operation without reconstructing the exact input sentence.
+text. Here, an \textbf{activation} is an intermediate numerical state produced
+inside a model while it processes an input, such as a hidden vector at a
+specific layer and token position. To \textbf{verbalize} an activation means to
+translate that internal state into a natural-language description of what it
+appears to encode. A verbalization may say that an activation concerns a
+refusal, a factual correction, a sentiment, or a mathematical operation without
+reconstructing the exact input sentence.
+
+\subsection{Different Notions Of Success}
 
 These tasks should not be collapsed into a single notion of success. Exact
 reconstruction, plausible paraphrase, semantic preservation, and useful
@@ -284,6 +302,8 @@ to avoid overclaiming: a method can be useful while still failing to preserve
 the specific semantic property being tested.
 
 \section{Semantic Fidelity}
+
+\subsection{Surface Similarity Is Not Meaning}
 
 Semantic fidelity is the degree to which an output preserves the meaning of the
 input, not merely its surface form. A reconstruction can share many words with
@@ -296,6 +316,8 @@ by one word, but they support opposite conclusions. A metric based on lexical
 overlap may assign them a high score, even though the reconstruction has lost
 the most important information.
 
+\subsection{Logical Stress Cases}
+
 Logical polarity and causal direction create similar problems. If an input says
 that an event prevents an outcome, while the reconstruction says that the event
 causes the outcome, the semantic relation has been inverted. Counterfactuals and
@@ -305,63 +327,90 @@ more plausible ones. A method that reconstructs \quotes{The glass did not break
 after falling on concrete} as \quotes{The glass broke after falling on concrete}
 has produced a more typical sentence, but not a faithful one.
 
+\subsection{Consequences For Evaluation}
+
 This thesis therefore treats standard reconstruction metrics as incomplete.
 Token overlap, semantic similarity, and embedding similarity remain useful, but
 they must be complemented by targeted checks for meaning-preserving behavior.
 The central empirical question is whether inversion and verbalization methods
 preserve the aspects of meaning that are easiest to lose.
 
-\section{SIPIT And Exact Hidden-State Recovery}
+\section{Exact Hidden-State Recovery}
 
-SIPIT is relevant to this thesis because it studies prompt recovery from hidden
-states in decoder-only language models. Conceptually, the method asks whether an
-internal representation contains enough information to identify the prompt that
-generated it. This is different from asking whether a model can generate a
-plausible continuation. The target is recovery of the input itself.
+\subsection{Input Recovery As A Stronger Target}
 
-The distinction between exact recovery and plausible reconstruction is important
-for semantic fidelity. If a method exactly recovers the original prompt, then
-negation, polarity, and counterfactual content are preserved by definition. If a
-method only generates a likely paraphrase, then the output must be checked more
-carefully. A fluent paraphrase may erase the unusual or logically fragile part
-of the input.
+Exact hidden-state recovery asks whether an internal state contains enough
+information to identify the input text that produced it. This is a stronger
+target than ordinary language generation. In generation, a model may produce a
+sentence that is plausible after a context; in recovery, the objective is to
+infer the original context itself from the representation.
 
-SIPIT-style experiments also require controls. If a prompt can be recovered only
-because part of it is already known, the claim differs from full-sequence
-recovery. If two different prompts lead to indistinguishable internal states, a
-recovery method may face collisions. For this reason, collision checks,
-known-prefix controls, and random-prefix experiments are not implementation
-details only; they define what kind of scientific claim can be made.
+This distinction matters because plausible text is not necessarily faithful
+text. If an internal state came from the sentence \quotes{The treatment did not
+improve the symptoms}, a continuation model only needs to produce likely text
+given that context. A recovery method instead tries to recover the input
+sentence or an equivalent representation of it. The second target gives a much
+stricter way to ask what information is actually present in the hidden state.
 
-In this thesis, SIPIT is used as one component of the broader latent-to-text
-analysis. The goal is not only to reproduce a recovery pipeline, but to ask how
-well such recovery behaves on inputs where semantic fidelity is fragile.
+\subsection{Why It Matters For Semantic Fidelity}
 
-\section{Natural Language Activations}
+Exact recovery is useful as a conceptual upper bound for semantic fidelity. If a
+method recovers the original input exactly, then negation, polarity, and
+counterfactual content are preserved by construction. If it only returns a
+plausible paraphrase, then semantic fidelity must be evaluated explicitly,
+because fluency can hide meaning changes.
 
-Natural Language Activations provide a different view of latent-to-text
-analysis. Instead of treating activations only as vectors to be decoded into the
-original prompt, NLA introduces the idea that an activation can be verbalized.
-The relevant component for this thesis is the Activation Verbalizer, which maps
-an activation vector to natural language. The inverse component, the Activation
-Reconstructor, maps text back toward an activation, but it is not the main object
-of study here.
+For this reason, hidden-state recovery helps separate two questions that are
+otherwise easy to confuse: \textbf{can a model produce reasonable text?} and
+\textbf{does the representation preserve the original meaning?} The later
+method and related-work chapters introduce specific systems and experimental
+controls; here, the relevant theoretical point is only the distinction between
+recovering an input and generating a likely text.
 
-NLA verbalizations are attractive because they can make internal model states
-readable. If an activation carries information about negation, contradiction, or
-task-specific uncertainty, a verbalization might expose that information in a
-form that can be inspected or used by another model. This is why the thesis
-tests NLA both as a standalone diagnostic and as feedback for GEPA.
+\section{Activation Verbalization}
+
+\subsection{What Is Being Verbalized}
+
+An activation is a model-internal numerical object, not a sentence. It may be a
+single vector at one layer and token position, a residual-stream state, or a
+small collection of internal states selected around a model decision. Since
+these objects are not directly readable, activation verbalization tries to map
+them into ordinary language.
+
+The word \textbf{verbalization} is used here in a narrow sense: it does not mean
+that the activation is converted back into the exact prompt. It means that a
+model or procedure produces a textual description of the information that the
+activation seems to carry.
+
+\subsection{Description Rather Than Reconstruction}
+
+Activation verbalization provides a different view of latent-to-text analysis.
+Instead of treating activations only as vectors to be decoded into the original
+prompt, it asks whether an activation can be translated into a readable natural
+language description. The output is therefore a \textbf{description of internal
+content}, not necessarily a reconstruction of the exact input string.
+
+This idea is attractive because it can make internal model states inspectable.
+If an activation carries information about negation, contradiction, uncertainty,
+or task-specific reasoning, a verbalization might expose that information in a
+form that can be read by a human or reused by another model. In this sense,
+activation verbalization sits between interpretability and inversion: it does
+not promise exact decoding, but it can provide a semantic hypothesis about what
+the model is representing.
+
+\subsection{Faithfulness Caveats}
 
 However, a verbalization is not automatically faithful. It may be generic,
 completion-like, or focused on a token-level feature that is not useful for the
 task. The choice of token position, layer, and verbalization strategy matters.
 For example, verbalizing only the final token may give less semantic context
-than verbalizing several candidate tokens around the model's decision. Later
-experiments therefore treat raw NLA as a hypothesis, not as an already validated
-improvement signal.
+than verbalizing several candidate tokens around a model decision. Later
+chapters use these theoretical distinctions to interpret method-specific
+results without assuming that every readable description is also a faithful one.
 
 \section{Perplexity And Model Confidence}
+
+\subsection{Definition}
 
 Perplexity is a standard way to express how surprising a sequence is under a
 language model. If a model assigns high probability to the observed tokens, the
@@ -380,6 +429,8 @@ Perplexity is the exponential of this value:
     \exp\left(-\frac{1}{n}\sum_{i=1}^{n}\log p(y_i \mid x, y_{<i})\right).
 \]
 
+\subsection{Use As An Auxiliary Signal}
+
 In this thesis, perplexity is used as auxiliary feedback for prompt
 optimization. It is computed from the evaluated model and can indicate whether a
 generated score or explanation was natural under that model. This signal is not
@@ -388,57 +439,53 @@ annotations. A low-perplexity answer can still be wrong. Nevertheless, it can
 provide useful evidence about model confidence or hesitation when combined with
 task metrics.
 
-\section{LLM-As-A-Judge And G-EVAL}
+\section{LLM-As-A-Judge Evaluation}
 
-LLM-as-a-judge evaluation uses a language model to score generated text
-according to a rubric. Instead of relying only on automatic surface metrics, the
-model receives an input, an output to evaluate, and instructions describing a
-quality dimension. It then produces a score, sometimes with an explanation. The
-appeal of this approach is that it can approximate human evaluation at a lower
-cost and at a larger scale.
+\subsection{Rubrics And Scoring Tasks}
 
-G-EVAL is an important instance of this idea. It evaluates generated text along
-dimensions such as coherence, consistency, fluency, relevance, or engagingness,
-depending on the dataset and task. The final result is not simply the model's
-average score. The relevant question is whether the model's scores agree with
-human judgments. This is why correlation metrics become central.
+A \textbf{rubric} is a written set of criteria that defines how an output should
+be evaluated. For example, a rubric may ask whether an answer is factually
+consistent with a source document, or whether a summary covers the important
+information from an input. The rubric defines the \textbf{evaluation task}: what
+object is being judged, which criterion matters, and what kind of score should
+be produced.
 
-For this thesis, G-EVAL-style tasks are useful because they expose a concrete
-prompt-optimization problem. A judge prompt must translate a natural-language
-rubric into stable numerical behavior. If the prompt is underspecified, the
-model may use the wrong cues. If the prompt is too rigid, it may ignore relevant
-context. GEPA is then used to search for prompts that improve agreement with
-human scores.
+\subsection{The LLM As The Scoring Procedure}
 
-\section{Prompt Optimization And GEPA}
+LLM-as-a-judge evaluation is a method for carrying out such a scoring task. A
+language model receives the material to evaluate, the rubric, and usually an
+instruction specifying the output format. It then produces a score, sometimes
+with a short explanation. In this setting, the LLM is not the task itself; it is
+the \textbf{scoring procedure} used to approximate or automate a judgment that
+would otherwise be produced by humans.
 
-Prompt optimization is the process of improving a prompt so that a language
-model performs better on a target task. A prompt can define the task, specify a
-rubric, constrain the output format, provide examples, or warn the model about
-common errors. Because LLM behavior is highly prompt-sensitive, manual prompt
-engineering is often insufficient for systematic comparison.
+This distinction avoids an important ambiguity. A dataset or benchmark can
+define examples, human annotations, and target scores. A judge prompt can define
+how the model should apply a rubric. The LLM-as-a-judge method is the act of
+using the model to assign scores under those instructions. Later chapters
+introduce the specific benchmarks and implementations used in this thesis.
 
-GEPA approaches prompt optimization as an iterative search process. A candidate
-prompt is evaluated on a set of examples. The failures, scores, and other
-available feedback are then used by a proposer model to suggest a revised
-prompt. The revised prompt is evaluated again, and better candidates are kept
-according to validation performance. Over time, the search can produce prompts
-that are longer, more explicit, and more aligned with the evaluation metric.
+\subsection{The Judge Prompt As Part Of The Measurement}
 
-This thesis uses GEPA in the LLM-as-a-judge setting. The prompt being optimized
-is the judge prompt, and the objective is agreement with human scores on
-G-EVAL-style tasks. The feedback given to the proposer can include the ordinary
-metric signal, perplexity values, NLA verbalizations, and optionally feedback
-from a stronger auxiliary judge. This makes GEPA a practical testbed for asking
-whether latent information can improve downstream evaluation behavior.
+The prompt given to the judge is part of the measurement procedure. It translates
+the rubric into operational instructions for the model: what to read, what to
+ignore, how to reason about the criterion, and how to format the score. If the
+prompt is underspecified, the model may use irrelevant cues. If it is too rigid,
+it may ignore context that a human evaluator would consider. This makes
+LLM-as-a-judge evaluation both a measurement problem and a prompt-design
+problem.
 
 \section{Agreement Metrics}
+
+\subsection{Agreement Rather Than Absolute Truth}
 
 When a judge model assigns scores to examples that already have human
 annotations, performance is measured by agreement between the model scores and
 the human scores. The most important distinction is that these metrics evaluate
 relative alignment, not absolute truth. A judge is useful if examples that
 humans rate higher also tend to receive higher model scores.
+
+\subsection{Correlation Metrics}
 
 Pearson correlation measures linear association between two sets of scores. It
 is sensitive to the scale of the values and answers the question of whether
@@ -448,12 +495,43 @@ the model agrees with the order induced by humans. Kendall correlation also
 focuses on rank agreement and can be interpreted through concordant and
 discordant pairs.
 
+\subsection{Interpreting Improvements}
+
 These metrics have different sensitivities, so a complete evaluation should
 report the paper-aligned set rather than selecting only the metric that improves
 most. Later chapters define the exact metric boundaries, datasets, dimensions,
 and comparison protocol used in the experiments. For Chapter 1, the key idea is
 that agreement metrics determine whether a judge prompt actually behaves more
 like human annotators.
+
+\section{Prompt Optimization}
+
+\subsection{Prompts As Search Objects}
+
+Prompt optimization is the process of improving a prompt so that a language
+model performs better on a target task. A prompt can define the task, specify a
+rubric, constrain the output format, provide examples, or warn the model about
+common errors. Because LLM behavior is highly prompt-sensitive, manual prompt
+engineering is often insufficient for systematic comparison.
+
+Automatic prompt optimization treats prompt design as an iterative search
+problem. A candidate prompt is evaluated on a set of examples. The failures,
+scores, and other available feedback can then be used to suggest a revised
+prompt. The revised prompt is evaluated again, and better candidates are kept
+according to validation performance.
+
+\subsection{Optimization In Judge Tasks}
+
+In judge tasks, prompt optimization operates on the instructions given to the
+judge model. The evaluation task and the human reference scores stay fixed; what
+changes is the textual interface that tells the model how to apply the rubric.
+This boundary is important: optimizing the prompt does not redefine the task,
+but it can change how reliably the model performs the task.
+
+Over time, the search can produce prompts that are \textbf{longer},
+\textbf{more explicit}, and \textbf{more aligned} with the target evaluation
+metric. The method-specific optimizer used later in the thesis is introduced in
+the related-work chapter and then described operationally in the method chapter.
 
 This chapter introduced the theoretical concepts needed by the rest of the
 thesis. The next chapter positions these concepts within previous work on
