@@ -129,12 +129,32 @@ Deadline and launch priority from the expanded plan:
 - Aux-judge smoke/long configs now require:
   - `JUDGE_MIN_FREE_MEMORY_MIB=18000`
   - `PROPOSER_MIN_FREE_MEMORY_MIB=22500`
-  - `GPU_MEMORY_WAIT_SECONDS=0`
-- The zero-second wait is intentional: if Slurm assigns a GPU that is already
-  polluted by unrelated processes, the job should fail cleanly and release the
-  allocation instead of holding the slot for hours.
+  - `GPU_MEMORY_WAIT_SECONDS=300`
+- The five-minute memory wait is intentional for these Qwen35B aux-judge runs:
+  if Slurm assigns a GPU that is briefly polluted by unrelated processes, the
+  job waits for the GPU to become usable instead of failing immediately. If the
+  GPU is still below the required free-memory threshold after the wait, the job
+  fails cleanly and releases the allocation.
 - Replacement smoke submitted: job `11913922`.
 - Replacement long submitted with `afterok:11913922`: job `11913923`.
+
+2026-06-16 replacement update:
+
+- Smoke job `11913922` failed before GEPA began. Root cause: the llama.cpp
+  Qwen35B sidecar saw only 7578 MiB free on the selected RTX 3090 and failed
+  while allocating about 20583 MiB.
+- Additional discrepancy found: the remote launcher on `faretra` still used a
+  stale GPU-selection path that assigned fixed first/second devices instead of
+  the local highest-free-memory selection. The local `run_docker.sh` was synced
+  to `faretra` before resubmission.
+- Config hardening: both aux-judge smoke and long configs now set
+  `GPU_MEMORY_WAIT_SECONDS=300`, preserving the existing 18000/22500 MiB memory
+  thresholds.
+- Pre-submit readiness check passed for the smoke config after the sync.
+- Cancelled stale dependent long job `11913923`
+  (`DependencyNeverSatisfied`).
+- Replacement smoke submitted: job `11914197`.
+- Replacement long submitted with `afterok:11914197`: job `11914198`.
 
 Auxiliary judge meaning:
 
