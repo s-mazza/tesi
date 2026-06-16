@@ -1143,6 +1143,18 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertIsNotNone(spec)
         self.assertIsNotNone(spec.loader if spec else None)
 
+    def test_soft_prompt_sipit_module_imports_without_gpu_dependencies(self) -> None:
+        import importlib.util
+
+        module_path = Path(__file__).resolve().parents[1] / "soft_prompting" / "sipit_soft_prompt_recover.py"
+        spec = importlib.util.spec_from_file_location("sipit_soft_prompt_recover", module_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader if spec else None)
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            self.assertTrue(hasattr(module, "load_soft_prompt"))
+
     def test_evaluate_program_predictions_include_debug_text(self) -> None:
         with TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "tc.json"

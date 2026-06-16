@@ -22,6 +22,7 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-gepa-experiments/results/slurm}"
 JOB_SLUG="${JOB_SLUG:-soft-prompt-${DATASET:-topical_chat}-${DIMENSION:-engagingness}}"
 JOB_SLUG="${JOB_SLUG// /_}"
 SOFT_PROMPT_IMAGE="${SOFT_PROMPT_IMAGE:-geval_gepa_softprompt:latest}"
+SOFT_PROMPT_RUN_SCRIPT="${SOFT_PROMPT_RUN_SCRIPT:-gepa-experiments/slurm/run_soft_prompt_job.sh}"
 TELEGRAM_MONITOR="${TELEGRAM_MONITOR:-1}"
 TELEGRAM_MONITOR_SCRIPT="${TELEGRAM_MONITOR_SCRIPT:-gepa-experiments/slurm/telegram_monitor.py}"
 TELEGRAM_MONITOR_ROOT="${TELEGRAM_MONITOR_ROOT:-gepa-experiments/results/monitor}"
@@ -57,7 +58,7 @@ SBATCH_OUTPUT="$(sbatch \
   --output="${OUTPUT_ROOT}/slurm-%j-${JOB_SLUG}.out" \
   --export=ALL,CONFIG_FILE="$CONFIG_FILE",IMAGE_NAME="$SOFT_PROMPT_IMAGE" \
   gepa-experiments/slurm/run_docker.sh \
-  "bash gepa-experiments/slurm/run_soft_prompt_job.sh")"
+  "bash ${SOFT_PROMPT_RUN_SCRIPT}")"
 
 JOB_ID="${SBATCH_OUTPUT%%;*}"
 echo "Submitted batch job ${JOB_ID}"
