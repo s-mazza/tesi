@@ -25,9 +25,12 @@ Include:
 - prompt waywardness and soft-prompt interpretability;
 - Natural Language Activations and activation verbalization;
 - LLM-as-a-judge evaluation and G-EVAL;
-- prompt optimization, with GEPA as the main optimizer;
-- auxiliary feedback signals only when they relate to prompt evaluation or
-  prompt optimization.
+- prompt optimization, with GEPA as the main optimizer.
+
+Auxiliary feedback signals such as perplexity, NLA verbalizations, and
+auxiliary-judge summaries are thesis-specific method variants. They should be
+mentioned only as a bridge from GEPA to Chapter 3 unless a directly relevant
+related-work citation is added.
 
 Exclude from Chapter 2:
 
@@ -54,6 +57,32 @@ there, not as a standalone related-work section.
 - The concrete paper inventory lives in `10_paper_reading_list.md`. This file
   keeps the chapter structure; the reading list keeps canonical URLs, local PDF
   paths, duplicate local copies, and priority notes.
+
+## Figure Policy
+
+Do not add paper figures to Chapter 2 unless they clearly reduce explanatory
+text and are explicitly referenced in the surrounding paragraph. The current
+draft intentionally avoids paper figures because the related-work claims are
+short enough to explain in prose, while copied figures would require careful
+copyright handling and source captions.
+
+Preferred figures for the thesis:
+
+- Chapter 3 original method diagram showing the inversion/verbalization branch
+  and the GEPA feedback branch;
+- Chapter 4 or Chapter 5 tables for datasets, metrics, models, and
+  experimental variants;
+- Chapter 5 result plots produced from our artifacts.
+
+Possible Chapter 2 paper figures, only if later needed:
+
+- a GEPA optimization-loop figure, if the method text becomes too long;
+- an NLA AV/AR schematic, if the distinction between activation verbalization
+  and reconstruction remains unclear after Chapter 3 is drafted.
+
+If any paper figure is included, the caption must explicitly state that it is
+adapted or reproduced from the cited work and the figure must be mentioned in
+the text.
 
 ## Proposed Section Structure
 
@@ -240,32 +269,22 @@ The thesis does not propose a new general prompt optimizer. It studies whether
 perplexity, NLA, and auxiliary-judge feedback can make GEPA improve a
 G-EVAL-style judge prompt.
 
-### 2.8 Auxiliary Feedback Signals For Prompt Proposal
+### Transition Bridge: Auxiliary Feedback Signals
 
-Purpose: provide a short bridge between the core GEPA literature and the thesis
-feedback variants.
+Do not keep this as a standalone related-work section unless a directly
+relevant paper is added. In the current structure, perplexity, NLA
+verbalizations, and auxiliary-judge summaries are introduced as thesis-specific
+method variants after the GEPA discussion and then defined operationally in
+Chapter 3.
 
-Papers to cover:
+Expected transition:
 
-- confidence, likelihood, or perplexity work only if a relevant citation is
-  needed;
-- LLM-generated feedback work only if it directly supports the auxiliary-judge
-  design.
-
-Expected discussion:
-
-- perplexity is a model-internal surprisal signal, not a final evaluation
-  metric;
-- NLA is an activation-derived signal, not a score by itself;
-- an auxiliary judge can compress raw evidence into rubric-level feedback for
-  the proposer;
-- these signals must be compared against matched controls.
-
-Thesis contrast:
-
-This section should stay short. The method chapter explains the implemented
-feedback variants; the related-work chapter only motivates why they are
-reasonable to test.
+- perplexity was introduced theoretically in Chapter 1;
+- NLA is introduced as related work in Section 2.5;
+- GEPA is introduced as related work in Section 2.7;
+- Chapter 3 combines them as proposal aids, not as final evaluation metrics;
+- matched controls are required before claiming that any auxiliary signal
+  improves GEPA.
 
 ## Transition To Chapter 3
 
