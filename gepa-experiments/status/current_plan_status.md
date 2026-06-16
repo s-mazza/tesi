@@ -127,7 +127,7 @@ Deadline and launch priority from the expanded plan:
   explicit `PROPOSER_GPU_DEVICE` is set, keeps judge/proposer devices distinct,
   and uses config-level startup memory gates.
 - Aux-judge smoke/long configs now require:
-  - `JUDGE_MIN_FREE_MEMORY_MIB=18000`
+  - `JUDGE_MIN_FREE_MEMORY_MIB=22500`
   - `PROPOSER_MIN_FREE_MEMORY_MIB=22500`
   - `GPU_MEMORY_WAIT_SECONDS=300`
 - The five-minute memory wait is intentional for these Qwen35B aux-judge runs:
@@ -147,9 +147,12 @@ Deadline and launch priority from the expanded plan:
   stale GPU-selection path that assigned fixed first/second devices instead of
   the local highest-free-memory selection. The local `run_docker.sh` was synced
   to `faretra` before resubmission.
-- Config hardening: both aux-judge smoke and long configs now set
-  `GPU_MEMORY_WAIT_SECONDS=300`, preserving the existing 18000/22500 MiB memory
-  thresholds.
+- Config hardening at submission time: both aux-judge smoke and long configs
+  set `GPU_MEMORY_WAIT_SECONDS=300` with 18000/22500 MiB memory thresholds.
+- Follow-up hardening: `JUDGE_MIN_FREE_MEMORY_MIB` was raised from 18000 to
+  22500 before the replacement jobs started. With `GPU_MEMORY_UTILIZATION=0.90`
+  on a 24 GiB RTX 3090, an 18 GiB gate can still pass while vLLM later needs
+  more than 21 GiB and crashes during startup.
 - Pre-submit readiness check passed for the smoke config after the sync.
 - Cancelled stale dependent long job `11913923`
   (`DependencyNeverSatisfied`).
