@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## Objective
 
@@ -33,6 +33,47 @@ For each dataset/dimension target, run:
 - `ppl_nla_auxjudge`: GEPA with perplexity, NLA, and optional 35B auxiliary judge feedback
 
 The 35B llama.cpp model is used as GEPA proposer. The NLA and perplexity signals are computed on the base Qwen 7B model.
+
+## 2026-06-16 Multi-Node Utilization Update
+
+Current scheduling rule:
+
+- Two-GPU Qwen35B proposer jobs remain flexible but effectively require `faretra`, because `moro232` has only one RTX 3090 and cannot host the llama.cpp proposer sidecar plus the main vLLM judge job.
+- Single-GPU jobs that answer a distinct secondary question should be pinned to `moro232` when it is idle, so they do not compete with the two-GPU Qwen35B queue.
+- `moro43` has an RTX 5090 but is not part of the current stable path; use it only after a compatibility smoke for the active CUDA/vLLM/container stack.
+
+Submitted single-GPU soft-prompt jobs for the advisor-requested soft-prompt/SIPIT follow-up:
+
+- `11914224`: first soft-prompt smoke on `moro232`; failed immediately because `train_soft_judge.py` imported the obsolete type name `EvalRow` instead of `EvalExample`.
+- Fix applied: `gepa-experiments/soft_prompting/train_soft_judge.py` now imports and annotates `EvalExample`.
+- `11914225`: replacement soft-prompt smoke on `moro232`; completed and produced adapter, metrics, predictions, `soft_prompt_embeddings.pt`, `nearest_tokens.jsonl`, and `sipit_soft_prompt_manifest.json` under `gepa-experiments/results/soft_prompt_topical_chat_engagingness_smoke`.
+- Smoke split: 4/2/2 Topical-Chat groups, 24 train rows, 12 validation rows, 12 test rows.
+- Smoke result: baseline and soft-prompt metrics were identical on validation and test, so this is only a plumbing/artifact validation, not scientific evidence that soft prompting helps.
+- `11914226`: longer soft-prompt run on `moro232`, using all 60 Topical-Chat groups as 40/10/10 train/validation/test. It is intended to produce a more meaningful learned soft prompt for later SIPIT verbalization.
+- `11914232`: follow-up soft-prompt full-context run on `moro232`, dependency `afterok:11914226`, same 40/10/10 split but `SOFT_PROMPT_MAX_SEQ_LEN=2048` and eval batch 1. It was queued because `11914226` skipped 6 training rows at max length 1024.
+- `11914226` completed: 240 train rows, 234 tokenized; validation Pearson improved from 0.5371 to 0.5483, but test Pearson dropped from 0.7568 to 0.7235. Treat as useful soft-prompt artifact generation, not as a robust task improvement.
+- `11914232` completed: 240 train rows, 240 tokenized; validation Pearson improved from 0.5371 to 0.5996, but test Pearson dropped from 0.7568 to 0.7085. Treat as a stronger validation signal but still not a final scientific improvement claim because final-test degradation remains.
+- `11914237`: SIPIT-style bounded recovery for the 2048 soft prompt, dependency `afterok:11914232`, pinned to `moro232` because it consumes node-local 2048 artifacts produced there.
+- `11914238`: older pinned SIPIT recovery for the 1024 soft prompt was cancelled to avoid unnecessary node pinning.
+- `11914239`: SIPIT-style bounded recovery for the 1024 soft prompt, submitted without `SLURM_NODE` after syncing 1024 artifacts to both `moro232` and `faretra`; this job can run on the first compatible single-GPU node.
+
+Advisor-requested NLA token-position sweep queued on `faretra`:
+
+- Jobs `11914211` through `11914222` cover `candidate_first_1`, `candidate_middle_1`, `candidate_last_1`, `candidate_fml_3`, `candidate_quintile_5`, `candidate_even_8`, `source_fml_3`, `reference_fml_3`, `balanced_fml_9`, `prompt_tail_6`, `evaluation_tail_3`, and `hybrid_context_dedup_8`.
+- These jobs intentionally keep the Qwen35B proposer setting and therefore need two RTX 3090 GPUs on the same node; they cannot run on single-GPU `moro232`.
+- They remain separate from the main pipeline and should be compared as an isolated NLA-token-selection diagnostic.
+
+Operational fixes from this update:
+
+- `gepa-experiments/config/soft_prompt_topical_chat_engagingness_smoke.env` now requests `SLURM_MEM=28G`, because `moro232` cannot satisfy the previous 64G request.
+- Added `gepa-experiments/config/soft_prompt_topical_chat_engagingness_long.env`.
+- Added `gepa-experiments/config/soft_prompt_topical_chat_engagingness_long_2048.env`.
+- Added `gepa-experiments/soft_prompting/sipit_soft_prompt_recover.py` and `gepa-experiments/slurm/run_soft_prompt_sipit_job.sh` for separate SIPIT recovery diagnostics on learned soft-prompt embeddings.
+- Added SIPIT recovery configs for the 1024 and 2048 soft-prompt artifacts.
+- `gepa-experiments/slurm/submit_soft_prompt.sh` now supports `SLURM_DEPENDENCY` and starts the Telegram monitor like the GEPA submitters.
+- `gepa-experiments/slurm/telegram_monitor.py` now retries Telegram sends with an insecure SSL context only after certificate verification fails, and logs HTTP error bodies for diagnosis.
+- Cluster Telegram monitoring currently has a CA-chain issue on both `faretra` and `moro232`; the monitor fallback prevents SSL-only failures, but any persistent HTTP 403 still indicates a token/chat/API problem to debug separately.
+- Scheduling rule refinement: independent single-GPU jobs should not be pinned. Artifact-dependent jobs may be pinned only when the consumed artifact is node-local and has not yet been synchronized to all eligible nodes.
 
 ## 2026-06-13 Matrix Expansion
 
