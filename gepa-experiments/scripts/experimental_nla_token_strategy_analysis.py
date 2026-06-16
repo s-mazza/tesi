@@ -15,6 +15,7 @@ from typing import Any
 from export_nla_manifest import render_prompt
 from geval_gepa.prompts import seed_instructions
 from geval_gepa.tasks import get_task, split_examples
+from experimental_build_nla_precomputed import ExperimentalTokenSelector, STRATEGIES
 
 
 WORD_RE = re.compile(r"\b[\w'-]{4,}\b")
@@ -114,88 +115,38 @@ def build_manifest_rows(args: argparse.Namespace) -> list[dict[str, Any]]:
 
 
 def strategies() -> dict[str, dict[str, Any]]:
-    return {
-        "current_fixed_6": {"budgets": {"candidate": 3, "source": 1, "reference": 2}},
-        "candidate_only_6": {"budgets": {"candidate": 6, "source": 0, "reference": 0}},
-        "candidate_source_6": {"budgets": {"candidate": 4, "source": 2, "reference": 0}},
-        "candidate_reference_6": {"budgets": {"candidate": 4, "source": 0, "reference": 2}},
-        "balanced_6": {"budgets": {"candidate": 2, "source": 2, "reference": 2}},
-        "candidate_only_10": {"budgets": {"candidate": 10, "source": 0, "reference": 0}},
-        "candidate_source_10": {"budgets": {"candidate": 7, "source": 3, "reference": 0}},
-        "candidate_no_first_6": {"budgets": {"candidate": 6, "source": 0, "reference": 0}, "avoid_first": True},
-        "candidate_content_6": {
-            "budgets": {"candidate": 6, "source": 0, "reference": 0},
-            "avoid_first": True,
-            "filter_weak": True,
-        },
-        "candidate_content_10": {
-            "budgets": {"candidate": 10, "source": 0, "reference": 0},
-            "avoid_first": True,
-            "filter_weak": True,
-        },
-        "candidate_source_content_8": {
-            "budgets": {"candidate": 6, "source": 2, "reference": 0},
-            "avoid_first": True,
-            "filter_weak": True,
-        },
-        "hybrid_context_dedup_6": {
-            "budgets": {"candidate": 4, "source": 1, "reference": 1},
-            "avoid_first": True,
-            "filter_weak": True,
-            "dedupe_context_fields": {"source", "reference"},
-        },
-        "hybrid_context_dedup_8": {
-            "budgets": {"candidate": 6, "source": 1, "reference": 1},
-            "avoid_first": True,
-            "filter_weak": True,
-            "dedupe_context_fields": {"source", "reference"},
-        },
-    }
+    return STRATEGIES
 
 
 def choose_tokens(rows: list[dict[str, Any]]) -> list[TokenChoice]:
     choices: list[TokenChoice] = []
-    seen_context_fields: set[tuple[str, str, str]] = set()
+    selectors = {strategy_name: ExperimentalTokenSelector(strategy_name) for strategy_name in strategies()}
     for row in rows:
-        fields = {
-            "candidate": str(row.get("candidate_output") or ""),
-            "source": str(row.get("source_text") or ""),
-            "reference": str(row.get("fact") or row.get("reference") or ""),
-        }
-        for strategy_name, spec in strategies().items():
-            budgets = spec["budgets"]
-            for field, budget in budgets.items():
-                if budget <= 0:
-                    continue
-                group_id = str(row["group_id"])
-                dedupe_context_fields = set(spec.get("dedupe_context_fields", set()))
-                if field in dedupe_context_fields:
-                    context_key = (strategy_name, group_id, field)
-                    if context_key in seen_context_fields:
-                        continue
-                text = fields[field]
-                if not text or text == "_nofact":
-                    continue
-                if field in dedupe_context_fields:
-                    seen_context_fields.add(context_key)
-                for position, token_text, word_index in sample_words(
-                    text,
-                    budget,
-                    avoid_first=bool(spec.get("avoid_first")),
-                    filter_weak=bool(spec.get("filter_weak")),
-                ):
-                    choices.append(
-                        TokenChoice(
-                            strategy=strategy_name,
-                            example_id=str(row["example_id"]),
-                            group_id=group_id,
-                            field=field,
-                            position=position,
-                            token_text=token_text,
-                            word_index=word_index,
-                        )
+        rendered_prompt = str(row.get("prompt") or "")
+        for strategy_name, selector in selectors.items():
+            for target in selector.select(row, rendered_prompt):
+                field, position = split_token_position(target.token_position)
+                choices.append(
+                    TokenChoice(
+                        strategy=strategy_name,
+                        example_id=str(target.output_example_id or row["example_id"]),
+                        group_id=str(row["group_id"]),
+                        field=field,
+                        position=position,
+                        token_text=target.token_text,
+                        word_index=-1,
                     )
+                )
     return choices
+
+
+def split_token_position(token_position: str) -> tuple[str, str]:
+    parts = token_position.split("_")
+    if not parts:
+        return "unknown", token_position
+    if parts[0] == "context" and len(parts) >= 3:
+        return parts[1], "_".join(parts[2:])
+    return parts[0], "_".join(parts[1:]) if len(parts) > 1 else ""
 
 
 def sample_words(text: str, limit: int, *, avoid_first: bool = False, filter_weak: bool = False) -> list[tuple[str, str, int]]:

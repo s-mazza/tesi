@@ -63,6 +63,49 @@ class ExperimentalTokenTarget:
 
 
 STRATEGIES: dict[str, dict[str, Any]] = {
+    "candidate_first_1": {
+        "positions": {"candidate": ["first"]},
+    },
+    "candidate_middle_1": {
+        "positions": {"candidate": ["middle"]},
+    },
+    "candidate_last_1": {
+        "positions": {"candidate": ["last"]},
+    },
+    "candidate_fml_3": {
+        "positions": {"candidate": ["first", "middle", "last"]},
+    },
+    "candidate_quintile_5": {
+        "positions": {"candidate": ["first", "q25", "middle", "q75", "last"]},
+        "filter_weak": True,
+    },
+    "candidate_even_8": {
+        "positions": {"candidate": ["even8"]},
+        "filter_weak": True,
+    },
+    "source_fml_3": {
+        "positions": {"source": ["first", "middle", "last"]},
+        "filter_weak": True,
+    },
+    "reference_fml_3": {
+        "positions": {"reference": ["first", "middle", "last"]},
+        "filter_weak": True,
+    },
+    "balanced_fml_9": {
+        "positions": {
+            "candidate": ["first", "middle", "last"],
+            "source": ["first", "middle", "last"],
+            "reference": ["first", "middle", "last"],
+        },
+        "filter_weak": True,
+    },
+    "prompt_tail_6": {
+        "positions": {"prompt": ["tail6"]},
+        "filter_weak": True,
+    },
+    "evaluation_tail_3": {
+        "positions": {"evaluation": ["first", "middle", "last"]},
+    },
     "candidate_content_6": {
         "budgets": {"candidate": 6, "source": 0, "reference": 0},
         "avoid_first": True,
@@ -125,34 +168,38 @@ class ExperimentalTokenSelector:
     def select(self, manifest_row: dict[str, Any], rendered_prompt: str) -> list[ExperimentalTokenTarget]:
         targets: list[ExperimentalTokenTarget] = []
         group_id = str(manifest_row.get("group_id") or "")
-        fields = {
-            "candidate": str(manifest_row.get("candidate_output") or ""),
-            "source": str(manifest_row.get("source_text") or ""),
-            "reference": str(manifest_row.get("fact") or manifest_row.get("reference") or ""),
-        }
-        budgets = self.spec["budgets"]
-        for field_name in ("candidate", "source", "reference"):
-            budget = int(budgets.get(field_name, 0))
-            if budget <= 0:
-                continue
+        fields = field_texts_and_offsets(manifest_row, rendered_prompt)
+        field_positions = self.spec.get("positions")
+        if field_positions:
+            field_items = [(field_name, list(positions)) for field_name, positions in field_positions.items()]
+        else:
+            budgets = self.spec["budgets"]
+            field_items = [
+                (field_name, int(budgets.get(field_name, 0)))
+                for field_name in ("candidate", "source", "reference")
+                if int(budgets.get(field_name, 0)) > 0
+            ]
+        for field_name, selection_spec in field_items:
             is_context_shared = field_name in set(self.spec.get("dedupe_context_fields", set()))
             if is_context_shared:
                 context_key = (group_id, field_name)
                 if context_key in self._seen_context_fields:
                     continue
-            field_text = fields[field_name]
+            field_text, base_offset = fields.get(field_name, ("", -1))
             if not field_text or field_text == "_nofact":
                 continue
-            base_offset = rendered_prompt.find(field_text)
             if base_offset < 0:
                 continue
             if is_context_shared:
                 self._seen_context_fields.add(context_key)
+            positions = selection_spec if isinstance(selection_spec, list) else None
+            budget = int(selection_spec) if not isinstance(selection_spec, list) else len(selection_spec)
             for label, word, start, end in sample_words(
                 field_text,
                 budget,
                 avoid_first=bool(self.spec.get("avoid_first")),
                 filter_weak=bool(self.spec.get("filter_weak")),
+                positions=positions,
             ):
                 targets.append(
                     ExperimentalTokenTarget(
@@ -169,31 +216,111 @@ class ExperimentalTokenSelector:
         return targets
 
 
-def sample_words(text: str, limit: int, *, avoid_first: bool, filter_weak: bool) -> list[tuple[str, str, int, int]]:
+def field_texts_and_offsets(manifest_row: dict[str, Any], rendered_prompt: str) -> dict[str, tuple[str, int]]:
+    candidate = str(manifest_row.get("candidate_output") or "")
+    source = str(manifest_row.get("source_text") or "")
+    reference = str(manifest_row.get("fact") or manifest_row.get("reference") or "")
+    marker = "Evaluation form:"
+    marker_start = rendered_prompt.find(marker)
+    return {
+        "candidate": (candidate, rendered_prompt.find(candidate) if candidate else -1),
+        "source": (source, rendered_prompt.find(source) if source else -1),
+        "reference": (reference, rendered_prompt.find(reference) if reference else -1),
+        "prompt": (rendered_prompt, 0),
+        "evaluation": (
+            rendered_prompt[marker_start:] if marker_start >= 0 else "",
+            marker_start,
+        ),
+    }
+
+
+def sample_words(
+    text: str,
+    limit: int,
+    *,
+    avoid_first: bool,
+    filter_weak: bool,
+    positions: list[str] | None = None,
+) -> list[tuple[str, str, int, int]]:
     matches = list(WORD_RE.finditer(text))
     if not matches:
         return []
+    labeled_indexes = (
+        position_labeled_indexes(matches, positions)
+        if positions
+        else default_labeled_indexes(matches, limit=limit, avoid_first=avoid_first)
+    )
+    selected: list[tuple[str, int]] = []
+    seen: set[int] = set()
+    for label, index in labeled_indexes:
+        token = matches[index].group(0).lower()
+        if avoid_first and index == 0 and len(matches) > 2:
+            continue
+        if filter_weak and token in WEAK_TOKENS:
+            continue
+        if index not in seen:
+            selected.append((label, index))
+            seen.add(index)
+        if len(selected) >= limit and not positions:
+            break
+    return [
+        (label, matches[index].group(0), matches[index].start(), matches[index].end())
+        for label, index in selected
+    ]
+
+
+def default_labeled_indexes(
+    matches: list[re.Match[str]],
+    *,
+    limit: int,
+    avoid_first: bool,
+) -> list[tuple[str, int]]:
     indexes = [len(matches) // 2, len(matches) - 1]
     if not avoid_first:
         indexes.append(0)
     if limit > 3:
         step = max(1, len(matches) // limit)
         indexes.extend(range(0, len(matches), step))
-    selected: list[int] = []
-    for index in indexes:
-        token = matches[index].group(0).lower()
-        if avoid_first and index == 0 and len(matches) > 2:
-            continue
-        if filter_weak and token in WEAK_TOKENS:
-            continue
-        if index not in selected:
-            selected.append(index)
-        if len(selected) >= limit:
-            break
-    return [
-        (label_for_index(index, matches), matches[index].group(0), matches[index].start(), matches[index].end())
-        for index in selected
-    ]
+    return [(label_for_index(index, matches), index) for index in indexes]
+
+
+def position_labeled_indexes(matches: list[re.Match[str]], positions: list[str] | None) -> list[tuple[str, int]]:
+    output: list[tuple[str, int]] = []
+    if not positions:
+        return output
+    for position in positions:
+        if position.startswith("even"):
+            count = int(position[len("even") :] or "0")
+            output.extend((f"even{item + 1}_of_{count}", index) for item, index in enumerate(even_indexes(len(matches), count)))
+        elif position.startswith("tail"):
+            count = int(position[len("tail") :] or "0")
+            tail = list(range(max(0, len(matches) - count), len(matches)))
+            output.extend((f"tail{item + 1}_of_{count}", index) for item, index in enumerate(tail))
+        else:
+            output.append((position, index_for_named_position(len(matches), position)))
+    return output
+
+
+def even_indexes(length: int, count: int) -> list[int]:
+    if length <= 0 or count <= 0:
+        return []
+    if count == 1:
+        return [length // 2]
+    return sorted({round(item * (length - 1) / (count - 1)) for item in range(count)})
+
+
+def index_for_named_position(length: int, position: str) -> int:
+    if position == "first":
+        return 0
+    if position == "middle":
+        return length // 2
+    if position == "last":
+        return length - 1
+    if position == "q25":
+        return round((length - 1) * 0.25)
+    if position == "q75":
+        return round((length - 1) * 0.75)
+    raise ValueError(f"Unsupported token position: {position}")
 
 
 def label_for_index(index: int, matches: list[re.Match[str]]) -> str:

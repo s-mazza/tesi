@@ -1105,6 +1105,44 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertFalse(any(target.shared_group_feedback for target in second_targets))
         self.assertTrue(any(target.token_position.startswith("candidate_") for target in second_targets))
 
+    def test_experimental_position_strategies_select_expected_fields(self) -> None:
+        row = {
+            "example_id": "ctx1_response_00",
+            "group_id": "ctx1",
+            "source_text": "Alice discusses astronomy with detailed comet observations.",
+            "candidate_output": "The candidate asks about meteor showers and stars tonight.",
+            "fact": "A comet was visible from Earth for several nights.",
+            "prompt": "",
+        }
+        prompt = "\n".join(
+            [
+                row["source_text"],
+                row["fact"],
+                row["candidate_output"],
+                "Evaluation form:",
+                "Rationale:",
+                "Score:",
+            ]
+        )
+
+        candidate_targets = ExperimentalTokenSelector("candidate_fml_3").select(row, prompt)
+        self.assertEqual(
+            [target.token_position for target in candidate_targets],
+            ["candidate_first", "candidate_middle", "candidate_last"],
+        )
+
+        prompt_targets = ExperimentalTokenSelector("prompt_tail_6").select(row, prompt)
+        self.assertTrue(prompt_targets)
+        self.assertTrue(all(target.token_position.startswith("prompt_tail") for target in prompt_targets))
+
+    def test_soft_prompt_module_imports_without_gpu_dependencies(self) -> None:
+        import importlib.util
+
+        module_path = Path(__file__).resolve().parents[1] / "soft_prompting" / "train_soft_judge.py"
+        spec = importlib.util.spec_from_file_location("train_soft_judge", module_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader if spec else None)
+
     def test_evaluate_program_predictions_include_debug_text(self) -> None:
         with TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "tc.json"
