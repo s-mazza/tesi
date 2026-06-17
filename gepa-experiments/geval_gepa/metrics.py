@@ -36,6 +36,11 @@ def parse_discrete_score(value: Any, *, min_score: int, max_score: int) -> int |
         score = int(text)
         return score if min_score <= score <= max_score else None
 
+    labeled_matches = re.findall(r"(?is)(?:^|\b)(?:final\s+)?score\s*:\s*(\d+)\s*\.?\s*$", text)
+    if labeled_matches:
+        score = int(labeled_matches[-1])
+        return score if min_score <= score <= max_score else None
+
     matches = [int(match) for match in re.findall(r"(?<!\d)(\d+)(?!\d)", text)]
     valid = [score for score in matches if min_score <= score <= max_score]
     if len(valid) == 1:

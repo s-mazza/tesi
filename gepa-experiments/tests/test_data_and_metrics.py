@@ -284,6 +284,7 @@ class DataAndMetricsTest(unittest.TestCase):
     def test_parse_discrete_score(self) -> None:
         self.assertEqual(parse_discrete_score("Score: 3", min_score=1, max_score=3), 3)
         self.assertEqual(parse_discrete_score("2", min_score=1, max_score=3), 2)
+        self.assertEqual(parse_discrete_score("Use the 1 to 3 scale.\nFinal Score: 2", min_score=1, max_score=3), 2)
         self.assertIsNone(parse_discrete_score("Score: 4", min_score=1, max_score=3))
         self.assertIsNone(parse_discrete_score("Score: 0", min_score=1, max_score=3))
         self.assertIsNone(parse_discrete_score("Scores 1 and 3", min_score=1, max_score=3))
