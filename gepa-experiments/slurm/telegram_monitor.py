@@ -74,9 +74,11 @@ def telegram_ssl_context(*, insecure_ssl: bool = False) -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
-def safe_send(token: str, chat_id: str, message: str) -> None:
+def safe_send(token: str, chat_id: str, message: str) -> bool:
     try:
         send(token, chat_id, message)
+        print(f"telegram send ok: {message.splitlines()[0][:160]}", flush=True)
+        return True
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")[:500]
         print(f"telegram send failed: HTTPError {exc.code}: {body}", flush=True)
@@ -85,15 +87,18 @@ def safe_send(token: str, chat_id: str, message: str) -> None:
             print("telegram send retrying with insecure SSL after certificate verification failure", flush=True)
             try:
                 send(token, chat_id, message, insecure_ssl=True)
+                print(f"telegram send ok after SSL fallback: {message.splitlines()[0][:160]}", flush=True)
+                return True
             except urllib.error.HTTPError as retry_exc:
                 body = retry_exc.read().decode("utf-8", errors="replace")[:500]
                 print(f"telegram send failed: HTTPError {retry_exc.code}: {body}", flush=True)
             except Exception as retry_exc:
                 print(f"telegram send failed after SSL fallback: {type(retry_exc).__name__}: {retry_exc}", flush=True)
-            return
+            return False
         print(f"telegram send failed: {type(exc).__name__}: {exc}", flush=True)
     except Exception as exc:
         print(f"telegram send failed: {type(exc).__name__}: {exc}", flush=True)
+    return False
 
 
 def run(command: list[str]) -> str:
@@ -148,6 +153,18 @@ def final_state(job_id: str) -> str:
     if state:
         return f"{state.group(1)} ExitCode={exit_code.group(1) if exit_code else 'unknown'}"
     return "unknown final state"
+
+
+def is_terminal_pending_reason(reason: str) -> bool:
+    normalized = reason.replace(" ", "")
+    return any(
+        marker in normalized
+        for marker in (
+            "DependencyNeverSatisfied",
+            "InvalidAccount",
+            "QOSMaxGRESPerUser",
+        )
+    )
 
 
 def expand_globs(patterns: list[str]) -> list[Path]:
@@ -209,6 +226,17 @@ def main() -> int:
                         f"time={row['time']}\nreason={row['reason']}",
                     )
                     previous[row["id"]] = row["state"]
+                if row["state"] == "PENDING" and is_terminal_pending_reason(row["reason"]):
+                    safe_send(
+                        token,
+                        chat_id,
+                        f"{args.label}: job cannot start\n"
+                        f"id={row['id']}\nname={row['name']}\n"
+                        f"state={row['state']}\nreason={row['reason']}\n"
+                        f"final={final_state(job_id)}",
+                    )
+                    done.add(job_id)
+                    break
 
         for path in expand_globs(args.log_glob):
             lines, offsets[str(path)] = read_new_lines(path, offsets.get(str(path), 0))
