@@ -265,6 +265,56 @@ e non inglesi, quindi non è utile semanticamente. La lettura corretta è:
 - per trarre una conclusione servono controlli: token reali noti, embedding del
   prompt di init, precisione più alta o più iterazioni, e random-vector controls.
 
+Aggiornamento 2026-06-17: questa lettura va corretta tenendo conto di un dettaglio
+importante. Le prime run soft-prompt usavano `PromptTuningInit.TEXT`, quindi i
+16 virtual tokens partivano gia' dalla frase seed:
+
+```text
+You are a careful, impartial evaluator. Rate the candidate output according to the rub
+```
+
+Questo rende la nearest-token projection poco pulita come evidenza scientifica:
+se dopo il training i token discreti piu' vicini restano simili alla frase di
+inizializzazione, non sappiamo separare bene quanto venga dal training e quanto
+dal bias dell'inizializzazione. Per questo e' stato fatto il fix richiesto:
+
+```text
+default soft prompt init: PromptTuningInit.RANDOM
+text init: disponibile solo come controllo esplicito
+nearest token ranking: L2 distance
+metriche aggiunte: nearest_mean_l2, nearest_mean_cosine, nearest_cosine_variance
+```
+
+La `nearest_cosine_variance` e' una metrica qualitativa calcolata sui soft token:
+per ogni virtual token prendo il token discreto piu' vicino in L2 e salvo la
+cosine similarity; poi calcolo la varianza di queste cosine sui virtual tokens.
+Se e' alta, alcuni soft token sono molto vicini a token reali e altri molto
+lontani/off-manifold; se e' bassa, la distanza qualitativa dal vocabolario e'
+piu' uniforme.
+
+Nuovi job lanciati per replicare le run senza il bias della text init e aggiungere
+uno sweep sulla lunghezza del soft prompt:
+
+```text
+11930497  smoke random-init, 16 virtual tokens, 4/2/2 groups, moro232
+11930498  long random-init, 1024 ctx, 16 virtual tokens, faretra
+11930499  SIPIT recovery for 11930498
+11930500  long random-init, 2048 ctx, 16 virtual tokens, moro232
+11930501  SIPIT recovery for 11930500
+11930502  SIPIT precision16 recovery for 11930500
+11930503  long random-init, 2048 ctx, 8 virtual tokens, faretra
+11930504  SIPIT recovery for 11930503
+11930505  long random-init, 2048 ctx, 32 virtual tokens, moro232
+11930506  SIPIT recovery for 11930505
+11930507  long random-init, 2048 ctx, 16 virtual tokens, seed 43
+11930508  long random-init, 2048 ctx, 16 virtual tokens, seed 44
+```
+
+La scelta 8/16/32 serve a capire se il problema e' capacita' del soft prompt o
+overfit/off-manifold: 16 replica la lunghezza precedente, 8 testa una versione
+piu' compressa e potenzialmente meno overfittante, 32 testa piu' capacita' ma
+anche il rischio di prompt piu' difficile da verbalizzare.
+
 ### 9. Sweep NLA token positions
 
 Sono stati lanciati 12 job smoke `11914211`-`11914222` per testare posizioni

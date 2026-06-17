@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 ## Objective
 
@@ -74,6 +74,70 @@ Operational fixes from this update:
 - `gepa-experiments/slurm/telegram_monitor.py` now retries Telegram sends with an insecure SSL context only after certificate verification fails, and logs HTTP error bodies for diagnosis.
 - Cluster Telegram monitoring currently has a CA-chain issue on both `faretra` and `moro232`; the monitor fallback prevents SSL-only failures, but any persistent HTTP 403 still indicates a token/chat/API problem to debug separately.
 - Scheduling rule refinement: independent single-GPU jobs should not be pinned. Artifact-dependent jobs may be pinned only when the consumed artifact is node-local and has not yet been synchronized to all eligible nodes.
+
+## 2026-06-17 Soft-Prompt Random-Init Follow-Up
+
+Advisor-requested soft-prompt fix has been implemented and submitted. The old
+soft-prompt runs used PEFT `PromptTuningInit.TEXT`, initialized from the seed
+judge instruction. That made the nearest-token projection heavily biased toward
+the initialization sentence, so the SIPIT/nearest-token diagnostics were not a
+clean test of what the learned soft tokens encode. The new runs use
+`PromptTuningInit.RANDOM` by default, while keeping `--soft-prompt-init text`
+available only as an explicit control.
+
+Implementation changes:
+
+- `train_soft_judge.py` now supports `--soft-prompt-init {random,text}`;
+  `random` is the default used by Slurm.
+- nearest-token decoding now ranks candidate tokens by L2 distance in embedding
+  space.
+- cosine similarity is still saved as a qualitative metric for every nearest
+  token.
+- aggregate diagnostics now include `nearest_mean_l2`,
+  `nearest_mean_cosine`, and `nearest_cosine_variance`.
+- `nearest_cosine_variance` is interpreted as the variance, across virtual
+  tokens, of the cosine similarity between each learned soft token and its
+  top-1 L2 nearest discrete token. High variance means some soft tokens are much
+  closer to the token embedding manifold than others.
+- `submit_soft_prompt.sh` now sets the Slurm job name to `JOB_SLUG`, so new
+  soft-prompt jobs are identifiable in `squeue`.
+
+Validation before submission:
+
+- local unit tests: `PYTHONPATH=gepa-experiments python3 -m unittest discover -s gepa-experiments/tests` passed, 45 tests.
+- `faretra` and `moro232` Docker preflight passed: image
+  `geval_gepa_softprompt:latest` is present, PEFT exposes `RANDOM`, and both
+  soft-prompt scripts compile inside the container.
+
+Submitted random-init jobs:
+
+```text
+11930497  smoke random-init, 16 virtual tokens, 4/2/2 groups, node moro232
+11930498  long random-init, max_seq_len=1024, 16 virtual tokens, node faretra
+11930499  SIPIT recovery for 11930498, dependency afterok:11930498, node faretra
+11930500  long random-init, max_seq_len=2048, 16 virtual tokens, node moro232
+11930501  SIPIT recovery for 11930500, dependency afterok:11930500, node moro232
+11930502  SIPIT precision16 recovery for 11930500, dependency afterok:11930500, node moro232
+11930503  long random-init, max_seq_len=2048, 8 virtual tokens, node faretra
+11930504  SIPIT recovery for 11930503, dependency afterok:11930503, node faretra
+11930505  long random-init, max_seq_len=2048, 32 virtual tokens, node moro232
+11930506  SIPIT recovery for 11930505, dependency afterok:11930505, node moro232
+11930507  long random-init, max_seq_len=2048, 16 virtual tokens, seed 43, flexible node
+11930508  long random-init, max_seq_len=2048, 16 virtual tokens, seed 44, flexible node
+```
+
+Design decisions:
+
+- The 8/16/32 virtual-token sweep is the first controlled length sweep. The
+  16-token setting reproduces the previous length; 8 tests whether a shorter
+  prompt reduces overfit and improves interpretability; 32 tests whether more
+  capacity improves validation/test behavior or makes the soft prompt more
+  off-manifold.
+- Training jobs with dependent SIPIT recovery are pinned in pairs to the same
+  node to avoid node-local artifact misses. Seed-only robustness jobs do not
+  have dependent recovery and can run on the first compatible node.
+- The smoke job is for plumbing only. Scientific conclusions should use the
+  long 40/10/10 group runs and the matched SIPIT diagnostics.
 
 ## 2026-06-13 Matrix Expansion
 
