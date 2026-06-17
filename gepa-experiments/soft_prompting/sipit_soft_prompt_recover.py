@@ -88,7 +88,8 @@ def main() -> int:
     nearest_rows = nearest_tokens(soft_prompt, embedding_matrix, tokenizer, top_k=args.top_k)
     write_jsonl(args.output_dir / "nearest_tokens.jsonl", nearest_rows)
 
-    soft_prompt = soft_prompt.to(model.device)  # type: ignore[union-attr]
+    model_embedding_dtype = model.get_input_embeddings().weight.dtype  # type: ignore[union-attr]
+    soft_prompt = soft_prompt.to(device=model.device, dtype=model_embedding_dtype)  # type: ignore[union-attr]
     empty_prefix = soft_prompt.new_empty((0, soft_prompt.size(1)))
     targets = target_states(prefix=empty_prefix, suffix=soft_prompt, model=model, layer_idx=layer_idx)
     recovery_config = RecoveryConfig(

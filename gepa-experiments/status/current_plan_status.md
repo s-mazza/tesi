@@ -962,6 +962,16 @@ Runtime sanity already checked for `11920236`:
 - `gepa-experiments/results/soft_prompt_sipit_init_control/nearest_tokens.jsonl` has been produced with 16 rows.
 - GPU utilization is active, so the SIPIT recovery is running rather than stuck at startup.
 
+Update at 2026-06-17 16:10 CEST:
+
+- `11920236`, `11920237`, `11920238`, `11920239`, and `11920240` completed successfully on `moro232`.
+- `11920241` did not start while `moro232` was idle because it requested `48G` host memory; `moro232` has about `32G`, so Slurm considered only larger unavailable nodes.
+- The memory request for the precision16 SIPIT job was reduced to `28G`, matching the other SIPIT/soft-prompt jobs.
+- After becoming eligible, `11920241` started on `moro232` but failed with `RuntimeError: mat1 and mat2 must have the same dtype, but got Float and Half`.
+- Root cause: the precision16 model runs in fp16, while the continuous soft-prompt prefix was passed to SIPIT target-state computation in fp32.
+- Fix: `sipit_soft_prompt_recover.py` now casts the continuous prefix to the model input-embedding dtype before calling SIPIT target-state computation.
+- Replacement retry `11925716` was submitted and started on `moro232`; it passed the previous crash point and is running.
+
 Monitoring caveat:
 
 - Telegram monitors are active from `faretra` for all submitted job ids and have sent start/state-change messages.
