@@ -150,7 +150,7 @@ class SoftJudgeExperiment:
         peft_model.save_pretrained(adapter_dir)
         self.write_soft_prompt_artifacts(peft_model, tokenizer)
         metrics = {
-            "config": asdict(self.config),
+            "config": soft_prompt_config_metadata(self.config),
             "splits": {
                 "train_rows": len(train_rows),
                 "val_rows": len(val_rows),
@@ -294,6 +294,15 @@ class SoftJudgeExperiment:
             json.dumps(manifest, indent=2),
             encoding="utf-8",
         )
+
+
+def soft_prompt_config_metadata(config: SoftPromptConfig) -> dict[str, Any]:
+    payload = asdict(config)
+    init_mode = config.soft_prompt_init.lower()
+    payload["soft_init_text_active"] = init_mode == "text"
+    if init_mode != "text":
+        payload["soft_init_text"] = ""
+    return payload
 
 
 def seed_everything(seed: int) -> None:
