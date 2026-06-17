@@ -136,7 +136,16 @@ class AuxJudgeFeedbackProvider:
     def _chat_completion(self, prompt: str) -> _ChatCompletionResult:
         payload = {
             "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You write concise feedback for a prompt optimizer. "
+                        "Do not use hidden reasoning. Put the final feedback in the assistant message content."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
         }
@@ -161,7 +170,14 @@ class AuxJudgeFeedbackProvider:
         if not isinstance(content, str):
             raise _AuxJudgeResponseError("Aux judge response has no message content", response_json=response_json)
         if not content.strip():
-            raise _AuxJudgeResponseError("Aux judge response message content is empty", response_json=response_json)
+            finish_reason = choices[0].get("finish_reason") if isinstance(choices[0], dict) else None
+            reasoning_content = message.get("reasoning_content") if isinstance(message, dict) else ""
+            reasoning_chars = len(reasoning_content) if isinstance(reasoning_content, str) else 0
+            raise _AuxJudgeResponseError(
+                "Aux judge response message content is empty "
+                f"(finish_reason={finish_reason}, reasoning_content_chars={reasoning_chars})",
+                response_json=response_json,
+            )
         return _ChatCompletionResult(content=content, response_json=response_json)
 
 
@@ -186,9 +202,11 @@ Additional weak proposer feedback already computed for this example:
 {extra_feedback[:2400]}
 
 Use the additional feedback only to infer a general rubric lesson. Do not copy token-level strings into the final prompt."""
-    return f"""You are an auxiliary LLM-as-a-judge helping improve a G-EVAL prompt.
+    return f"""/no_think
+You are an auxiliary LLM-as-a-judge helping improve a G-EVAL prompt.
 
 Do not produce a replacement score. Produce concise, generalizable feedback for a prompt proposer.
+Do not include chain-of-thought. Return only the two requested short lines in the visible message content.
 
 Dimension: {dimension}
 Human mean score: {target:.2f}
@@ -210,7 +228,9 @@ Base judge raw score:
 
 Return:
 1. One sentence explaining the likely judging error or confirming it is close.
-2. One prompt-level lesson that generalizes beyond this example."""
+2. One prompt-level lesson that generalizes beyond this example.
+
+Keep the answer under 80 words total."""
 
 
 def _format_feedback(record: AuxJudgeRecord) -> str:

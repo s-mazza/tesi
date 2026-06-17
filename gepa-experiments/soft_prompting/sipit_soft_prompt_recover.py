@@ -44,6 +44,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--model-name", default="Qwen/Qwen2.5-7B-Instruct")
     parser.add_argument("--embedding-file", default="soft_prompt_embeddings.pt")
+    parser.add_argument(
+        "--control-mode",
+        choices=("soft_prompt", "init_prompt", "random_hard_tokens", "random_continuous"),
+        default="soft_prompt",
+        help="Use learned soft prompt embeddings or generate a control target.",
+    )
+    parser.add_argument(
+        "--control-text",
+        default="You are a careful, impartial evaluator. Rate the candidate output according to the rubric.",
+    )
+    parser.add_argument("--control-num-tokens", type=int, default=None)
     parser.add_argument("--layer-idx", type=int, default=-1)
     parser.add_argument("--precision", choices=["4", "16", "32"], default="4")
     parser.add_argument("--max-soft-tokens", type=int, default=None)
@@ -63,12 +74,11 @@ def main() -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     started = time.time()
 
-    soft_prompt = load_soft_prompt(args.input_dir / args.embedding_file)
-    if args.max_soft_tokens is not None:
-        soft_prompt = soft_prompt[: args.max_soft_tokens]
-
     model, tokenizer, layer_idx = load_model(args.model_name, args.precision, args.layer_idx)
     embedding_matrix = model.get_input_embeddings().weight.detach().float().cpu()  # type: ignore[union-attr]
+    soft_prompt, control_meta = build_target_embeddings(args, tokenizer, embedding_matrix)
+    if args.max_soft_tokens is not None:
+        soft_prompt = soft_prompt[: args.max_soft_tokens]
     if soft_prompt.size(1) != embedding_matrix.size(1):
         raise ValueError(
             f"Soft prompt hidden size {soft_prompt.size(1)} does not match "
@@ -100,6 +110,8 @@ def main() -> int:
     payload = {
         "input_dir": str(args.input_dir),
         "model_name": args.model_name,
+        "control_mode": args.control_mode,
+        "control": control_meta,
         "layer_idx": layer_idx,
         "precision": args.precision,
         "num_soft_tokens": int(soft_prompt.size(0)),
@@ -140,6 +152,65 @@ def load_soft_prompt(path: Path) -> torch.Tensor:
     if tensor.ndim != 2:
         raise ValueError(f"Expected a 2D soft prompt tensor, got shape {tuple(tensor.shape)}")
     return tensor.detach().float().cpu()
+
+
+def build_target_embeddings(args: argparse.Namespace, tokenizer: Any, embedding_matrix: torch.Tensor) -> tuple[torch.Tensor, dict[str, Any]]:
+    if args.control_mode == "soft_prompt":
+        tensor = load_soft_prompt(args.input_dir / args.embedding_file)
+        return tensor, {"source": str(args.input_dir / args.embedding_file)}
+
+    num_tokens = args.control_num_tokens or args.max_soft_tokens or 16
+    if num_tokens <= 0:
+        raise ValueError("--control-num-tokens must be positive")
+
+    if args.control_mode == "init_prompt":
+        token_ids = tokenizer.encode(args.control_text, add_special_tokens=False)
+        if not token_ids:
+            raise ValueError("--control-text produced no tokens")
+        while len(token_ids) < num_tokens:
+            token_ids.extend(token_ids)
+        token_ids = token_ids[:num_tokens]
+        return embedding_matrix[token_ids].clone(), {
+            "text": args.control_text,
+            "token_ids": token_ids,
+            "token_text": tokenizer.decode(token_ids),
+        }
+
+    generator = torch.Generator(device="cpu")
+    generator.manual_seed(args.seed)
+    if args.control_mode == "random_hard_tokens":
+        special_ids = {token_id for token_id in tokenizer.all_special_ids if token_id is not None}
+        token_ids: list[int] = []
+        vocab_size = int(embedding_matrix.size(0))
+        while len(token_ids) < num_tokens:
+            candidate = int(torch.randint(0, vocab_size, (1,), generator=generator).item())
+            if candidate not in special_ids:
+                token_ids.append(candidate)
+        return embedding_matrix[token_ids].clone(), {
+            "token_ids": token_ids,
+            "token_text": tokenizer.decode(token_ids),
+        }
+
+    if args.control_mode == "random_continuous":
+        reference_path = args.input_dir / args.embedding_file
+        if reference_path.exists():
+            reference = load_soft_prompt(reference_path)
+            if args.max_soft_tokens is not None:
+                reference = reference[: args.max_soft_tokens]
+            num_tokens = min(num_tokens, int(reference.size(0)))
+            random_vectors = torch.randn((num_tokens, reference.size(1)), generator=generator)
+            reference_norms = reference[:num_tokens].norm(dim=1, keepdim=True).clamp_min(1e-6)
+            random_vectors = F.normalize(random_vectors, dim=1) * reference_norms
+            return random_vectors.float().cpu(), {
+                "matched_reference": str(reference_path),
+                "matched_norms": True,
+            }
+        random_vectors = torch.randn((num_tokens, embedding_matrix.size(1)), generator=generator)
+        mean_norm = embedding_matrix.norm(dim=1).mean().clamp_min(1e-6)
+        random_vectors = F.normalize(random_vectors, dim=1) * mean_norm
+        return random_vectors.float().cpu(), {"matched_reference": "", "matched_norms": False}
+
+    raise ValueError(f"Unsupported control mode: {args.control_mode}")
 
 
 def load_model(model_name: str, precision: str, layer_idx: int) -> tuple[Any, Any, int]:
@@ -214,6 +285,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         "",
         f"- input: `{payload['input_dir']}`",
         f"- model: `{payload['model_name']}`",
+        f"- control mode: `{payload['control_mode']}`",
         f"- layer: `{payload['layer_idx']}`",
         f"- precision: `{payload['precision']}`",
         f"- soft tokens: `{payload['num_soft_tokens']}`",

@@ -16,6 +16,15 @@ EXTRA_ARGS=()
 if [[ -n "${SOFT_PROMPT_SIPIT_MAX_SOFT_TOKENS:-}" ]]; then
   EXTRA_ARGS+=(--max-soft-tokens "$SOFT_PROMPT_SIPIT_MAX_SOFT_TOKENS")
 fi
+if [[ -n "${SOFT_PROMPT_SIPIT_CONTROL_MODE:-}" ]]; then
+  EXTRA_ARGS+=(--control-mode "$SOFT_PROMPT_SIPIT_CONTROL_MODE")
+fi
+if [[ -n "${SOFT_PROMPT_SIPIT_CONTROL_TEXT:-}" ]]; then
+  EXTRA_ARGS+=(--control-text "$SOFT_PROMPT_SIPIT_CONTROL_TEXT")
+fi
+if [[ -n "${SOFT_PROMPT_SIPIT_CONTROL_NUM_TOKENS:-}" ]]; then
+  EXTRA_ARGS+=(--control-num-tokens "$SOFT_PROMPT_SIPIT_CONTROL_NUM_TOKENS")
+fi
 
 python gepa-experiments/soft_prompting/sipit_soft_prompt_recover.py \
   --input-dir "${SOFT_PROMPT_SIPIT_INPUT_DIR:-gepa-experiments/results/soft_prompt_topical_chat_engagingness_long}" \
