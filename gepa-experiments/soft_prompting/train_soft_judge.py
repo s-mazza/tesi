@@ -37,6 +37,7 @@ class SoftPromptConfig:
     test_groups: int
     seed: int
     num_virtual_tokens: int
+    soft_prompt_init: str
     soft_init_text: str
     max_seq_len: int
     max_new_tokens: int
@@ -238,12 +239,26 @@ class SoftJudgeExperiment:
             from peft import PromptTuningConfig, PromptTuningInit, TaskType, get_peft_model
         except Exception as exc:  # pragma: no cover - depends on runtime image.
             raise RuntimeError("Soft-prompt training requires peft. Use the soft-prompt image.") from exc
+
+        init_mode = self.config.soft_prompt_init.lower()
+        if init_mode == "random":
+            prompt_tuning_init = PromptTuningInit.RANDOM
+        elif init_mode == "text":
+            prompt_tuning_init = PromptTuningInit.TEXT
+        else:
+            raise ValueError(f"Unsupported soft prompt init mode: {self.config.soft_prompt_init}")
+
+        peft_kwargs: dict[str, Any] = {
+            "task_type": TaskType.CAUSAL_LM,
+            "prompt_tuning_init": prompt_tuning_init,
+            "num_virtual_tokens": self.config.num_virtual_tokens,
+        }
+        if init_mode == "text":
+            peft_kwargs["prompt_tuning_init_text"] = self.config.soft_init_text
+            peft_kwargs["tokenizer_name_or_path"] = self.config.model_name
+
         peft_config = PromptTuningConfig(
-            task_type=TaskType.CAUSAL_LM,
-            prompt_tuning_init=PromptTuningInit.TEXT,
-            prompt_tuning_init_text=self.config.soft_init_text,
-            num_virtual_tokens=self.config.num_virtual_tokens,
-            tokenizer_name_or_path=self.config.model_name,
+            **peft_kwargs,
         )
         peft_model = get_peft_model(model, peft_config)
         peft_model.print_trainable_parameters()
@@ -256,12 +271,22 @@ class SoftJudgeExperiment:
             nearest = nearest_tokens(prompt, embeddings, tokenizer, top_k=10)
         torch.save({"soft_prompt_embeddings": prompt}, self.output_dir / "soft_prompt_embeddings.pt")
         write_jsonl(self.output_dir / "nearest_tokens.jsonl", nearest)
+        nearest_first = [row["top_tokens"][0] for row in nearest]
+        nearest_cosines = [item["cosine"] for item in nearest_first]
         manifest = {
             "model_name": self.config.model_name,
             "num_virtual_tokens": self.config.num_virtual_tokens,
+            "soft_prompt_init": self.config.soft_prompt_init,
+            "soft_init_text": self.config.soft_init_text if self.config.soft_prompt_init == "text" else "",
             "hidden_size": int(prompt.shape[-1]),
             "embedding_artifact": str(self.output_dir / "soft_prompt_embeddings.pt"),
             "nearest_tokens_artifact": str(self.output_dir / "nearest_tokens.jsonl"),
+            "nearest_ranking_metric": "l2",
+            "nearest_mean_l2": float(np.mean([item["l2"] for item in nearest_first])) if nearest_first else 0.0,
+            "nearest_mean_cosine": (
+                float(np.mean(nearest_cosines)) if nearest_first else 0.0
+            ),
+            "nearest_cosine_variance": float(np.var(nearest_cosines)) if nearest_first else 0.0,
             "adapter_dir": str(self.output_dir / "adapter"),
             "sipit_use": "Use soft_prompt_embeddings as a continuous prefix for SIPIT/random-prefix inversion experiments.",
         }
@@ -441,23 +466,29 @@ def evaluate_rows(
 
 
 def nearest_tokens(prompt: torch.Tensor, embeddings: torch.Tensor, tokenizer: Any, *, top_k: int) -> list[dict[str, Any]]:
-    prompt_norm = F.normalize(prompt, dim=1)
-    embedding_norm = F.normalize(embeddings, dim=1)
-    scores = prompt_norm @ embedding_norm.T
-    values, indexes = scores.topk(k=top_k, dim=1)
+    prompt_cpu = prompt.detach().float().cpu()
+    emb_cpu = embeddings.detach().float().cpu()
+    distances = torch.cdist(prompt_cpu, emb_cpu)
+    l2_values, l2_indexes = distances.topk(k=top_k, largest=False, dim=1)
+    prompt_norm = F.normalize(prompt_cpu, dim=1)
+    embedding_norm = F.normalize(emb_cpu, dim=1)
+    cosine_scores = prompt_norm @ embedding_norm.T
     rows = []
-    for soft_index in range(prompt.shape[0]):
+    for soft_index in range(prompt_cpu.shape[0]):
         rows.append(
             {
                 "soft_token_index": soft_index,
+                "norm": float(prompt_cpu[soft_index].norm().item()),
+                "ranking_metric": "l2",
                 "top_tokens": [
                     {
                         "rank": rank + 1,
                         "token_id": int(token_id),
                         "token_text": tokenizer.decode([int(token_id)]),
-                        "cosine": float(values[soft_index, rank]),
+                        "l2": float(l2_values[soft_index, rank].item()),
+                        "cosine": float(cosine_scores[soft_index, int(token_id)].item()),
                     }
-                    for rank, token_id in enumerate(indexes[soft_index].tolist())
+                    for rank, token_id in enumerate(l2_indexes[soft_index].tolist())
                 ],
             }
         )
@@ -482,6 +513,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--test-groups", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num-virtual-tokens", type=int, default=16)
+    parser.add_argument(
+        "--soft-prompt-init",
+        choices=("random", "text"),
+        default="random",
+        help="Initialize PEFT virtual tokens randomly or from --soft-init-text.",
+    )
     parser.add_argument("--soft-init-text", default="You are a careful, impartial evaluator. Rate the candidate output according to the rubric.")
     parser.add_argument("--max-seq-len", type=int, default=1024)
     parser.add_argument("--max-new-tokens", type=int, default=16)
@@ -510,6 +547,7 @@ def main() -> int:
         test_groups=args.test_groups,
         seed=args.seed,
         num_virtual_tokens=args.num_virtual_tokens,
+        soft_prompt_init=args.soft_prompt_init,
         soft_init_text=args.soft_init_text,
         max_seq_len=args.max_seq_len,
         max_new_tokens=args.max_new_tokens,

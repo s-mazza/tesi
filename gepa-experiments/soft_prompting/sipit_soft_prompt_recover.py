@@ -108,6 +108,7 @@ def main() -> int:
         config=recovery_config,
     )
     recovered_text = tokenizer.decode(result.recovered_ids)
+    nearest_cosines = [row["top_tokens"][0]["cosine"] for row in nearest_rows]
     payload = {
         "input_dir": str(args.input_dir),
         "model_name": args.model_name,
@@ -129,6 +130,8 @@ def main() -> int:
         "nearest_token_ids": [row["top_tokens"][0]["token_id"] for row in nearest_rows],
         "nearest_text": tokenizer.decode([row["top_tokens"][0]["token_id"] for row in nearest_rows]),
         "nearest_mean_l2": float(np.mean([row["top_tokens"][0]["l2"] for row in nearest_rows])),
+        "nearest_mean_cosine": float(np.mean(nearest_cosines)),
+        "nearest_cosine_variance": float(np.var(nearest_cosines)),
     }
     (args.output_dir / "sipit_recovery.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     write_markdown(args.output_dir / "summary.md", payload)
@@ -293,6 +296,9 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- max iters/token: `{payload['max_iters_per_token']}`",
         f"- elapsed seconds: `{payload['elapsed_seconds']:.2f}`",
         f"- all positions verified: `{payload['all_positions_verified']}`",
+        f"- nearest mean L2: `{payload['nearest_mean_l2']:.4f}`",
+        f"- nearest mean cosine: `{payload['nearest_mean_cosine']:.4f}`",
+        f"- nearest cosine variance: `{payload['nearest_cosine_variance']:.6f}`",
         f"- nearest text: `{payload['nearest_text']}`",
         f"- recovered text: `{payload['recovered_text']}`",
         "",

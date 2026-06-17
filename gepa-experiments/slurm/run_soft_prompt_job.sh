@@ -22,6 +22,7 @@ python gepa-experiments/soft_prompting/train_soft_judge.py \
   --test-groups "${TEST_CONTEXTS:-2}" \
   --seed "${SEED:-42}" \
   --num-virtual-tokens "${SOFT_PROMPT_NUM_VIRTUAL_TOKENS:-16}" \
+  --soft-prompt-init "${SOFT_PROMPT_INIT:-random}" \
   --max-seq-len "${SOFT_PROMPT_MAX_SEQ_LEN:-1024}" \
   --max-new-tokens "${SOFT_PROMPT_MAX_NEW_TOKENS:-16}" \
   --train-batch-size "${SOFT_PROMPT_TRAIN_BATCH_SIZE:-1}" \
