@@ -941,6 +941,32 @@ Operational rule:
 - Use `gepa-experiments/slurm/cluster_status_snapshot.sh` for status: it collects queue, node state, job state, log tails, artifacts, and monitor logs in one remote command.
 - When a job seems to disappear without artifacts, first check the execution node filesystem directly or sync from that node. Use `gepa-experiments/slurm/submit_slurm_stdout_smoke.sh` only if direct node checks do not explain the missing artifacts.
 
+## 2026-06-17 Follow-Up Jobs Submitted
+
+Status snapshot recorded at 2026-06-17 13:57 CEST.
+
+Directly runnable follow-up jobs for the advisor request have been submitted. The local manifest is `gepa-experiments/status/submitted_followup_jobs_20260617.tsv`.
+
+Submitted groups:
+
+- A: NLA token-strategy wiring probe, job `11920199`. Pending because compatible multi-GPU nodes are currently unavailable.
+- B: NLA token-position sweep jobs `11920242` to `11920253`. Pending on dependency after the A probe.
+- C: soft-prompt/SIPIT controls and robustness jobs `11920236` to `11920241`. Job `11920236` is running on `moro232`; the others are pending for resources/priority.
+- D: auxiliary-judge and matched no-aux controls `11920201`, `11920202`, `11920233`, `11920234`, `11920235`. The first smoke jobs are pending because compatible multi-GPU nodes are currently unavailable; downstream jobs are dependency-gated.
+
+Runtime sanity already checked for `11920236`:
+
+- Slurm state is `RUNNING` on `moro232`.
+- Docker container `geval_gepa_11920236` is alive.
+- Qwen2.5-7B loaded successfully.
+- `gepa-experiments/results/soft_prompt_sipit_init_control/nearest_tokens.jsonl` has been produced with 16 rows.
+- GPU utilization is active, so the SIPIT recovery is running rather than stuck at startup.
+
+Monitoring caveat:
+
+- Telegram monitors are active from `faretra` for all submitted job ids and have sent start/state-change messages.
+- For jobs that execute on `moro232`, Slurm stdout and artifacts can be node-local. The monitor running from `faretra` can still track Slurm state, but log-alert inspection may require checking `moro232` directly.
+
 ## Acceptance Criteria
 
 NLA can be considered thesis-ready only if at least one of these is true:
