@@ -48,6 +48,7 @@ mkdir -p "$OUTPUT_ROOT"
 
 SBATCH_OUTPUT="$(sbatch \
   --parsable \
+  --job-name="$JOB_SLUG" \
   -N 1 \
   --gpus="$GPU_SPEC" \
   "${NODE_ARGS[@]}" \
