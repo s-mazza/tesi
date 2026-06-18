@@ -1,6 +1,6 @@
 # Briefing call relatore - GEPA / G-Eval / NLA
 
-Data aggiornata: 2026-06-17
+Data aggiornata: 2026-06-18
 
 Scopo: spiegare lo stato della repo e degli esperimenti dal punto in cui il
 relatore era rimasto, circa commit `9997e3a`, fino allo stato corrente.
@@ -314,6 +314,108 @@ La scelta 8/16/32 serve a capire se il problema e' capacita' del soft prompt o
 overfit/off-manifold: 16 replica la lunghezza precedente, 8 testa una versione
 piu' compressa e potenzialmente meno overfittante, 32 testa piu' capacita' ma
 anche il rischio di prompt piu' difficile da verbalizzare.
+
+Aggiornamento 2026-06-18: i job random-init principali sono conclusi e cambiano
+la lettura rispetto alle run text-init iniziali. Con random init il risultato
+piu' pulito e' positivo:
+
+```text
+soft_prompt_topical_chat_engagingness_long_2048_random_init
+Topical-Chat / Engagingness, Qwen2.5-7B frozen, 240 train / 60 val / 60 test
+16 virtual tokens, max_seq_len=2048, seed=42
+
+validation Pearson: 0.5371 -> 0.5684  (+0.0313)
+validation Spearman: 0.5354 -> 0.5732 (+0.0378)
+test Pearson:       0.7568 -> 0.8125  (+0.0557)
+test Spearman:      0.7482 -> 0.8098  (+0.0616)
+```
+
+Lo sweep sulla lunghezza dice:
+
+```text
+8 virtual tokens, 2048 ctx, seed=42:
+validation Pearson +0.0047, Spearman +0.0078
+test Pearson +0.0218, Spearman +0.0252
+
+32 virtual tokens, 2048 ctx, seed=42:
+validation Pearson +0.0431, Spearman +0.0505
+test Pearson -0.0384, Spearman -0.0119
+
+16 virtual tokens, 1024 ctx, seed=42:
+validation Pearson +0.0277, Spearman +0.0349
+test Pearson +0.0233, Spearman +0.0293
+```
+
+Lo sweep sui seed e' mixed:
+
+```text
+seed43, 16 tokens, 2048 ctx:
+validation peggiora: Pearson -0.0733, Spearman -0.0555
+test migliora: Pearson +0.0863, Spearman +0.0697
+
+seed44, 16 tokens, 2048 ctx:
+validation peggiora: Pearson -0.0632, Spearman -0.0562
+test peggiora: Pearson -0.1008, Spearman -0.0862
+```
+
+Quindi la claim corretta non e' "soft prompt migliora sempre", ma:
+random-init rende l'esperimento piu' pulito e il seed42 16-token/2048 mostra che
+i soft token allenati sono task-relevant. Questo pero' serve soprattutto a
+rendere sensata la domanda successiva: cosa riesce a invertire SIPIT da quei
+soft token, e se da quella inversione esce informazione semantica utile per noi.
+La robustezza lato metriche task non e' ancora stabile.
+
+Risultati SIPIT sui soft prompt random-init:
+
+```text
+16 virtual tokens:
+all_positions_verified=false
+nearest_mean_l2=60.2119
+nearest_mean_cosine=0.0719
+nearest_cosine_variance=0.0000278
+
+8 virtual tokens:
+all_positions_verified=false
+nearest_mean_l2=60.0867
+nearest_mean_cosine=0.0714
+nearest_cosine_variance=0.0000235
+
+32 virtual tokens:
+all_positions_verified=false
+nearest_mean_l2=60.2360
+nearest_mean_cosine=0.0720
+nearest_cosine_variance=0.0000265
+```
+
+Controlli SIPIT:
+
+```text
+random hard tokens:
+all_positions_verified=true
+nearest_mean_l2=0.0005
+interpretazione: se il target e' una sequenza di veri token del vocabolario,
+la recovery bounded puo' verificare esattamente.
+
+init prompt token embeddings:
+all_positions_verified=false
+nearest_mean_l2=0.0005
+interpretazione: il nearest-token target e' corretto, ma la recovery 4-bit
+bounded verifica solo i primi token prima di esaurire budget.
+
+random continuous vectors:
+all_positions_verified=false
+nearest_mean_l2=2.3147
+interpretazione: vettori continui arbitrari non mappano bene a testo discreto.
+```
+
+Lettura da dare al relatore: la parte soft prompt serve principalmente a creare
+soft token allenati sul task e poi chiedere a SIPIT cosa riuscirebbe a invertire
+da quei vettori. Il fatto che il seed42 migliori il task e' utile per dire che
+non stiamo invertendo vettori random inutili, pero' il risultato principale e'
+che i token imparati non sembrano prompt naturali leggibili. Sono vettori
+continui off-manifold: il testo recuperato da SIPIT/nearest-token e'
+diagnostico, non va letto come "questo e' il prompt imparato" a meno che la
+verifica esatta passi o emerga un pattern semanticamente chiaro.
 
 ### 9. Sweep NLA token positions
 

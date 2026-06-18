@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-17
+Last updated: 2026-06-18
 
 ## Objective
 
@@ -1040,6 +1040,86 @@ Monitoring caveat:
 
 - Telegram monitors are active from `faretra` for all submitted job ids and have sent start/state-change messages.
 - For jobs that execute on `moro232`, Slurm stdout and artifacts can be node-local. The monitor running from `faretra` can still track Slurm state, but log-alert inspection may require checking `moro232` directly.
+
+## 2026-06-18 Completed-Result Census For Thesis Docs
+
+This section records only completed work that should be considered for thesis
+writing. Failed jobs or jobs superseded by a cleaner replacement should not be
+used as evidence except as implementation caveats.
+
+Soft-prompt random-init branch:
+
+- Lightweight artifacts from `moro232` have been synchronized locally for the
+  completed random-init soft-prompt runs and SIPIT readouts.
+- Main random-init setting:
+  `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init`.
+  - Topical-Chat engagingness, Qwen/Qwen2.5-7B-Instruct frozen.
+  - 240 train / 60 validation / 60 final-test rows.
+  - 16 virtual tokens, max sequence length 2048, seed 42.
+  - Validation Pearson 0.5371 -> 0.5684 and Spearman 0.5354 -> 0.5732.
+  - Final-test Pearson 0.7568 -> 0.8125 and Spearman 0.7482 -> 0.8098.
+- Length sweep:
+  - 8 virtual tokens: weaker but positive validation and final-test deltas.
+  - 32 virtual tokens: validation improves but final-test Pearson/Spearman
+    worsen, suggesting capacity/overfit risk.
+  - 16 virtual tokens at max sequence length 1024: positive but weaker and only
+    234/240 training rows are tokenized.
+- Seed sweep:
+  - seed 43 worsens validation but improves final test.
+  - seed 44 worsens both validation and final test.
+- Thesis interpretation: the random-init fix made the soft-prompt branch
+  scientifically cleaner than the old text-init runs. The seed-42 result is a
+  useful sanity check that the trained soft tokens are task-relevant, but the
+  main purpose of the branch is still to inspect what SIPIT can invert from
+  those learned vectors and whether that inversion carries semantic signal.
+
+SIPIT readout of soft prompts:
+
+- Random-init learned soft prompts are not exactly recovered by the bounded
+  SIPIT-style readout:
+  - 16-token readout: `all_positions_verified=false`, nearest mean L2 60.2119,
+    nearest mean cosine 0.0719.
+  - 8-token readout: `all_positions_verified=false`, nearest mean L2 60.0867,
+    nearest mean cosine 0.0714.
+  - 32-token readout: `all_positions_verified=false`, nearest mean L2 60.2360,
+    nearest mean cosine 0.0720.
+- Controls:
+  - random hard vocabulary tokens verify exactly with
+    `all_positions_verified=true`;
+  - initialization-prompt embeddings have the expected nearest-token text but
+    bounded recovery verifies only the initial positions;
+  - random continuous vectors fail to map cleanly to readable text.
+- Thesis interpretation: useful learned soft prompts can remain continuous and
+  off-manifold. The current SIPIT/nearest-token readout does not produce a
+  semantically useful interpretation of the learned vectors, so recovered text
+  should not be treated as the prompt the model learned unless exact
+  verification succeeds or nearest-token distances are small.
+
+NLA token-position sweep:
+
+- The 2026-06-17 token-position smoke artifacts are useful only as plumbing
+  evidence. They should not be used to compare strategies because the executed
+  strategy/output wiring was ambiguous and collapsed around
+  `candidate_middle_1` artifacts.
+- The queued follow-up jobs `11920199` and `11920242`-`11920253` remain the
+  proper path for answering which token positions should be verbalized.
+
+Auxiliary judge:
+
+- Completed aux-judge smoke artifacts should not be used as positive evidence
+  because the feedback was invalid/empty or reasoning-only.
+- The pending aux-judge follow-up chain remains necessary before making a claim
+  about Qwen35B rubric-conditioned compression of NLA feedback.
+
+Thesis-doc update policy:
+
+- Include the random-init soft-prompt and SIPIT readout results in Chapter 5 as
+  completed diagnostic evidence about what SIPIT recovers from trained soft
+  prompts, with task metrics used as sanity checks rather than the main claim.
+- Include the GEPA PPL, raw-NLA, fixed-NLA, candidate-only, and dataset-smoke
+  results already documented.
+- Exclude failed/replaced jobs from result tables. Mention only the general
+  validity rule when a failure mode changes how results are interpreted.
 
 ## Acceptance Criteria
 
