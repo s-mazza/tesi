@@ -1,6 +1,6 @@
 # Chapter 5 Results Plan
 
-Status date: 2026-06-15
+Status date: 2026-06-18
 
 This document defines the intended structure of Chapter 5. It replaces the old
 artifact-only inventory with a results-chapter plan, while keeping the artifact
@@ -91,11 +91,12 @@ This section should introduce an evidence-level table:
 |---|---|---|---|
 | Canonical semantic-fidelity dataset | Complete validation | Thesis dataset contribution | `thesis-datasets/reports/` |
 | Embedding inversion | Diagnostic / negative reproduction | Useful failure-mode evidence, not paper-level reproduction | `embedding-inversion-demo/RESULTS.md` |
-| SIPIT | Interim reproduction + collision evidence | Strong interim GPT-2 signal; final CSV/JSON still missing locally | `spit/SIPIT/notes/` |
+| SIPIT | Interim reproduction + completed controls | Strong interim GPT-2 signal; soft-prompt controls now give completed off-manifold diagnostics | `spit/SIPIT/notes/`, `gepa-experiments/results/soft_prompt_*_sipit` |
 | Standalone NLA | Plumbing validation | NLA extraction/verbalization works, not semantic-fidelity proof | `nla-artifacts/summeval/` |
 | GEPA + PPL | Positive long-run evidence | GEPA+PPL can improve Topical-Chat engagingness in observed run | GEPA result dirs |
 | GEPA + raw/fixed NLA | Mixed diagnostic evidence | Raw NLA is not reliably helpful; fixed-NLA is weak-positive but not a clean prompt-improvement win | GEPA diagnostics |
-| GEPA + auxiliary judge | Planned / pending in current docs | Needed to test NLA semantic compression | GEPA status docs |
+| Soft-prompt tuning + SIPIT readout | Completed diagnostic evidence | Trained soft prompts provide meaningful continuous targets for SIPIT, but the recovered text is not yet semantically interpretable | `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init*` |
+| GEPA + auxiliary judge | Pending / invalid early smoke only | Needed to test NLA semantic compression; no completed valid aux-judge evidence yet | GEPA status docs |
 
 The section should explicitly state that the thesis cannot currently claim
 "NLA robustly improves GEPA" unless later auxiliary-judge or replicated long
@@ -214,6 +215,92 @@ Interpretation:
   local runs used RTX-class GPUs.
 - `known-prefix-control` and `full-sequence` random-prefix results must be kept
   separate because they answer different questions.
+- The recent soft-prompt readout experiments should be reported separately from
+  paper SIPIT reproduction: they use SIPIT-style bounded recovery as a
+  diagnostic for learned continuous prompts, not as a reproduction of SIPIT
+  Table 5.
+
+#### 5.4.1 Soft-Prompt Tuning And SIPIT Readout
+
+Question:
+
+If only virtual prompt tokens are trained on the same G-EVAL-style task, what
+does SIPIT-style recovery invert from those learned vectors, and does the
+result contain semantic or rubric-level information useful for this thesis?
+
+Task-performance metrics are still reported, but mainly as a sanity check: if
+the soft prompt does not change the judge behavior, its inversion is much less
+interesting. The central result is the readout/inversion behavior.
+
+Completed random-init soft-prompt results on Topical-Chat engagingness:
+
+| Setting | Split rows | Validation Pearson | Validation Spearman | Test Pearson | Test Spearman | Interpretation |
+|---|---:|---:|---:|---:|---:|---|
+| 16 virtual tokens, max seq 2048, seed 42 | 240 / 60 / 60 | 0.5371 -> 0.5684 | 0.5354 -> 0.5732 | 0.7568 -> 0.8125 | 0.7482 -> 0.8098 | Best clean result: improves validation and final test |
+| 8 virtual tokens, max seq 2048, seed 42 | 240 / 60 / 60 | +0.0047 | +0.0078 | +0.0218 | +0.0252 | Smaller capacity gives a weaker but positive signal |
+| 32 virtual tokens, max seq 2048, seed 42 | 240 / 60 / 60 | +0.0431 | +0.0505 | -0.0384 | -0.0119 | More capacity improves validation but hurts final test, consistent with overfit risk |
+| 16 virtual tokens, max seq 1024, seed 42 | 240 / 60 / 60; 234 tokenized train rows | +0.0277 | +0.0349 | +0.0233 | +0.0293 | Positive but weaker; 1024 context drops 6 training rows |
+| 16 virtual tokens, max seq 2048, seed 43 | 240 / 60 / 60 | -0.0733 | -0.0555 | +0.0863 | +0.0697 | Seed-sensitive: validation worsens while final test improves |
+| 16 virtual tokens, max seq 2048, seed 44 | 240 / 60 / 60 | -0.0632 | -0.0562 | -0.1008 | -0.0862 | Negative robustness seed |
+
+Main interpretation:
+
+- The random initialization fix changes the scientific reading of the
+  soft-prompt branch. The earlier text-init runs were biased toward the seed
+  instruction and should be treated as controls, not as clean evidence about
+  learned soft-token semantics.
+- The best random-init run improves both paper-primary Topical-Chat metrics on
+  the held-out final-test split, showing that the learned soft tokens are not
+  arbitrary. This should support the readout analysis, not become the main
+  thesis claim about soft prompting as a performance method.
+- The 32-token result suggests that more soft-prompt capacity can improve
+  validation while harming final-test behavior.
+
+Completed SIPIT-style readout diagnostics for random-init soft prompts:
+
+| Target | Virtual tokens | Verified exactly? | Nearest mean L2 | Nearest mean cosine | Cosine variance | Qualitative recovered text |
+|---|---:|---|---:|---:|---:|---|
+| Random-init soft prompt, max seq 2048 | 16 | false | 60.2119 | 0.0719 | 0.0000278 | Mostly non-English / non-interpretable tokens |
+| Random-init soft prompt, 8 tokens | 8 | false | 60.0867 | 0.0714 | 0.0000235 | Mostly non-English / non-interpretable tokens |
+| Random-init soft prompt, 32 tokens | 32 | false | 60.2360 | 0.0720 | 0.0000265 | Mostly non-English / non-interpretable tokens |
+| Random-init soft prompt, max seq 1024 | 16 | false | 60.2455 | 0.0723 | 0.0000314 | Mostly non-English / non-interpretable tokens |
+
+Completed SIPIT controls:
+
+| Control | Target construction | Verified exactly? | Nearest mean L2 | Interpretation |
+|---|---|---|---:|---|
+| Random hard vocabulary tokens | Sample real token ids and use their exact input embeddings | true | 0.0005 | Positive control: the bounded recovery path can verify discrete token targets in this setup |
+| Initialization prompt token embeddings | Tokenize the seed instruction and use the exact embeddings of those tokens | false | 0.0005 | Text-initialization/budget control: nearest projection reconstructs the seed text, but iterative verification only verifies the prefix before exhausting the bound |
+| Random continuous vectors | Sample Gaussian vectors and norm-match them to the soft-prompt artifact when available | false | 2.3147 | Negative control: continuous off-manifold targets do not map cleanly to discrete token sequences |
+
+Interpretation:
+
+- These controls are not three ordinary SIPIT reproductions. They are diagnostic
+  targets used to understand what the soft-prompt readout means.
+- Normal SIPIT starts from hidden states produced by a real token sequence and
+  tries to recover that same discrete sequence. The soft-prompt experiment
+  instead asks whether continuous vectors learned by prompt tuning can be given
+  a faithful discrete textual explanation.
+- Soft prompts learned from random initialization are much farther from the
+  discrete token embedding manifold than the controls. Exact discrete-token
+  targets and the initialization-prompt embeddings have nearest L2 near zero;
+  norm-matched random continuous vectors have nearest L2 about 2.3; learned
+  random-init soft prompts have nearest L2 about 60.
+- `all_positions_verified=false` is therefore expected for learned continuous
+  prompts and should not be described as ordinary SIPIT failure on natural
+  prompts.
+- The random-hard-token control confirms that exact recovery can succeed when
+  the target is a sequence of actual vocabulary embeddings.
+- The initialization-prompt control explains why readable text in a control is
+  not enough by itself: its nearest-token projection is the seed text, but the
+  bounded iterative recovery still stops after a prefix. This is a recovery
+  budget/algorithm diagnostic, not evidence that the seed-text embeddings are
+  semantically random.
+- These results are useful for the thesis because they directly test what SIPIT
+  recovers from learned continuous prompt vectors. The current answer is
+  negative for semantic interpretability: a soft prompt can improve G-EVAL
+  metrics while SIPIT/nearest-token readout still fails to yield a faithful
+  natural-language explanation.
 
 Artifacts:
 
@@ -224,6 +311,18 @@ Artifacts:
 - `spit/SIPIT/data/reproduce/reports/table5/gpt2_collision_check_cpu.json`
 - `spit/SIPIT/data/reproduce/logical20_gpt2_clean/`
 - `spit/SIPIT/scripts/random_prefix/README.md`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_vtokens8/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_vtokens32/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_random_init/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_seed43/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_seed44/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_sipit/sipit_recovery.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_vtokens8_sipit/sipit_recovery.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_vtokens32_sipit/sipit_recovery.json`
+- `gepa-experiments/results/soft_prompt_sipit_random_hard_control/sipit_recovery.json`
+- `gepa-experiments/results/soft_prompt_sipit_init_control/sipit_recovery.json`
+- `gepa-experiments/results/soft_prompt_sipit_random_continuous_control/sipit_recovery.json`
 
 ### 5.5 Standalone NLA Validation
 
@@ -364,10 +463,11 @@ that is more useful to GEPA?
 
 Current status from local docs:
 
-- The first auxiliary-judge smoke exposed an empty-feedback bug and should not
-  be interpreted as an improvement claim.
-- A replacement aux-judge smoke and dependent long run are tracked in
-  `gepa-experiments/status/relatore_results_index_20260614.md`.
+- The completed auxiliary-judge smoke exposed an empty-feedback /
+  reasoning-only output problem and should not be interpreted as an improvement
+  claim.
+- Replacement aux-judge jobs are tracked in the GEPA status docs, but they do
+  not yet provide completed valid evidence for the thesis census.
 - This branch is thesis-critical if the final claim is about making NLA useful
   for GEPA, because raw/fixed NLA alone is not yet convincing.
 
@@ -397,6 +497,10 @@ Current status:
   checks.
 - Small `n` smokes, especially QAGS with very small test sets, should not be
   reported as scientific performance claims.
+- SummEval consistency has a 32-example smoke comparison that is directionally
+  readable but still not a thesis-level long result. In that smoke, PPL-only
+  optimized beats PPL+real-NLA on Pearson, Spearman, agreement, and MAE, while
+  the older NLA artifact lacks Kendall tau.
 
 Expected table:
 
@@ -454,6 +558,8 @@ Failure/negative evidence to include:
 | Fixed-NLA weak-positive but no prompt change | Matched long comparison | Treat as weak diagnostic evidence |
 | Candidate-only NLA negative | Candidate-content smokes | Duplicate-only hypothesis insufficient |
 | Aux-judge empty feedback bug | Aux-judge smoke | Do not use early aux metrics as improvement evidence |
+| NLA token-position sweep wiring ambiguity | 2026-06-17 position smokes | Treat as plumbing/diagnostic only; rerun after proving strategy propagation |
+| Random-init soft prompts off manifold | SIPIT readout controls | Do not interpret nearest text as a natural-language prompt when verification fails |
 | Node-local artifacts on `moro232` | Current plan notes | Check execution node or sync artifacts explicitly |
 | GPU memory occupied by other users | Failed replacement controls | Failure not caused by thesis code, but affects scheduling/retry policy |
 
@@ -472,6 +578,8 @@ Expected table:
 | The canonical dataset was built and validated | Yes | Dataset reports | Semantic flip metrics still needed for some claims |
 | Embedding inversion reproduction was diagnostic, not paper-level | Yes | Jina-v3 probes | Not a successful paper reproduction |
 | SIPIT exact inversion behaves as expected in GPT-2 interim evidence | Partially | Collision check and log-derived recovery | Final CSV/JSON missing locally |
+| Trained random-init soft prompts are meaningful SIPIT readout targets | Partially | Seed-42 16-token/2048 run changes/improves validation and final-test behavior | Seed sweep is mixed, so usefulness is not yet robust |
+| SIPIT can invert learned random-init soft prompts into semantically useful text | No in current evidence | Soft-prompt SIPIT readout and controls | Learned vectors are continuous/off-manifold; nearest text is not faithful semantic interpretation |
 | Standalone NLA plumbing works | Yes | NLA artifacts | Not semantic-fidelity proof |
 | GEPA+PPL can improve Topical-Chat engagingness | Yes for observed long run | First PPL long run | Historical setup evolved |
 | Raw NLA robustly improves GEPA | No | Raw-NLA and candidate-only diagnostics | Needs semantic compression or better use |
@@ -486,6 +594,7 @@ Main tables:
 - Canonical dataset validation table.
 - Embedding-inversion diagnostic run table.
 - SIPIT collision and interim reproduction tables.
+- Soft-prompt random-init metric table and SIPIT readout/control table.
 - Standalone NLA validation table.
 - GEPA long-run comparison table.
 - NLA ablation/failure-mode table.

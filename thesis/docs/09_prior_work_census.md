@@ -1,6 +1,6 @@
 # Prior Work Census
 
-Status date: 2026-06-15
+Status date: 2026-06-18
 
 This document is the inventory that prevents the thesis from becoming a
 GEPA-only writeup. The local repository and the cluster contain several earlier
@@ -57,32 +57,40 @@ The GEPA branch adds a second layer:
 | `nla-experiments/` | Standalone NLA SummEval pipeline. | Extracts Qwen2.5-7B layer-20 residual activations and verbalizes them with Qwen NLA AV. | Independent validation of NLA plumbing before GEPA integration. |
 | `nla-artifacts/` | Curated NLA artifact repo. | Stores SummEval manifests, sample activations, verbalizations, reports, and Slurm logs. | Artifact evidence for standalone NLA runs. |
 | `gepa-experiments/` | Current GEPA/G-Eval pipeline. | Contains multi-dataset runner, PPL, NLA, aux judge, Qwen35B proposer, matrix plan, diagnostics, results. | Main current experimental branch. |
+| `gepa-experiments/soft_prompting/` | Soft-prompt tuning and SIPIT readout on the G-EVAL-style judge task. | Contains random/text initialization support, nearest-token diagnostics, and SIPIT-style recovery scripts. | Creates learned continuous prompt targets to test what SIPIT can invert and whether the inversion has semantic value. |
 | `prompt-waywardness/` | Related prompt inversion / continuous prompt discretization work. | Upstream code and paper PDF. | Related work and conceptual support for continuous-to-discrete prompt mismatch. |
 | `towards_interpretable_softprompts/` | Related soft-prompt interpretability material. | Upstream notebook/code material. | Related work or appendix context if useful. |
 | `tesi_t_simoneMazzacano/` | Previous student thesis reference. | Local-only reference folder, intentionally not modified. | Style/structure reference, not content source. |
 
 ## Cluster Inventory
 
-Remote check on `faretra` at this census date:
+Remote check at this census date:
 
 - Remote workspace: `faretra:~/tesi`.
-- Visible queued jobs:
-  - `11913885`: fresh auxiliary-judge smoke gate, pending resources.
-  - `11913886`: dependent long auxiliary-judge run, pending dependency.
+- Direct node-local artifact checks may still be needed on `moro232`, because
+  single-GPU soft-prompt/SIPIT jobs write under `moro232:~/tesi` before being
+  synchronized.
+- Visible queued thesis jobs on `faretra` are follow-up jobs, not completed
+  results:
+  - `11920199`: NLA token-strategy wiring probe, pending multi-GPU resources.
+  - `11920242` to `11920253`: dependent NLA token-position sweep jobs.
+  - `11920201`, `11920202`, `11920233`, `11920234`, and `11920235`:
+    aux-judge and matched no-aux follow-up jobs, dependency-gated or pending
+    resources.
 - GEPA status files exist remotely:
   - `gepa-experiments/status/current_plan_status.md`
   - `gepa-experiments/status/full_matrix_execution_plan_20260613.md`
   - `gepa-experiments/status/relatore_call_brief_20260611.md`
 - GEPA result directories exist remotely for the historical Topical-Chat PPL
   runs, fixed/raw NLA runs, dataset smokes, candidate-only NLA smokes, and
-  recovered `moro232` artifacts.
+  soft-prompt/SIPIT artifacts.
 - The current `~/tesi/spit/SIPIT/data/reproduce` tree on `faretra` did not show
   copied SIPIT outputs in the quick snapshot, but older SIPIT notes record a
   separate remote workspace: `faretra:~/sipit-reproduction-runs/run-20260520-impl`.
 
-Remote check on `moro232` timed out during SSH banner exchange, so the current
-state of that node was not refreshed in this census. Older GEPA notes mention
-recovered `moro232` artifacts under `gepa-experiments/results/recovered_moro232`.
+Remote check on `moro232` succeeded for the soft-prompt/SIPIT result
+directories. Lightweight artifacts have been synchronized locally for the
+completed random-init soft-prompt runs, SIPIT readouts, and SIPIT controls.
 
 ## Embedding Inversion Work
 
@@ -279,6 +287,9 @@ Random-prefix SIPIT extension:
 
 - The extension tests whether SIPIT can recover a prompt when the input begins
   with random continuous embeddings.
+- Standard SIPIT recovery is the easier and cleaner reference setting: the
+  hidden states come from ordinary vocabulary tokens and the target is that same
+  discrete prompt.
 - `full-sequence` asks SIPIT to recover both random continuous prefix positions
   and real prompt tokens as vocabulary tokens.
 - `known-prefix-control` gives SIPIT the exact continuous prefix as fixed
@@ -431,8 +442,11 @@ Main result status:
   byte-identical.
 - Candidate-only NLA reduced duplicate feedback but worsened metrics, so the
   duplicate-only hypothesis is not sufficient.
-- The next planned critical branch is auxiliary-judge compression of NLA into
-  rubric-level feedback before it reaches the proposer.
+- The first auxiliary-judge smoke exposed a reasoning-only / empty-feedback
+  issue and is not valid evidence of auxiliary-judge benefit.
+- The next planned critical branch remains auxiliary-judge compression of NLA
+  into rubric-level feedback before it reaches the proposer, but only after a
+  valid non-empty-feedback smoke.
 
 Full matrix plan:
 
@@ -459,12 +473,98 @@ Thesis interpretation:
 
 Open gaps:
 
-- Auxiliary-judge smoke/long results are still pending.
+- Valid auxiliary-judge smoke/long results are still pending.
 - Multi-dimension joint-prompt runner is planned but not yet part of the
   existing reproducible single-dimension path.
 - The full matrix is too expensive to complete blindly before the deadline; the
   thesis must distinguish thesis-critical long jobs from exploratory matrix
   jobs.
+
+## Soft-Prompt / SIPIT Readout Work
+
+Path: `gepa-experiments/soft_prompting/` and
+`gepa-experiments/results/soft_prompt_*`
+
+This branch follows the advisor suggestion based on the soft-prompting
+notebook: train only continuous virtual prompt tokens on the same
+G-EVAL-style task, then inspect what SIPIT and nearest-token projection recover
+from those vectors. The main purpose is not to introduce soft prompting as a
+new performance method, but to test whether the inversion of trained soft
+tokens exposes semantic or rubric-level information useful for the thesis.
+
+Relevant files:
+
+- `gepa-experiments/soft_prompting/train_soft_judge.py`
+- `gepa-experiments/soft_prompting/sipit_soft_prompt_recover.py`
+- `gepa-experiments/slurm/submit_soft_prompt.sh`
+- `gepa-experiments/slurm/run_soft_prompt_sipit_job.sh`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_vtokens8/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_vtokens32/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_seed43/metrics.json`
+- `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init_seed44/metrics.json`
+- `gepa-experiments/results/soft_prompt_*_sipit/sipit_recovery.json`
+- `gepa-experiments/results/soft_prompt_sipit_*_control/sipit_recovery.json`
+
+Completed task-learning sanity evidence:
+
+- Main setting: Topical-Chat engagingness, Qwen/Qwen2.5-7B-Instruct frozen,
+  240 train / 60 validation / 60 final-test rows.
+- Main clean random-init run: 16 virtual tokens, max sequence length 2048,
+  seed 42.
+  - validation Pearson: 0.5371 -> 0.5684
+  - validation Spearman: 0.5354 -> 0.5732
+  - final-test Pearson: 0.7568 -> 0.8125
+  - final-test Spearman: 0.7482 -> 0.8098
+- Length sweep:
+  - 8 tokens: positive but weaker on validation and final test.
+  - 32 tokens: validation improves but final-test Pearson/Spearman worsen.
+  - 16 tokens with 1024 context: positive but weaker than 2048 and tokenizes
+    only 234/240 training rows.
+- Seed sweep:
+  - seed 43 worsens validation but improves final test.
+  - seed 44 worsens both validation and final test.
+
+Completed SIPIT/readout evidence:
+
+- Random-init learned soft prompts are far from the discrete token embedding
+  manifold: nearest mean L2 is about 60 and nearest mean cosine is about 0.07
+  across the 8/16/32-token random-init readouts.
+- SIPIT-style bounded recovery does not verify learned soft prompts exactly:
+  `all_positions_verified=false` for all random-init soft-prompt readouts.
+- Random hard-token control verifies exactly with `all_positions_verified=true`,
+  showing that the bounded recovery path can succeed when the target is a
+  sequence of actual vocabulary tokens.
+- Initialization-prompt and random-continuous controls separate two different
+  failure modes. The initialization-prompt target is still made of real token
+  embeddings, so its nearest-token target is the seed instruction; its failed
+  full verification diagnoses bounded recovery exhaustion after the first
+  positions. The random-continuous target is genuinely off-manifold and tests
+  the expected failure mode for arbitrary continuous vectors.
+- Therefore the soft-prompt controls should not be described as ordinary SIPIT
+  reproductions. They calibrate what the readout means when the target is a
+  learned continuous prompt rather than a natural discrete prompt.
+
+Thesis interpretation:
+
+- The clean random-init result shows that the trained soft tokens are
+  task-relevant enough to be interesting inversion targets, but robustness is
+  mixed across seeds and token counts.
+- The readout result is mainly negative/diagnostic for interpretability:
+  SIPIT/nearest-token inversion of learned useful continuous tokens does not
+  automatically produce faithful natural-language or semantically useful prompt
+  content.
+- This branch supports the broader thesis theme that task usefulness,
+  nearest-token readability, and exact latent-to-text recovery are distinct
+  notions.
+
+Open gaps:
+
+- Decide whether to run additional seeds or a longer controlled sweep before
+  making a stronger soft-prompt performance claim.
+- Decide whether higher-budget SIPIT recovery is worth running after the
+  precision16 check, or whether current controls already make the off-manifold
+  conclusion strong enough.
 
 ## Related Repositories
 
@@ -507,6 +607,8 @@ Chapter 3 should describe methods in chronological/logical order:
 - SIPIT reproduction and logical/random-prefix extensions;
 - NLA activation extraction and verbalization;
 - GEPA/G-Eval optimization with PPL, NLA, and auxiliary feedback.
+- soft-prompt tuning on the same judge task and SIPIT-style readout of learned
+  virtual tokens.
 
 Chapter 4 should include:
 
@@ -523,6 +625,7 @@ Chapter 5 should include:
 - logical/random-prefix SIPIT findings if final outputs exist;
 - standalone NLA smoke evidence;
 - GEPA PPL, raw-NLA, fixed-NLA, candidate-only, and aux-judge results;
+- soft-prompt random-init results and SIPIT readout/control diagnostics;
 - runtime and failure-mode analysis.
 
 ## Ambiguities To Resolve With The Advisor
@@ -550,6 +653,6 @@ Chapter 5 should include:
 3. Add a thesis dataset table from `thesis-datasets/reports/build_report.md`.
 4. Add a method diagram that links:
    latent representation -> inversion/verbalization -> semantic-fidelity
-   evaluation -> GEPA feedback branch.
+   evaluation -> GEPA feedback branch, plus the soft-prompt readout branch.
 5. Keep GEPA result docs as detailed appendices, but make Chapter 5 read as one
    coherent thesis progression instead of a disconnected set of cluster runs.

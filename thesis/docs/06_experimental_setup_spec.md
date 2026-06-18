@@ -107,6 +107,7 @@ Datasets to cover:
 | SIPIT | Paper-style GPT-2 Table 5 dataset plus logical 20-token dataset | Reproduction and extension | Yes |
 | Standalone NLA | SummEval activation/verbalization samples | Plumbing validation | Yes, compactly |
 | GEPA/G-EVAL | Topical-Chat, SummEval, QAGS-CNN, QAGS-XSUM | Main current branch | Yes |
+| Soft-prompt tuning | Topical-Chat engagingness | Frozen-model prompt-tuning diagnostic | Yes, as GEPA-adjacent explainability branch |
 
 Dataset table to add:
 
@@ -141,6 +142,14 @@ Required details:
   - final-test rows are never passed to GEPA and are evaluated only after prompt
     selection;
   - every thesis run must save the exact split manifest.
+- Soft-prompt Topical-Chat split:
+  - same Topical-Chat engagingness task family as the GEPA branch;
+  - main random-init runs use 40 train groups, 10 validation groups, and 10
+    final-test groups, corresponding to 240 / 60 / 60 rows;
+  - the 2048-token context setting keeps all 240 training rows, while the
+    1024-token setting tokenizes 234/240 training rows;
+  - seed sweeps must be reported as robustness evidence, not as independent
+    datasets.
 
 Important wording:
 
@@ -164,6 +173,8 @@ Model-role table to add:
 | Perplexity model | Same Qwen/Qwen2.5-7B-Instruct | Response-only PPL feedback | No, feedback-only |
 | Proposer | Qwen35B via llama.cpp | Proposes prompt edits | No |
 | Auxiliary judge | Qwen35B via llama.cpp | Produces extra proposer feedback when enabled | No |
+| Soft-prompt base model | Qwen/Qwen2.5-7B-Instruct | Frozen model whose prompt embeddings are tuned to create learned readout targets | Yes as sanity/task-learning evidence |
+| SIPIT readout target for soft prompts | Qwen/Qwen2.5-7B-Instruct embeddings/hidden states | Tests what SIPIT can invert from learned virtual tokens | No, primary diagnostic/readout object |
 
 Required explanation:
 
@@ -175,6 +186,9 @@ Required explanation:
   model whose behavior the prompt is trying to improve.
 - The NLA checkpoint is model/layer-specific, so NLA verbalizations should not
   be moved to a different base model without a compatible checkpoint.
+- Soft-prompt runs do not fine-tune Qwen2.5-7B weights. They train only virtual
+  prompt embeddings, so they answer a different question from GEPA prompt
+  search.
 
 ### 4.3 Hardware And Cluster Environment
 
@@ -261,6 +275,19 @@ Required artifact checklist for SIPIT:
   per-token `times`;
 - summary JSON/Markdown;
 - Slurm logs when official CSV/JSON is unavailable.
+
+Required artifact checklist for soft-prompt tuning and SIPIT readout:
+
+- `metrics.json` with baseline and soft-prompt metrics on validation and
+  final-test splits;
+- adapter metadata and train configuration;
+- `nearest_tokens.jsonl` with nearest-token L2/cosine diagnostics;
+- `sipit_soft_prompt_manifest.json`;
+- `soft_prompt_embeddings.pt` or a reproducible pointer to the embedding
+  artifact;
+- SIPIT readout `sipit_recovery.json` and `summary.md`;
+- control readouts for random hard tokens, initialization prompt embeddings,
+  and random continuous vectors.
 
 Required artifact checklist for embedding inversion:
 
@@ -363,7 +390,53 @@ Important caveat:
 - Runtime is diagnostic because paper hardware differs from the available RTX
   3090 cluster.
 
-#### 4.5.3 Standalone NLA Metrics
+#### 4.5.3 Soft-Prompt And SIPIT-Readout Metrics
+
+| Metric | Available now | Include? | Use |
+|---|---|---|---|
+| Validation Pearson/Spearman/Kendall | Yes | Yes | Measures whether soft prompt improves the held-out validation split used for model selection |
+| Final-test Pearson/Spearman/Kendall | Yes | Yes | Sanity check that the learned soft prompt changes useful task behavior |
+| Validation/final-test MAE and normalized agreement | Yes | Yes, secondary | Shows absolute score error and exact-scale movement |
+| Parse coverage | Yes | Yes | Confirms scores were parsed for all examples |
+| Tokenized train rows | Yes | Yes | Explains the 1024 vs 2048 context difference |
+| Number of virtual tokens | Yes | Yes | Capacity/overfit sweep variable |
+| Soft-prompt initialization | Yes | Yes | Separates random-init evidence from text-init controls |
+| Nearest-token L2 | Yes | Yes | Main geometric distance to the discrete vocabulary manifold |
+| Nearest-token cosine | Yes for random-init readouts | Yes, qualitative | Secondary geometric similarity to nearest token |
+| Nearest cosine variance | Yes for random-init readouts | Yes, qualitative | Variance across virtual tokens of cosine to each top-1 L2 nearest token |
+| SIPIT `all_positions_verified` | Yes | Yes | Exact discrete recovery success/failure |
+| SIPIT recovered text | Yes | Yes, qualitative/appendix | Useful only with the verification flag and nearest distances |
+| SIPIT elapsed time and per-token timesteps | Yes | Yes, diagnostic | Indicates whether the bounded search exhausted its budget |
+
+Interpretation rules:
+
+- Random-init soft-prompt metrics are mainly used to verify that the learned
+  virtual tokens are task-relevant before interpreting their SIPIT readout.
+- SIPIT readout metrics are interpretability diagnostics. They should not be
+  used to claim that a learned continuous prompt is natural language unless the
+  recovery verifies exactly or nearest-token distances are plausibly small.
+- Text-init soft prompts are controls because nearest-token projection is
+  biased by the initialization sentence.
+
+Soft-prompt SIPIT-readout control modes:
+
+| Mode | Target vectors | Role | How to read the result |
+|---|---|---|---|
+| `soft_prompt` | PEFT virtual-token embeddings saved after training | Main diagnostic target | Tests whether trained continuous prompt vectors can be mapped back to faithful discrete text |
+| `random_hard_tokens` | Exact embeddings of sampled vocabulary ids | Positive control | Should verify exactly; failure would indicate a pipeline or recovery-budget problem even for discrete targets |
+| `init_prompt` | Exact embeddings of the tokenized seed instruction | Text-initialization control | Nearest tokens should reconstruct the seed text; failed full verification mainly indicates bounded recovery exhaustion, not off-manifold embeddings |
+| `random_continuous` | Gaussian continuous vectors, norm-matched to the soft prompt when available | Negative control | Expected to fail exact verification because the target vectors are not vocabulary embeddings |
+
+This table should be included because the control labels are otherwise
+ambiguous. `random_hard_tokens` is the clean positive control that verified
+end-to-end. `init_prompt` is also made of real token embeddings, but it is
+included to diagnose text-initialization bias and recovery-budget behavior:
+nearest-token projection recovers the seed text, while iterative verification
+can still stop after a prefix. `soft_prompt` and `random_continuous` are
+continuous-target readouts, so exact SIPIT verification is not expected unless
+the vectors happen to lie very close to the discrete embedding manifold.
+
+#### 4.5.4 Standalone NLA Metrics
 
 | Metric | Available now | Include? | Use |
 |---|---|---|---|
@@ -384,7 +457,7 @@ Chapter placement:
 - Do not claim that NLA preserves negation or counterfactuality from readability
   alone.
 
-#### 4.5.4 GEPA/G-EVAL Final Metrics
+#### 4.5.5 GEPA/G-EVAL Final Metrics
 
 Paper-aligned primary metrics:
 
@@ -424,7 +497,7 @@ Important caveats:
   still show metric noise, but it is not evidence that GEPA learned a better
   prompt.
 
-#### 4.5.5 GEPA Feedback Metrics
+#### 4.5.6 GEPA Feedback Metrics
 
 Perplexity feedback:
 
@@ -461,7 +534,7 @@ Auxiliary-judge feedback:
 | Non-empty feedback rate | Derivable | Should include | Detects silent failures |
 | Auxiliary response length | Not summarized | Optional | Detects truncation or verbosity |
 
-#### 4.5.6 Time And Efficiency Metrics
+#### 4.5.7 Time And Efficiency Metrics
 
 Metrics already available:
 
@@ -536,6 +609,32 @@ Feedback table:
 | Aux judge max tokens | Candidate values | Mark final | Feedback completeness |
 | Aux judge min success rate | Current gate | Mark final | Prevents silent aux failures |
 
+Soft-prompt table:
+
+| Hyperparameter | Values tried | Final/reporting value | Why |
+|---|---|---|---|
+| Base model | Qwen/Qwen2.5-7B-Instruct | Mark final | Same model family as GEPA base judge and NLA source |
+| Dataset/dimension | Topical-Chat engagingness | Mark final | Same task used in the main GEPA pilot |
+| Split groups | 40/10/10 | Mark final | Gives 240/60/60 row split |
+| Soft-prompt initialization | text, random | random for main; text as control | Avoids biasing nearest-token interpretation toward the seed prompt |
+| Virtual tokens | 8, 16, 32 | Mark final per run | Capacity/overfit and interpretability sweep |
+| Max sequence length | 1024, 2048 | Mark final per run | 2048 prevents dropping long training rows |
+| Learning rate | 0.005 in completed random-init runs | Mark final | Prompt-tuning optimization setting |
+| Epochs | 5.0 in completed random-init runs | Mark final | Prompt-tuning budget |
+| Batch / accumulation | train batch 1, accumulation 8 | Mark final | Fits Qwen2.5-7B prompt tuning on RTX 3090 |
+| Quantization | 4-bit load for training | Mark final | Memory constraint on available GPUs |
+| Random seed | 42, 43, 44 | Mark final per run | Robustness check |
+
+SIPIT readout table for soft prompts:
+
+| Hyperparameter | Values tried | Final/reporting value | Why |
+|---|---|---|---|
+| Target layer | 28 for Qwen2.5-7B readout runs | Mark final | Layer used by the bounded recovery script |
+| Precision | 4, 16 for selected checks | Mark final | Tests whether recovery failure is precision/budget-related |
+| Max iterations per token | 500 | Mark final | Bounded search budget |
+| Control mode | soft prompt, random hard tokens, init prompt, random continuous | Mark final | Separates discrete-token recovery from continuous off-manifold targets |
+| Nearest-token ranking | L2 primary, cosine diagnostic | Mark final | L2 selects nearest vocabulary embedding; cosine aids qualitative reading |
+
 Infrastructure table:
 
 | Hyperparameter | Values tried | Final value | Why |
@@ -565,6 +664,19 @@ SIPIT:
 - Primary paper baselines: BruteForce and HardPrompts.
 - Exact-match accuracy and vocabulary explored are the key comparison metrics.
 - Mistral FP4 and cancelled runs must be labeled as incomplete.
+
+Soft prompts:
+
+- Compare soft-prompt performance against the same frozen-model baseline on the
+  same split and seed.
+- Compare virtual-token lengths only when dataset, split, seed, max sequence
+  length, and training budget are otherwise matched.
+- Treat text initialization as a control, not as the main interpretability
+  condition, because nearest-token projection is strongly influenced by the
+  initialization text.
+- Compare SIPIT readout of soft prompts against random hard-token,
+  initialization-prompt, and random-continuous controls before interpreting any
+  recovered text.
 
 GEPA/G-EVAL:
 
