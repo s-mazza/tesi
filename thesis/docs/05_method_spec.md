@@ -114,7 +114,10 @@ remaining gaps are resolved.
 Suggested subsections:
 
 - `Task Setting`: define embedding inversion as fixed-size embedding to text,
-  and explain why semantic-fidelity stress examples are relevant.
+  explain why semantic-fidelity stress examples are relevant, and include a
+  concrete TikZ example from the local qualitative inversion artifact showing
+  how an input sentence is encoded, decoded from the embedding alone, and then
+  checked for semantic drift.
 - `Reproduction Boundary`: state exactly what was reproduced and what was not
   reproducible from the public material.
 - `Diagnostic Design`: describe the diagnostic variants and controls without

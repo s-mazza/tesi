@@ -1196,6 +1196,100 @@ the input to the inversion method is a fixed-size text embedding, and the output
 is a textual reconstruction. The thesis uses this branch as a diagnostic track:
 it investigates how embedding-inversion systems behave on semantically fragile
 inputs, but it does not rely on this branch alone for the final claim.
+\FigureRef{fig:method-embedding-inversion-example} shows the practical
+operation of the script-level pipeline on one local qualitative artifact: the
+system first encodes the sentence, then decodes from the embedding alone, and
+finally exposes whether the recovered text still expresses the intended
+predicate and negation.
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.98\linewidth}{!}{%
+    \begin{tikzpicture}[
+        font=\scriptsize,
+        >=Latex,
+        stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=center, text width=27mm, minimum height=19mm, inner sep=3.2pt},
+        wide stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=left, text width=95mm, minimum height=18mm, inner sep=4pt},
+        note/.style={draw=#1!65!black, fill=#1!8, very thick, rounded corners=4pt,
+            align=left, text width=105mm, minimum height=16mm, inner sep=4pt},
+        lane/.style={draw=#1!55!black, fill=#1!5, very thick, rounded corners=6pt},
+        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
+            minimum size=8.5mm, inner sep=0pt},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
+        small label/.style={font=\scriptsize\bfseries, text=#1!70!black},
+        pics/doc/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.17,-0.17) rectangle (0.18,0.20);
+            \draw[draw=black!55, line width=0.35pt] (-0.10,0.10) -- (0.11,0.10);
+            \draw[draw=black!55, line width=0.35pt] (-0.10,0.02) -- (0.14,0.02);
+            \draw[draw=black!55, line width=0.35pt] (-0.10,-0.06) -- (0.08,-0.06);
+        }},
+        pics/vector/.style={code={
+            \foreach \x/\h/\c in {-0.21/0.18/blue,-0.11/0.09/green,0.00/0.23/orange,0.11/0.13/lightviolet,0.22/0.05/darkyellow}
+                \draw[fill=\c!35, draw=\c!70!black, rounded corners=0.5pt] (\x,-0.18) rectangle ++(0.065,\h);
+            \draw[draw=black!45, line width=0.35pt] (-0.25,-0.18) -- (0.30,-0.18);
+        }},
+        pics/mask/.style={code={
+            \foreach \x in {-0.24,-0.12,0,0.12,0.24}
+                \draw[fill=black!10, draw=black!55, rounded corners=1pt] (\x-0.045,-0.06) rectangle (\x+0.045,0.06);
+            \node[font=\tiny] at (0,0) {?};
+        }},
+        pics/decoder/.style={code={
+            \draw[draw=black!60, line width=0.55pt] (-0.22,-0.14) rectangle (0.22,0.14);
+            \draw[draw=black!50, line width=0.4pt] (-0.14,-0.21) -- (-0.05,-0.14);
+            \draw[draw=black!50, line width=0.4pt] (0.14,-0.21) -- (0.05,-0.14);
+            \draw[draw=blue!70!black, line width=0.6pt] (-0.15,0.03) -- (-0.02,0.10) -- (0.14,-0.04);
+            \fill[orange!70!black] (0.15,-0.04) circle (0.03);
+        }},
+        pics/warn/.style={code={
+            \draw[fill=orange!20, draw=orange!75!black, line width=0.55pt] (0,0.22) -- (-0.22,-0.18) -- (0.22,-0.18) -- cycle;
+            \draw[draw=orange!80!black, line width=0.55pt] (0,0.08) -- (0,-0.06);
+            \fill[orange!80!black] (0,-0.12) circle (0.018);
+        }}
+    ]
+        \node[lane=blue, minimum width=11.7cm, minimum height=5.45cm, anchor=west] at (0,-1.55) {};
+
+        \node[stage=blue] (source) at (1.50,0.00) {\textbf{Input text}\\
+            \quotes{A man not playing guitar on stage.}};
+        \node[stage=green] (embed) at (4.25,0.00) {\textbf{Encoder}\\
+            Jina/Qwen3 demo\\embedding vector};
+        \node[stage=orange] (masked) at (7.00,0.00) {\textbf{Initial decoder state}\\
+            all text positions\\masked};
+        \node[stage=lightviolet] (decode) at (9.75,0.00) {\textbf{Conditional MDLM}\\
+            iterative\\unmasking};
+        \node[wide stage=darkgreen] (output) at (5.85,-1.95) {\textbf{Recovered text}\\
+            \textit{A man on a stage guitar playing a guitar on a flat bench.}\\
+            \textit{He is not a stage. A man is playing the role of a music player.}};
+
+        \node[badge=blue] at ([yshift=2.1mm]source.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]source.north) {doc};
+        \node[badge=green] at ([yshift=2.1mm]embed.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]embed.north) {vector};
+        \node[badge=orange] at ([yshift=2.1mm]masked.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]masked.north) {mask};
+        \node[badge=lightviolet] at ([yshift=2.1mm]decode.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]decode.north) {decoder};
+        \draw[line=blue] (source.east) -- (embed.west);
+        \draw[line=green] (embed.east) -- (masked.west);
+        \draw[line=orange] (masked.east) -- (decode.west);
+        \draw[line=lightviolet] (decode.south) -- ([xshift=39mm]output.north);
+
+        \node[note=orange] (check) at (5.85,-3.55) {\textbf{Semantic check}\\
+            The word \quotes{not} appears, but it attaches to a different
+            predicate (\quotes{not a stage}); the main event drifts back toward
+            \quotes{playing guitar}.};
+        \node[badge=orange] at ([xshift=-48mm,yshift=2.0mm]check.north) {};
+        \pic[scale=0.72] at ([xshift=-48mm,yshift=2.0mm]check.north) {warn};
+        \draw[line=orange] (output.south) -- (check.north);
+    \end{tikzpicture}}
+    \caption[Embedding-inversion script example.]{Concrete embedding-inversion example from the local
+    \texttt{eval\_metrics.py} artifact. The example was generated through the
+    public Jina demo encode/decode path and is used here only to show what the
+    script does in practice: from a sentence it obtains an embedding, decodes
+    from that embedding, and then exposes a semantic-fidelity issue.}
+    \label{fig:method-embedding-inversion-example}
+\end{figure}
 
 \subsection{Reproduction Boundary}
 \label{subsec:method-embedding-boundary}
@@ -2887,6 +2981,22 @@ and data/provenance assumptions remained partially ambiguous. Local provenance
 checks showed that the cached embeddings matched the public no-task/no-adapter
 path, so the evidence points to an unresolved reproduction gap rather than a
 confirmed local data-generation bug.
+
+In practical terms, this means that the cached Jina-v3 vectors were audited by
+regenerating embeddings for sampled cached rows with the public Jina model and
+then comparing the regenerated vectors with the cached vectors by cosine
+similarity. The cache matched the direct public path exactly: both the raw
+\texttt{AutoModel} forward path without adapter and the public
+\texttt{encode(...)} path without an explicit task produced mean cosine
+similarity 1.000000 against the cached embeddings. By contrast, explicit Jina
+task adapters produced visibly different vectors: \texttt{retrieval.query},
+\texttt{retrieval.passage}, \texttt{separation}, \texttt{classification}, and
+\texttt{text-matching} gave lower cosine matches, roughly between 0.69 and
+0.92. Therefore, the negative reproduction result is not explained by an
+accidental mismatch such as using a different local pooling rule or a corrupted
+embedding cache. The remaining ambiguity is whether the paper-level setup used
+a task-adapted or otherwise different embedding-generation condition that is
+not fully specified by the public artifacts available locally.
 
 \begin{table}[!htb]
     \centering
