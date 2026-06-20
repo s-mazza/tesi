@@ -861,48 +861,126 @@ track.
     \centering
     \resizebox{\textwidth}{!}{%
     \begin{tikzpicture}[
-        font=\small,
+        font=\scriptsize,
         >=Latex,
-        node distance=10mm and 10mm,
-        box/.style={draw, rounded corners=2pt, align=center, text width=33mm, minimum height=13mm, inner sep=4pt},
-        data/.style={box, fill=gray!10},
-        latent/.style={box, fill=blue!7},
-        feedback/.style={box, fill=orange!12},
-        result/.style={box, fill=green!10},
-        line/.style={->, thick}
+        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
+        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=center, text width=28mm, minimum height=18mm, inner sep=3.5pt},
+        track label/.style={draw=#1!65!black, fill=#1!12, very thick,
+            rounded corners=4pt, align=center, text width=22mm,
+            minimum height=13mm, inner sep=3pt, font=\scriptsize\bfseries},
+        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
+            minimum size=8.5mm, inner sep=0pt},
+        line/.style={-{Latex[length=2.4mm]}, very thick, draw=#1!65!black},
+        lane title/.style={anchor=west, font=\small\bfseries, align=left},
+        pics/document/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
+        }},
+        pics/network/.style={code={
+            \draw[draw=black!55, line width=0.45pt] (-0.18,0.13) -- (0.02,0.00) -- (0.20,0.13);
+            \draw[draw=black!55, line width=0.45pt] (-0.18,-0.13) -- (0.02,0.00) -- (0.20,-0.13);
+            \foreach \x/\y in {-0.18/0.13,-0.18/-0.13,0.02/0,0.20/0.13,0.20/-0.13}
+                \filldraw[fill=white, draw=black!65] (\x,\y) circle (0.045);
+        }},
+        pics/lens/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
+            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
+            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
+        }},
+        pics/scale/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (0,-0.22) -- (0,0.18);
+            \draw[draw=black!65, line width=0.55pt] (-0.20,0.08) -- (0.20,0.08);
+            \draw[draw=black!65, line width=0.45pt] (-0.15,0.08) -- (-0.23,-0.07) -- (-0.07,-0.07) -- cycle;
+            \draw[draw=black!65, line width=0.45pt] (0.15,0.08) -- (0.07,-0.07) -- (0.23,-0.07) -- cycle;
+            \draw[draw=black!65, line width=0.55pt] (-0.10,-0.22) -- (0.10,-0.22);
+        }},
+        pics/feedback/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.08) rectangle (0.10,0.15);
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.06,-0.17) rectangle (0.24,0.06);
+            \draw[draw=black!55, line width=0.35pt] (-0.16,0.06) -- (0.04,0.06);
+            \draw[draw=black!55, line width=0.35pt] (0.00,-0.03) -- (0.18,-0.03);
+            \fill[darkyellow!80!black] (0.19,0.14) circle (0.035);
+        }},
+        pics/tokens/.style={code={
+            \foreach \x/\c in {-0.20/blue, -0.07/orange, 0.06/green, 0.19/lightviolet}
+                \filldraw[fill=\c!25, draw=\c!70!black] (\x,0) circle (0.055);
+            \draw[draw=black!45, line width=0.4pt] (-0.145,0) -- (-0.125,0);
+            \draw[draw=black!45, line width=0.4pt] (-0.015,0) -- (0.005,0);
+            \draw[draw=black!45, line width=0.4pt] (0.115,0) -- (0.135,0);
+        }},
+        pics/prompt/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.20,-0.17) rectangle (0.18,0.17);
+            \draw[draw=black!55, line width=0.35pt] (-0.13,0.08) -- (0.11,0.08);
+            \draw[draw=black!55, line width=0.35pt] (-0.13,0.00) -- (0.08,0.00);
+            \draw[draw=orange!80!black, line width=0.75pt] (-0.06,-0.10) -- (0.16,0.12);
+            \filldraw[fill=orange!45, draw=orange!80!black] (0.16,0.12) circle (0.025);
+        }}
     ]
-        \node[data] (corpus) {Canonical\\semantic-fidelity\\corpus};
-        \node[latent, right=of corpus] (latent_track) {Embedding inversion\\SIPIT recovery\\Standalone NLA};
-        \node[result, right=of latent_track] (semantic) {Semantic-fidelity\\analysis};
+        \node[lane=blue, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,0) {};
+        \node[lane=orange, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,-2.45) {};
+        \node[lane=green, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,-4.90) {};
 
-        \node[data, below=13mm of corpus] (geval) {G-EVAL-style\\judge examples};
-        \node[latent, right=of geval] (judge) {Base judge\\Qwen2.5-7B};
-        \node[feedback, right=of judge] (gepa_feedback) {Metric, PPL, NLA,\\or aux-judge\\feedback};
-        \node[result, right=of gepa_feedback] (gepa_result) {GEPA prompt\\selection and\\final-test metrics};
+        \node[track label=blue, text=blue!55!black] at (1.25,0) {Latent-to-text\\track};
+        \node[track label=orange, text=orange!70!black] at (1.25,-2.45) {Prompt\\optimization\\track};
+        \node[track label=green, text=green!45!black] at (1.25,-4.90) {Soft-prompt\\track};
 
-        \node[data, below=13mm of geval] (judge_task) {Same judge\\task};
-        \node[feedback, right=of judge_task] (soft) {Frozen judge\\trained virtual\\prompt tokens};
-        \node[result, right=of soft] (readout) {Nearest-token\\and SIPIT-style\\readout};
-        \node[result, right=of readout] (interp) {Continuous-prompt\\interpretability\\diagnostic};
+        \node[card=blue] (corpus) at (4.10,0) {\textbf{Canonical corpus}\\semantic-fidelity probes};
+        \node[card=blue] (latent_track) at (7.75,0) {\textbf{Latent methods}\\embedding inversion\\SIPIT, NLA};
+        \node[card=blue] (semantic) at (11.40,0) {\textbf{Semantic analysis}\\meaning-preservation checks};
 
-        \draw[line] (corpus) -- (latent_track);
-        \draw[line] (latent_track) -- (semantic);
-        \draw[line] (geval) -- (judge);
-        \draw[line] (judge) -- (gepa_feedback);
-        \draw[line] (gepa_feedback) -- (gepa_result);
-        \draw[line] (judge_task) -- (soft);
-        \draw[line] (soft) -- (readout);
-        \draw[line] (readout) -- (interp);
+        \node[card=orange] (geval) at (4.05,-2.45) {\textbf{Judge examples}\\G-EVAL-style data};
+        \node[card=orange] (judge) at (7.15,-2.45) {\textbf{Base judge}\\Qwen2.5-7B};
+        \node[card=orange] (gepa_feedback) at (10.25,-2.45) {\textbf{Feedback}\\metrics, PPL, NLA\\aux judge};
+        \node[card=orange] (gepa_result) at (13.35,-2.45) {\textbf{GEPA}\\prompt selection\\final-test metrics};
 
-        \node[anchor=east, font=\small\bfseries, align=right] at ([xshift=-5mm]corpus.west) {Latent-to-text\\track};
-        \node[anchor=east, font=\small\bfseries, align=right] at ([xshift=-5mm]geval.west) {Prompt-optimization\\track};
-        \node[anchor=east, font=\small\bfseries, align=right] at ([xshift=-5mm]judge_task.west) {Soft-prompt\\track};
+        \node[card=green] (judge_task) at (4.05,-4.90) {\textbf{Same judge task}\\Topical-Chat scoring};
+        \node[card=green] (soft) at (7.15,-4.90) {\textbf{Soft tokens}\\frozen judge\\trained vectors};
+        \node[card=green] (readout) at (10.25,-4.90) {\textbf{Readout}\\nearest-token\\SIPIT-style recovery};
+        \node[card=green] (interp) at (13.35,-4.90) {\textbf{Diagnostic}\\continuous-prompt\\interpretability};
+
+        \node[badge=blue] at ([yshift=2.2mm]corpus.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]corpus.north) {document};
+        \node[badge=blue] at ([yshift=2.2mm]latent_track.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]latent_track.north) {network};
+        \node[badge=blue] at ([yshift=2.2mm]semantic.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]semantic.north) {lens};
+
+        \node[badge=orange] at ([yshift=2.2mm]geval.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]geval.north) {document};
+        \node[badge=orange] at ([yshift=2.2mm]judge.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]judge.north) {scale};
+        \node[badge=orange] at ([yshift=2.2mm]gepa_feedback.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]gepa_feedback.north) {feedback};
+        \node[badge=orange] at ([yshift=2.2mm]gepa_result.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]gepa_result.north) {prompt};
+
+        \node[badge=green] at ([yshift=2.2mm]judge_task.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]judge_task.north) {scale};
+        \node[badge=green] at ([yshift=2.2mm]soft.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]soft.north) {tokens};
+        \node[badge=green] at ([yshift=2.2mm]readout.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]readout.north) {lens};
+        \node[badge=green] at ([yshift=2.2mm]interp.north) {};
+        \pic[scale=0.82] at ([yshift=2.2mm]interp.north) {network};
+
+        \draw[line=blue] (corpus.east) -- (latent_track.west);
+        \draw[line=blue] (latent_track.east) -- (semantic.west);
+        \draw[line=orange] (geval.east) -- (judge.west);
+        \draw[line=orange] (judge.east) -- (gepa_feedback.west);
+        \draw[line=orange] (gepa_feedback.east) -- (gepa_result.west);
+        \draw[line=green] (judge_task.east) -- (soft.west);
+        \draw[line=green] (soft.east) -- (readout.west);
+        \draw[line=green] (readout.east) -- (interp.west);
     \end{tikzpicture}}
-    \caption{Original high-level method diagram for the thesis. The first row
-    evaluates whether latent-to-text methods preserve semantically fragile
-    content. The second row tests whether model-derived evidence can improve a
-    G-EVAL-style judge prompt through GEPA. The third row trains continuous soft
-    prompts and inspects them through nearest-token and SIPIT-style readouts.}
+    \caption{Original high-level method diagram for the thesis. Pictograms mark
+    the object handled in each step: datasets, latent representations,
+    semantic checks, judge scoring, feedback, prompt search, and soft-token
+    readout. The three rows keep the latent-to-text, GEPA, and soft-prompt
+    branches visually separate while preserving their shared semantic-fidelity
+    motivation.}
     \label{fig:method-overview}
 \end{figure}
 
@@ -918,51 +996,125 @@ signals to the prompt proposer. The detailed GEPA flow keeps validation-time
 reflection, prompt proposal, prompt selection, and held-out final-test evaluation
 as separate steps.
 
-\begin{figure}[!htb]
-    \centering
-    \resizebox{0.96\textwidth}{!}{%
-    \begin{tikzpicture}[
-        font=\small,
-        >=Latex,
-        node distance=10mm and 8mm,
-        box/.style={draw, rounded corners=2pt, align=center, text width=29mm, minimum height=13mm, inner sep=4pt},
-        data/.style={box, fill=gray!10},
-        latent/.style={box, fill=blue!7},
-        feedback/.style={box, fill=orange!12},
-        result/.style={box, fill=green!10},
-        line/.style={->, thick}
-    ]
-        \node[data] (example) {Evaluation\\example};
-        \node[latent, right=of example] (judge) {Base judge\\prediction};
-        \node[feedback, right=of judge] (reflection) {Reflection data\\metric + optional\\PPL/NLA};
-        \node[feedback, right=of reflection] (aux) {Optional\\auxiliary judge\\compression};
-        \node[result, right=of aux] (proposer) {Qwen35B\\proposer};
-
-        \node[result, below=11mm of proposer] (candidate) {Candidate\\prompt};
-        \node[result, left=of candidate] (validation) {Validation\\selection};
-        \node[result, left=of validation] (final) {Held-out\\final-test\\evaluation};
-
-        \draw[line] (example) -- (judge);
-        \draw[line] (judge) -- (reflection);
-        \draw[line] (reflection) -- (aux);
-        \draw[line] (aux) -- (proposer);
-        \draw[line] (proposer) -- (candidate);
-        \draw[line] (candidate) -- (validation);
-        \draw[line] (validation) -- (final);
-    \end{tikzpicture}}
-    \caption{Detailed GEPA feedback flow used in the prompt-optimization track.
-    Reflection data are produced on validation examples, optionally enriched with
-    perplexity, NLA verbalizations, or an auxiliary judge, and then given to the
-    proposer to generate candidate prompts. Final metrics are computed only after
-    prompt selection.}
-    \label{fig:method-gepa-feedback-flow}
-\end{figure}
-
 This separation is important. In the inversion track, the output text is the
 object being evaluated. In the GEPA track, textual feedback is an intermediate
 object used to improve a prompt. A readable NLA verbalization is therefore not
 automatically a successful final result. It becomes useful only if it helps the
 optimizer produce a judge prompt that agrees better with human annotations.
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.98\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\scriptsize,
+        >=Latex,
+        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
+        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=center, text width=25mm, minimum height=16mm, inner sep=3.2pt},
+        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
+            minimum size=8.2mm, inner sep=0pt},
+        lane tag/.style={draw=#1!65!black, fill=#1!12, very thick,
+            rounded corners=4pt, align=center, text width=20mm,
+            minimum height=12mm, inner sep=3pt, font=\scriptsize\bfseries},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
+        turn/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black,
+            rounded corners=7pt},
+        optional/.style={draw=#1!65!black, densely dashed},
+        pics/document/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
+        }},
+        pics/scale/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (0,-0.22) -- (0,0.18);
+            \draw[draw=black!65, line width=0.55pt] (-0.20,0.08) -- (0.20,0.08);
+            \draw[draw=black!65, line width=0.45pt] (-0.15,0.08) -- (-0.23,-0.07) -- (-0.07,-0.07) -- cycle;
+            \draw[draw=black!65, line width=0.45pt] (0.15,0.08) -- (0.07,-0.07) -- (0.23,-0.07) -- cycle;
+            \draw[draw=black!65, line width=0.55pt] (-0.10,-0.22) -- (0.10,-0.22);
+        }},
+        pics/feedback/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.08) rectangle (0.10,0.15);
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.06,-0.17) rectangle (0.24,0.06);
+            \draw[draw=black!55, line width=0.35pt] (-0.16,0.06) -- (0.04,0.06);
+            \draw[draw=black!55, line width=0.35pt] (0.00,-0.03) -- (0.18,-0.03);
+            \fill[darkyellow!80!black] (0.19,0.14) circle (0.035);
+        }},
+        pics/prompt/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.20,-0.17) rectangle (0.18,0.17);
+            \draw[draw=black!55, line width=0.35pt] (-0.13,0.08) -- (0.11,0.08);
+            \draw[draw=black!55, line width=0.35pt] (-0.13,0.00) -- (0.08,0.00);
+            \draw[draw=orange!80!black, line width=0.75pt] (-0.06,-0.10) -- (0.16,0.12);
+            \filldraw[fill=orange!45, draw=orange!80!black] (0.16,0.12) circle (0.025);
+        }},
+        pics/lens/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
+            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
+            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
+        }},
+        pics/archive/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.15) rectangle (0.22,0.16);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,0.07) -- (0.14,0.07);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,-0.01) -- (0.10,-0.01);
+            \draw[draw=darkgreen!70!black, line width=0.65pt] (-0.10,-0.09) -- (-0.03,-0.16) -- (0.14,0.01);
+        }}
+    ]
+        \node[lane=orange, minimum width=16.4cm, minimum height=2.0cm, anchor=west] at (0,0) {};
+        \node[lane=green, minimum width=16.4cm, minimum height=2.0cm, anchor=west] at (0,-2.35) {};
+
+        \node[lane tag=orange, text=orange!70!black] at (1.15,0) {Validation\\feedback};
+        \node[lane tag=green, text=green!45!black] at (1.15,-2.35) {Prompt\\selection};
+
+        \node[card=orange] (example) at (3.50,0) {\textbf{Evaluation example}\\dialogue, response\\human score};
+        \node[card=orange] (judge) at (6.40,0) {\textbf{Base judge}\\Qwen2.5-7B\\predicted score};
+        \node[card=orange] (reflection) at (9.30,0) {\textbf{Reflection data}\\metric error\\optional PPL/NLA};
+        \node[card=orange, optional=orange] (aux) at (12.20,0) {\textbf{Aux judge}\\optional\\feedback compression};
+        \node[card=orange] (proposer) at (15.10,0) {\textbf{Proposer}\\Qwen35B\\candidate edit};
+
+        \node[card=green] (candidate) at (15.10,-2.35) {\textbf{Candidate prompt}\\new judge\\instructions};
+        \node[card=green] (validation) at (11.60,-2.35) {\textbf{Validation}\\score candidate\\on held-out val};
+        \node[card=green] (archive) at (8.10,-2.35) {\textbf{Prompt pool}\\keep if useful\\or discard};
+        \node[card=green] (final) at (4.60,-2.35) {\textbf{Final test}\\run once after\\selection};
+
+        \node[badge=orange] at ([yshift=2.1mm]example.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]example.north) {document};
+        \node[badge=orange] at ([yshift=2.1mm]judge.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]judge.north) {scale};
+        \node[badge=orange] at ([yshift=2.1mm]reflection.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]reflection.north) {feedback};
+        \node[badge=orange] at ([yshift=2.1mm]aux.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]aux.north) {lens};
+        \node[badge=orange] at ([yshift=2.1mm]proposer.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]proposer.north) {prompt};
+
+        \node[badge=green] at ([yshift=2.1mm]candidate.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]candidate.north) {prompt};
+        \node[badge=green] at ([yshift=2.1mm]validation.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]validation.north) {scale};
+        \node[badge=green] at ([yshift=2.1mm]archive.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]archive.north) {archive};
+        \node[badge=green] at ([yshift=2.1mm]final.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]final.north) {lens};
+
+        \draw[line=orange] (example.east) -- (judge.west);
+        \draw[line=orange] (judge.east) -- (reflection.west);
+        \draw[line=orange] (reflection.east) -- (aux.west);
+        \draw[line=orange] (aux.east) -- (proposer.west);
+        \draw[turn=orange] (proposer.south) -- ++(0,-0.18) -| ([xshift=7mm]candidate.north);
+        \draw[line=green] (candidate.west) -- (validation.east);
+        \draw[line=green] (validation.west) -- (archive.east);
+        \draw[line=green] (archive.west) -- (final.east);
+    \end{tikzpicture}}
+    \caption{Detailed GEPA feedback flow used in the prompt-optimization track.
+    Reflection data are produced on validation examples, optionally enriched with
+    perplexity, NLA verbalizations, or an auxiliary judge, and then given to the
+    proposer to generate candidate prompts. Final metrics are computed only after
+    prompt selection; test examples do not drive proposal or validation-time
+    selection.}
+    \label{fig:method-gepa-feedback-flow}
+\end{figure}
+
+\FloatBarrier
 
 \section{Canonical Semantic-Fidelity Dataset}
 \label{sec:method-canonical-dataset}
