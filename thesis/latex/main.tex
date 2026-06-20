@@ -872,7 +872,8 @@ track.
         badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
             minimum size=8.5mm, inner sep=0pt},
         line/.style={-{Latex[length=2.4mm]}, very thick, draw=#1!65!black},
-        lane title/.style={anchor=west, font=\small\bfseries, align=left},
+        lane title/.style={anchor=west, font=\small\bfseries, align=left,
+            fill=white, inner xsep=3pt, inner ysep=1pt},
         pics/document/.style={code={
             \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
             \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
@@ -1391,27 +1392,80 @@ component.\footnote{\url{https://transformer-circuits.pub/2026/nla/index.html}}
 
 \begin{figure}[!htb]
     \centering
-    \resizebox{0.92\linewidth}{!}{%
+    \resizebox{0.98\linewidth}{!}{%
     \begin{tikzpicture}[
-        font=\small,
+        font=\scriptsize,
         >=Latex,
-        node distance=9mm and 10mm,
-        box/.style={draw, rounded corners=2pt, align=center, minimum width=33mm, minimum height=11mm, inner sep=4pt},
-        src/.style={box, fill=gray!10},
-        act/.style={box, fill=blue!7},
-        outputbox/.style={box, fill=green!10},
-        line/.style={->, thick}
+        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
+        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=center, text width=25mm, minimum height=16mm, inner sep=3.2pt},
+        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
+            minimum size=8.2mm, inner sep=0pt},
+        lane title/.style={anchor=west, font=\small\bfseries, align=left},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
+        pics/document/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
+        }},
+        pics/network/.style={code={
+            \draw[draw=black!55, line width=0.45pt] (-0.18,0.13) -- (0.02,0.00) -- (0.20,0.13);
+            \draw[draw=black!55, line width=0.45pt] (-0.18,-0.13) -- (0.02,0.00) -- (0.20,-0.13);
+            \foreach \x/\y in {-0.18/0.13,-0.18/-0.13,0.02/0,0.20/0.13,0.20/-0.13}
+                \filldraw[fill=white, draw=black!65] (\x,\y) circle (0.045);
+        }},
+        pics/tokens/.style={code={
+            \foreach \x/\c in {-0.20/blue, -0.07/orange, 0.06/green, 0.19/lightviolet}
+                \filldraw[fill=\c!25, draw=\c!70!black] (\x,0) circle (0.055);
+            \draw[draw=black!45, line width=0.4pt] (-0.145,0) -- (-0.125,0);
+            \draw[draw=black!45, line width=0.4pt] (-0.015,0) -- (0.005,0);
+            \draw[draw=black!45, line width=0.4pt] (0.115,0) -- (0.135,0);
+        }},
+        pics/lens/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
+            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
+            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
+        }},
+        pics/archive/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.15) rectangle (0.22,0.16);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,0.07) -- (0.14,0.07);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,-0.01) -- (0.10,-0.01);
+            \draw[draw=darkgreen!70!black, line width=0.65pt] (-0.10,-0.09) -- (-0.03,-0.16) -- (0.14,0.01);
+        }}
     ]
-        \node[src] (input) {Input example\\and selected token};
-        \node[act, right=of input] (base) {Qwen2.5-7B\\layer-20 activation};
-        \node[act, right=of base] (av) {NLA activation\\verbalizer};
-        \node[outputbox, right=of av] (text) {Verbalization\\record};
-        \draw[line] (input) -- (base);
-        \draw[line] (base) -- (av);
-        \draw[line] (av) -- (text);
+        \node[lane=blue, minimum width=9.25cm, minimum height=2.65cm, anchor=west] at (0,0) {};
+        \node[lane=green, minimum width=6.50cm, minimum height=2.65cm, anchor=west] at (9.60,0) {};
+        \node[lane title, text=blue!55!black] at (0.35,1.48) {Activation extraction};
+        \node[lane title, text=green!45!black] at (9.95,1.48) {Natural-language readout};
+
+        \node[card=blue] (input) at (1.90,-0.18) {\textbf{Input example}\\source text\\selected token};
+        \node[card=blue] (base) at (5.05,-0.18) {\textbf{Base LM}\\Qwen2.5-7B\\forward pass};
+        \node[card=blue] (activation) at (8.20,-0.18) {\textbf{Layer-20 vector}\\residual stream\\token position};
+        \node[card=green] (av) at (11.25,-0.18) {\textbf{NLA AV}\\checkpoint\\vector to text};
+        \node[card=green] (record) at (14.30,-0.18) {\textbf{Saved record}\\verbalization\\token/layer metadata};
+
+        \node[badge=blue] at ([yshift=2.1mm]input.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]input.north) {document};
+        \node[badge=blue] at ([yshift=2.1mm]base.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]base.north) {network};
+        \node[badge=blue] at ([yshift=2.1mm]activation.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]activation.north) {tokens};
+        \node[badge=green] at ([yshift=2.1mm]av.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]av.north) {lens};
+        \node[badge=green] at ([yshift=2.1mm]record.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]record.north) {archive};
+
+        \draw[line=blue] (input.east) -- (base.west);
+        \draw[line=blue] (base.east) -- (activation.west);
+        \draw[line=green] (activation.east) -- (av.west);
+        \draw[line=green] (av.east) -- (record.west);
     \end{tikzpicture}}
     \caption{Standalone NLA extraction pipeline used before integrating
-    verbalizations into GEPA feedback.}
+    verbalizations into GEPA feedback. The left side extracts a residual-stream
+    vector from the base model at a selected token position; the right side turns
+    that vector into a natural-language record with token, layer, and source
+    metadata.}
     \label{fig:method-nla-standalone}
 \end{figure}
 
@@ -1523,6 +1577,8 @@ the matched Topical-Chat / USR engagingness runs, with only line wrapping
 adapted to the page. It is shown as plain text because this is the object that
 GEPA edits.
 
+\begin{center}
+\begin{minipage}{0.96\linewidth}
 \begin{Verbatim}[fontsize=\scriptsize, frame=single]
 You are evaluating one potential next response in a dialogue.
 
@@ -1551,6 +1607,8 @@ Score: <1, 2, or 3>
 
 Do not output scores outside this scale. Never output 0, 4, or 5 for Engagingness.
 \end{Verbatim}
+\end{minipage}
+\end{center}
 
 Methodologically, this prompt fixes four properties before optimization starts:
 the bounded 1--3 score space, the evidence order, the requirement that the
