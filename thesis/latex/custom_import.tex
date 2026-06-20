@@ -64,7 +64,7 @@
 % -------------------------------
 \usepackage{pgfplots,pgfplotstable}
 \pgfplotsset{compat=newest}
-\usetikzlibrary{matrix,pgfplots.fillbetween,patterns}
+\usetikzlibrary{matrix,pgfplots.fillbetween,patterns,arrows.meta,positioning,fit}
 
 % -------------------------------
 %   BIBLIOGRAPHY
@@ -75,3 +75,9 @@
 %   CUSTOM ENVIRONMENTS & COMMANDS
 % -------------------------------
 \newcommand{\quotes}[1]{``#1''}
+\newcommand{\codehl}[1]{\colorbox{gray!15}{\textbf{#1}}}
+\newcommand{\ChapterRef}[1]{\hyperref[#1]{Chapter~\ref*{#1}}}
+\newcommand{\SectionRef}[1]{\hyperref[#1]{Section~\ref*{#1}}}
+\newcommand{\FigureRef}[1]{\hyperref[#1]{Figure~\ref*{#1}}}
+\newcommand{\TableRef}[1]{\hyperref[#1]{Table~\ref*{#1}}}
+\newcommand{\ListingRef}[1]{\hyperref[#1]{Listing~\ref*{#1}}}

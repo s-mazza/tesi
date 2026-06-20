@@ -34,7 +34,8 @@ Include:
 - auxiliary Qwen35B judge feedback;
 - soft-prompt training on the same judge task as a way to create learned
   continuous targets for SIPIT-style readout;
-- artifact policy for reproducibility.
+- a short bridge to the reproducibility requirements that Chapter 4 defines in
+  detail.
 
 Exclude from Chapter 3:
 
@@ -110,6 +111,15 @@ Purpose: describe the early embedding-inversion reproduction and diagnostic
 work without overclaiming it as a clean paper-level reproduction unless the
 remaining gaps are resolved.
 
+Suggested subsections:
+
+- `Task Setting`: define embedding inversion as fixed-size embedding to text,
+  and explain why semantic-fidelity stress examples are relevant.
+- `Reproduction Boundary`: state exactly what was reproduced and what was not
+  reproducible from the public material.
+- `Diagnostic Design`: describe the diagnostic variants and controls without
+  reporting final metric values.
+
 Expected discussion:
 
 - embedding inversion takes a fixed-size text embedding and tries to recover
@@ -118,6 +128,8 @@ Expected discussion:
   target;
 - local diagnostics tested architecture, masking, loss, and checkpoint
   behavior;
+- a tiny overfit control is part of the method as a sanity check, but its
+  numerical accuracy belongs to Chapter 5;
 - the branch contributes failure-mode evidence and context for the broader
   semantic-fidelity framing.
 
@@ -375,6 +387,18 @@ Purpose: explain the advisor-requested soft-prompt branch as an interpretability
 probe for learned continuous prompts, not as a replacement for GEPA prompt
 optimization.
 
+Suggested subsections:
+
+- `Purpose`: contrast GEPA-readable prompt search with frozen-model
+  soft-prompt tuning, and separate task utility, discrete proximity, and
+  semantic readout.
+- `Readout Pipeline`: describe random initialization, nearest-token projection,
+  cosine/L2 diagnostics, and SIPIT-style bounded recovery.
+- `Controls`: explain why hard-token, init-prompt, text-init, and random
+  continuous controls are required.
+- `Interpretation Rule`: state that a useful continuous prompt is not
+  automatically interpretable.
+
 In this branch the base judge model remains Qwen/Qwen2.5-7B-Instruct, but its
 weights are frozen. The only trained parameters are PEFT prompt-tuning virtual
 tokens placed before the judge input. The task is the same Topical-Chat
@@ -441,75 +465,95 @@ Value-adding example:
   a random-initialized soft prompt, and a hard-token control answer different
   questions.
 
-### 3.13 Artifact And Reproducibility Policy
+### Reproducibility Bridge To Chapter 4
 
-Purpose: define what every long run must preserve so Chapter 5 can analyze it
-without rerunning expensive jobs.
+Chapter 3 should not contain a standalone artifact-policy section. It should
+close with a short transition stating that Chapter 4 defines the concrete
+artifact requirements: prompts, prompt trajectories, per-example predictions,
+split manifests, run configurations, runtime logs, NLA metadata, auxiliary
+judge outputs, and SIPIT verification artifacts.
 
-Every long run should preserve:
-
-- metrics;
-- seed and optimized prompts;
-- prompt trajectory;
-- per-example predictions;
-- split manifest;
-- run configuration;
-- runtime manifest;
-- NLA artifacts when enabled;
-- auxiliary judge artifacts when enabled;
-- Slurm/vLLM/llama.cpp logs.
-
-Expected discussion:
-
-- prompt trajectories are needed to inspect what GEPA proposed;
-- split manifests are needed to prove final-test separation;
-- feedback artifacts are needed to diagnose whether PPL, NLA, or auxiliary
-  judge signals were actually present;
-- logs and runtime manifests support reproducibility and efficiency analysis.
-  Mention them here only as required artifacts; explain deployment details in
-  Chapter 4.
-
-Soft-prompt runs should additionally preserve:
-
-- adapter metadata;
-- `metrics.json` with baseline and soft-prompt validation/final-test metrics;
-- `nearest_tokens.jsonl`;
-- `sipit_soft_prompt_manifest.json`;
-- the soft-prompt embedding artifact or a reproducible pointer to it;
-- SIPIT recovery summaries and controls when readout is run.
+Reason: artifact preservation is essential, but it is an experimental-setup
+constraint rather than a method component. Keeping it in Chapter 4 avoids
+duplicating implementation details in the method chapter.
 
 ## Figures To Add
 
 ### Figure 3.1: End-To-End Thesis Method
 
-Required original figure. Best format: draw.io diagram exported as PDF.
+Required original figure. Current implementation: a TikZ diagram inside the
+LaTeX source, so the figure is original and travels with the single Overleaf
+project. A draw.io-exported PDF would also be acceptable if the diagram becomes
+too dense. The current intended structure is deliberately row-based to avoid
+crossing arrows.
 
 Structure:
 
-1. canonical dataset example;
-2. latent representation extraction;
-3. three latent-to-text branches: embedding inversion, SIPIT, NLA;
-4. semantic-fidelity evaluation;
-5. GEPA/G-EVAL branch:
-   - base judge;
-   - metric feedback;
-   - optional PPL/NLA/auxiliary feedback;
-   - Qwen35B proposer;
-   - validation prompt selection;
-   - final-test evaluation.
-6. soft-prompt interpretability branch:
-   - frozen base judge;
-   - trained virtual prompt tokens;
-   - nearest-token projection;
-   - SIPIT-style readout controls.
+1. latent-to-text track:
+   - canonical semantic-fidelity corpus;
+   - embedding inversion, SIPIT, standalone NLA;
+   - semantic-fidelity analysis.
+2. prompt-optimization track:
+   - G-EVAL-style judge examples;
+   - Qwen2.5-7B base judge;
+   - metric/PPL/NLA/auxiliary feedback;
+   - GEPA selection and final-test metrics.
+3. soft-prompt interpretability track:
+   - same judge task;
+   - frozen judge with trained virtual prompt tokens;
+   - nearest-token and SIPIT-style readout;
+   - continuous-prompt interpretability diagnostic.
 
 Reason: this is the main bridge between the older inversion work and the newer
 GEPA/NLA feedback work.
 
+Figure-selection audit:
+
+- Include Figure 3.1 as the main original method figure because Chapter 3 must
+  contain at least one original figure.
+- Include Figure 3.2 as a companion GEPA-flow figure because Figure 3.1 is
+  intentionally high-level and should not carry the full feedback/proposer loop.
+- Include the standalone NLA pipeline figure because it explains activation
+  extraction and verbalization without reusing an external paper figure.
+- Do not add paper figures in Chapter 3 unless they explain a method detail
+  that the original diagrams cannot cover. Paper figures belong primarily in
+  related work, where the reader needs to understand prior work.
+- Use artifact-derived examples for SIPIT and NLA because they make the method
+  concrete without adding copyrighted figures or unrelated visual material.
+
+External-figure candidate audit:
+
+- Embedding-inversion diffusion architecture: included in Chapter 2 as the
+  related-work figure for the Jina-style conditional masked diffusion line, not
+  repeated in Chapter 3 because the method chapter discusses our diagnostic
+  branch rather than re-explaining the prior architecture.
+- SIPIT paper figure or algorithm schematic: not included as an external figure
+  in Chapter 3. The method chapter instead uses a concrete terminal-style
+  recovery example from our artifacts, because the reader needs to see what our
+  SIPIT run consumes and emits.
+- Prompt-waywardness / soft-prompt interpretability figure: included in Chapter
+  2 to motivate why nearest-token interpretations can be misleading. Chapter 3
+  uses our own table of soft-prompt/SIPIT readout conditions.
+- NLA autoencoder figure from the original NLA work: included in Chapter 2 to
+  explain the prior method. Chapter 3 uses an original, thesis-specific NLA
+  extraction figure that shows only the activation-verbalizer path used in our
+  pipeline.
+- G-EVAL framework figure: included in Chapter 2 as related work. Chapter 3
+  uses a JSON-like schema and the seed prompt because those are closer to the
+  concrete judge task implemented in the thesis.
+- GEPA overview figure: included in Chapter 2 as related work. Chapter 3 uses
+  an original GEPA feedback-flow figure because our method has thesis-specific
+  PPL, NLA, and auxiliary-judge feedback paths that are not visible in the
+  generic GEPA figure.
+
+Decision: Chapter 3 should contain original method diagrams and artifact-derived
+examples. External paper figures are used in Chapter 2 unless a figure explains
+something that cannot be expressed cleanly with the thesis-specific diagrams.
+
 ### Figure 3.2: GEPA Feedback Flow
 
-Optional figure. Add it only if Figure 3.1 becomes too dense or if the GEPA
-branch needs to be visually separated.
+Required companion figure after simplifying Figure 3.1. It keeps the global
+overview readable while preserving the detailed GEPA feedback path.
 
 Best format: small pipeline diagram or algorithm box, also exported as PDF if
 drawn.
@@ -532,13 +576,16 @@ Recommended examples:
 - dataset example table in Section 3.2;
 - SIPIT `full-sequence` versus `known-prefix-control` comparison table in
   Section 3.4;
-- one NLA token/verbalization boxed example in Section 3.5;
+- one concrete SIPIT exact-recovery example in Section 3.4, preferably as a
+  terminal-style excerpt derived from the saved artifacts;
+- one NLA token/verbalization table plus a standalone NLA pipeline diagram in
+  Section 3.5;
 - JSON-like G-EVAL example schema in Section 3.6;
 - GEPA pseudocode in Section 3.7;
 - feedback-variant ablation table in Section 3.8;
 - short PPL formula and toy row in Section 3.9;
 - Python/JSON-like concrete PPL/NLA proposer-feedback block in the NLA/GEPA
-  feedback section;
+  feedback section, with both important keys and diagnostic values highlighted;
 - soft-prompt/SIPIT readout comparison table in Section 3.12.
 
 Avoid large log dumps in Chapter 3. Full prompt text is acceptable there only
