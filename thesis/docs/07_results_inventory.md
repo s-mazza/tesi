@@ -18,15 +18,17 @@ ablations, failure-mode analysis, and efficiency numbers.
 The chapter must let a reader answer:
 
 - which experiments produced usable evidence;
-- which results are paper-aligned and which are smoke/diagnostic only;
+- which results are paper-aligned and which are diagnostic only;
 - which baselines each result should be compared against;
 - whether NLA improved GEPA, failed to improve it, or only provided diagnostic
   signal;
 - which artifact supports each table or claim.
 
 Target length: enough to cover the full thesis progression without becoming a
-log dump. Detailed artifact paths and long prompt text should stay in appendix
-or in the artifact ledger at the end of this planning document.
+log dump. Detailed artifact paths and long prompt text should stay in the
+artifact ledger at the end of this planning document; the final LaTeX should
+include only the prompt excerpts or structured comparisons that help interpret
+the method and results.
 
 ## Scope Boundary
 
@@ -34,8 +36,8 @@ Include:
 
 - canonical dataset validation and coverage results;
 - embedding-inversion reproduction diagnostics;
-- SIPIT reproduction/interim evidence, collision checks, and logical/random
-  prefix results if final outputs exist;
+- SIPIT reproduction evidence, collision checks, logical-prompt recovery, and
+  random-prefix/soft-prompt extensions when supported by outputs or logs;
 - standalone NLA activation extraction and verbalization evidence;
 - GEPA/G-EVAL prompt-optimization results;
 - PPL, NLA, candidate-only NLA, fixed-NLA, and auxiliary-judge ablations;
@@ -61,9 +63,9 @@ Required result-writing rules:
 
 - Every result table must state the denominator or `n`.
 - Every table must state the baseline or control used for comparison.
-- Paper-aligned results and diagnostic/smoke results must be visually and
+- Paper-aligned results and diagnostic results must be visually and
   textually separated.
-- If a run is a smoke test, call it a smoke test and do not use it as final
+- If a run is a diagnostic test, call it diagnostic and do not use it as final
   performance evidence.
 - If a prompt did not change, say so before interpreting metric changes.
 - Efficiency results should include elapsed time and, where available, runtime
@@ -91,12 +93,12 @@ This section should introduce an evidence-level table:
 |---|---|---|---|
 | Canonical semantic-fidelity dataset | Complete validation | Thesis dataset contribution | `thesis-datasets/reports/` |
 | Embedding inversion | Diagnostic / negative reproduction | Useful failure-mode evidence, not paper-level reproduction | `embedding-inversion-demo/RESULTS.md` |
-| SIPIT | Interim reproduction + completed controls | Strong interim GPT-2 signal; soft-prompt controls now give completed off-manifold diagnostics | `spit/SIPIT/notes/`, `gepa-experiments/results/soft_prompt_*_sipit` |
+| SIPIT | Completed reproduction + log-derived baseline evidence | GPT-2 Table-5-style SIPIT exact recovery is complete; logical20 SIPIT is complete; BruteForce remains a partial log-derived baseline | `spit/SIPIT/data/reproduce/reports/table5/`, `spit/SIPIT/data/reproduce/results/table5/`, `spit/SIPIT/data/reproduce/reports/logical20/` |
 | Standalone NLA | Plumbing validation | NLA extraction/verbalization works, not semantic-fidelity proof | `nla-artifacts/summeval/` |
 | GEPA + PPL | Positive long-run evidence | GEPA+PPL can improve Topical-Chat engagingness in observed run | GEPA result dirs |
 | GEPA + raw/fixed NLA | Mixed diagnostic evidence | Raw NLA is not reliably helpful; fixed-NLA is weak-positive but not a clean prompt-improvement win | GEPA diagnostics |
 | Soft-prompt tuning + SIPIT readout | Completed diagnostic evidence | Trained soft prompts provide meaningful continuous targets for SIPIT, but the recovered text is not yet semantically interpretable | `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init*` |
-| GEPA + auxiliary judge | Pending / invalid early smoke only | Needed to test NLA semantic compression; no completed valid aux-judge evidence yet | GEPA status docs |
+| GEPA + auxiliary judge | Method branch, no thesis-grade result yet | Needed to test NLA semantic compression; current completed evidence is not sufficient for a performance claim | GEPA status docs |
 
 The section should explicitly state that the thesis cannot currently claim
 "NLA robustly improves GEPA" unless later auxiliary-judge or replicated long
@@ -185,9 +187,9 @@ semantic-fidelity track.
 Subsections to write:
 
 - GPT-2 collision check.
-- GPT-2 Table 5 reproduction/interim metrics.
-- BruteForce and HardPrompts baseline status.
-- Logical20 dataset result status.
+- GPT-2 Table-5-style reproduction metrics.
+- BruteForce log-derived baseline status and HardPrompts completed status.
+- Logical20 dataset result.
 - Random-prefix analysis if final result tables are available.
 
 Expected collision table:
@@ -198,19 +200,29 @@ Expected collision table:
 | Middle | 100 | 27.1380 | 0 |
 | Last | 100 | 110.2129 | 0 |
 
-Expected interim reproduction table:
+Expected reproduction table:
 
-| Method | Completed prompts with usable trace | Recovery signal | Search-cost signal | Status |
-|---|---:|---|---|---|
-| SIPIT | 47 observed prompts | Found every token before vocabulary exhaustion | Mean vocabulary explored about 4.41% | Interim/log-derived |
-| BruteForce | Partial | Exhausted-token failures in completed prompts | About full-vocabulary scans | Cancelled before final report |
-| HardPrompts | Partial | No final exact-match metric | Long optimization trace only | Cancelled before final report |
+| Method | n | Exact-match accuracy | Mean time / prompt | Vocabulary explored | Status |
+|---|---:|---:|---:|---:|---|
+| SIPIT | 100 | 1.0000 | 1268.4 s | 5.13% | Completed CSV/JSON report |
+| HardPrompts | 100 | 0.2000 | 3604.1 s | 0.00% | Completed CSV/JSON report |
+| BruteForce | 7 traces | 0.0000 on completed traces | n/a | 96.57% | Partial log-derived baseline |
+
+Logical20 thesis dataset table:
+
+| Target | Prompts | Exact-match accuracy | Mean time / prompt | Vocabulary explored |
+|---|---:|---:|---:|---:|
+| Thesis logical20 SIPIT | 40 | 1.0000 | 1242.9 s | 4.61% |
 
 Interpretation:
 
-- The collision check is usable as a completed result.
-- The Table 5 evidence is strong but must be called interim/log-derived unless
-  final CSV/JSON outputs are recovered.
+- The collision check is usable as a completed diagnostic result.
+- The GPT-2 Table-5-style SIPIT and HardPrompts reports have been recovered from
+  `faretra` and are now usable as completed outputs.
+- BruteForce remains only a partial log-derived baseline because the complete
+  CSV/JSON report was not produced locally; include it only as partial evidence.
+- The thesis logical20 SIPIT report is completed and directly relevant to the
+  semantic-fidelity track.
 - Runtime should be diagnostic only because the paper used A100-SXM 64GB while
   local runs used RTX-class GPUs.
 - `known-prefix-control` and `full-sequence` random-prefix results must be kept
@@ -309,6 +321,12 @@ Artifacts:
 - `spit/SIPIT/notes/INTERIM_METRICS_2026-05-22.md`
 - `spit/SIPIT/notes/METRICS_SNAPSHOT_2026-05-22_1110.md`
 - `spit/SIPIT/data/reproduce/reports/table5/gpt2_collision_check_cpu.json`
+- `spit/SIPIT/data/reproduce/reports/table5/SIPIT.json`
+- `spit/SIPIT/data/reproduce/results/table5/SIPIT.csv`
+- `spit/SIPIT/data/reproduce/reports/table5/HardPrompts.json`
+- `spit/SIPIT/data/reproduce/results/table5/HardPrompts.csv`
+- `spit/SIPIT/data/reproduce/reports/logical20/SIPIT.json`
+- `spit/SIPIT/data/reproduce/results/logical20/SIPIT.csv`
 - `spit/SIPIT/data/reproduce/logical20_gpt2_clean/`
 - `spit/SIPIT/scripts/random_prefix/README.md`
 - `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init/metrics.json`
@@ -553,7 +571,7 @@ Failure/negative evidence to include:
 | Failure mode | Evidence | Consequence |
 |---|---|---|
 | Embedding-inversion full-data runs stayed far below paper-level behavior | Jina-v3 probes and ablations | Treat as diagnostic reproduction branch |
-| SIPIT final CSV/JSON missing locally | SIPIT notes and current tree | Label Table 5 evidence interim/log-derived unless recovered |
+| BruteForce Table-5-style baseline remains partial | BruteForce log snapshot, no completed compact report | Treat BruteForce as log-derived baseline evidence only |
 | Raw NLA worsened GEPA | First raw-NLA long run | Do not claim raw NLA helps |
 | Fixed-NLA weak-positive but no prompt change | Matched long comparison | Treat as weak diagnostic evidence |
 | Candidate-only NLA negative | Candidate-content smokes | Duplicate-only hypothesis insufficient |
@@ -577,7 +595,8 @@ Expected table:
 |---|---|---|---|
 | The canonical dataset was built and validated | Yes | Dataset reports | Semantic flip metrics still needed for some claims |
 | Embedding inversion reproduction was diagnostic, not paper-level | Yes | Jina-v3 probes | Not a successful paper reproduction |
-| SIPIT exact inversion behaves as expected in GPT-2 interim evidence | Partially | Collision check and log-derived recovery | Final CSV/JSON missing locally |
+| SIPIT exact inversion behaves as expected in recovered GPT-2 reports | Yes | SIPIT Table-5-style CSV/JSON exact-match accuracy 1.0000 | Runtime is hardware-dependent |
+| SIPIT exactly recovers the thesis logical20 GPT-2 prompts | Yes | Logical20 SIPIT CSV/JSON exact-match accuracy 1.0000 | Dataset is a thesis extension, not the paper Table 5 |
 | Trained random-init soft prompts are meaningful SIPIT readout targets | Partially | Seed-42 16-token/2048 run changes/improves validation and final-test behavior | Seed sweep is mixed, so usefulness is not yet robust |
 | SIPIT can invert learned random-init soft prompts into semantically useful text | No in current evidence | Soft-prompt SIPIT readout and controls | Learned vectors are continuous/off-manifold; nearest text is not faithful semantic interpretation |
 | Standalone NLA plumbing works | Yes | NLA artifacts | Not semantic-fidelity proof |
@@ -593,7 +612,7 @@ Main tables:
 - Evidence-level overview table.
 - Canonical dataset validation table.
 - Embedding-inversion diagnostic run table.
-- SIPIT collision and interim reproduction tables.
+- SIPIT collision, Table-5-style recovery, and logical20 recovery tables.
 - Soft-prompt random-init metric table and SIPIT readout/control table.
 - Standalone NLA validation table.
 - GEPA long-run comparison table.
@@ -607,14 +626,22 @@ Figures:
 - Prefer tables for most Chapter 5 content.
 - Add a plot only if it genuinely clarifies a trajectory, such as embedding
   inversion validation loss or GEPA prompt-search trajectory.
+- Include the GEPA-viz search trajectory derived from the matched long-run
+  `gepa_viz_run_*.json` artifacts. It should show cumulative best validation
+  score, per-candidate validation scores, and prompt length, because it explains
+  why raw NLA can look better during prompt search while failing on held-out
+  final-test metrics.
 - Every figure used in the thesis must be mentioned explicitly in the text.
 
 Prompt examples:
 
 - Include short prompt excerpts only if they explain the result.
-- Full prompts should be moved to appendix or linked artifacts:
-  seed prompt, old PPL optimized prompt, old raw-NLA optimized prompt,
-  fixed-NLA final prompt, and one failed candidate-only prompt.
+- Method-facing prompt material belongs in Chapter 3: exact seed prompt,
+  concrete Python/JSON-like feedback record, and serialized proposer
+  `reflection_data`.
+- Result-facing prompt material belongs in Chapter 5: PPL optimized-prompt
+  change table, full final optimized prompt, and NLA final-prompt outcomes.
+- Do not maintain a standalone prompt appendix in the current thesis source.
 
 ## Artifact Ledger
 
@@ -658,9 +685,15 @@ final Results chapter; it is the support map for writing it.
 | `spit/SIPIT/notes/INTERIM_METRICS_2026-05-22.md` | Available | Interim metric table |
 | `spit/SIPIT/notes/METRICS_SNAPSHOT_2026-05-22_1110.md` | Available | Later interim snapshot |
 | `spit/SIPIT/data/reproduce/reports/table5/gpt2_collision_check_cpu.json` | Available | Collision check table |
+| `spit/SIPIT/data/reproduce/reports/table5/SIPIT.json` | Recovered from `faretra` | Completed GPT-2 Table-5-style SIPIT result |
+| `spit/SIPIT/data/reproduce/results/table5/SIPIT.csv` | Recovered from `faretra` | Per-prompt SIPIT recovery output |
+| `spit/SIPIT/data/reproduce/reports/table5/HardPrompts.json` | Recovered from `faretra` | Completed GPT-2 Table-5-style HardPrompts baseline |
+| `spit/SIPIT/data/reproduce/results/table5/HardPrompts.csv` | Recovered from `faretra` | Per-prompt HardPrompts output |
+| `spit/SIPIT/data/reproduce/reports/logical20/SIPIT.json` | Recovered from `faretra` | Completed thesis logical20 SIPIT result |
+| `spit/SIPIT/data/reproduce/results/logical20/SIPIT.csv` | Recovered from `faretra` | Per-prompt logical20 SIPIT output |
 | `spit/SIPIT/data/reproduce/logical20_gpt2_clean/` | Available | Logical dataset evidence |
-| Final Table 5 CSV/JSON reports | Not currently available locally | Recover if possible; otherwise label interim |
-| Final logical/random-prefix result tables | Not currently available in this inventory | Recover/run if they are thesis-critical |
+| `spit/SIPIT/data/reproduce/logs/slurm-11873921.out` | Recovered locally, too large for commit | BruteForce partial log-derived baseline extraction only |
+| Final random-prefix result tables | Not currently available in this inventory | Recover/run if they are thesis-critical |
 
 ### Standalone NLA Artifacts
 
@@ -714,22 +747,23 @@ final Results chapter; it is the support map for writing it.
 Not planned for main text:
 
 - raw Slurm logs, except short excerpts for failure explanations;
+- the full 1.2GB BruteForce Slurm log, which should be summarized rather than
+  committed or embedded;
 - full JSONL prediction dumps;
 - full prompt trajectories;
-- full prompts, unless moved to appendix;
+- full prompts, except concise excerpts or comparison tables needed to explain
+  a result;
 - early failed jobs whose root cause was purely infrastructure and not a
   scientific condition;
 - duplicated smoke runs that answer no distinct question.
 
 Not currently available or incomplete:
 
-- final SIPIT Table 5 CSV/JSON result reports in the checked local tree;
-- final SIPIT logical/random-prefix tables, unless recovered or rerun;
+- final random-prefix result tables, unless recovered or rerun;
 - standalone NLA semantic-fidelity evaluation on the canonical logical dataset;
 - final auxiliary-judge long result in the current local docs;
 - full paper-aligned GEPA matrix across all dimensions;
-- GEPA per-stage timing and peak GPU memory for final long runs;
-- final prompt appendix collecting all important seed/optimized prompts.
+- GEPA per-stage timing and peak GPU memory for final long runs.
 
 ## Current Claim Status
 
@@ -737,8 +771,11 @@ The thesis can currently claim:
 
 - the semantic-fidelity dataset was built and validated;
 - embedding-inversion reproduction produced useful diagnostic/negative evidence;
-- SIPIT GPT-2 collision checks passed and interim exact-recovery evidence is
-  strong, but final local CSV/JSON reports are missing;
+- SIPIT GPT-2 collision checks passed;
+- SIPIT exactly recovered the recovered GPT-2 Table-5-style dataset
+  (`100/100`, exact-match accuracy `1.0000`);
+- SIPIT exactly recovered the thesis logical20 GPT-2 dataset (`40/40`,
+  exact-match accuracy `1.0000`);
 - standalone Qwen2.5-7B NLA extraction and verbalization are operational;
 - GEPA+PPL can improve the observed Topical-Chat engagingness task;
 - raw NLA feedback is not reliably helpful in the current GEPA setup;

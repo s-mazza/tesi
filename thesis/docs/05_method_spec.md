@@ -329,11 +329,16 @@ NLA. Here, verbalizations are weak proposer feedback, not final labels.
 
 Value-adding example:
 
-- Best format: a compact before/after feedback snippet.
-- Structure: `metric feedback only` versus `metric + PPL + NLA feedback` for
-  the same example.
-- Reason: the reader needs to see what the proposer actually receives, but the
-  snippet must be short to avoid turning the method chapter into a log dump.
+- Best format in the main method chapter: show the seed judge prompt as a
+  plain-text block copied from the saved artifact, then explain its method role
+  in prose.
+- The concrete PPL/NLA reflection example should be shown as a Python/JSON-like
+  record with the same fields used by the code (`example`, `prediction`,
+  `score`, `feedback`) plus the serialized `reflection_data` view sent to the
+  proposer.
+- Reason: in this part, the exact format matters. A table is too abstract and
+  hides the fact that GEPA receives multiline textual feedback through Python
+  objects rather than a clean conceptual schema.
 
 ### 3.11 Auxiliary Judge Feedback
 
@@ -532,11 +537,13 @@ Recommended examples:
 - GEPA pseudocode in Section 3.7;
 - feedback-variant ablation table in Section 3.8;
 - short PPL formula and toy row in Section 3.9;
-- short feedback snippet for NLA/auxiliary judge in Sections 3.10 and 3.11.
+- Python/JSON-like concrete PPL/NLA proposer-feedback block in the NLA/GEPA
+  feedback section;
 - soft-prompt/SIPIT readout comparison table in Section 3.12.
 
-Avoid full prompts and large log excerpts in Chapter 3. Put full prompts,
-complete artifacts, and long examples in an appendix if they are needed.
+Avoid large log dumps in Chapter 3. Full prompt text is acceptable there only
+for the seed prompt, because the prompt itself is the method object. Prompt
+changes that are part of the experimental outcome belong in Chapter 5.
 
 ## Transition To Chapter 4
 

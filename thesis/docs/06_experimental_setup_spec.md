@@ -67,7 +67,7 @@ setup checklist. The current plan maps those requirements as follows:
 | Metrics and boundaries | Section 4.5 | Ensure every metric table states range, direction, and interpretation |
 | Hyperparameters with tried values and final asterisk | Section 4.6 | Fill values from final run configs and mark final values with `*` in LaTeX |
 | Baselines and comparisons | Section 4.7 | Keep paper-aligned baselines separate from diagnostic/smoke controls |
-| Prompts if useful | Sections 4.4, 4.8 | Include seed/optimized prompt excerpts in main text only if short; put full prompts in appendix or artifacts |
+| Prompts if useful | Sections 3.7--3.10 and 5.5 | Keep prompt material where it explains the method or result: exact seed prompt and proposer-feedback record in Chapter 3; optimized-prompt comparison and full final prompt in Chapter 5 |
 
 Decision:
 
@@ -730,8 +730,12 @@ Value-adding examples:
   clarifies split semantics or model roles.
 - A compact example metric row can show how to read `coverage`, `n`, and
   correlation metrics.
-- Full prompts and large logs should go to appendix or linked artifacts, not
-  the main Chapter 4 text.
+- Prompt and proposer-feedback examples are embedded directly in the
+  single-file LaTeX source, but not as a standalone appendix: Chapter 3 contains
+  method-facing plain-text/Python-like examples close to the real artifacts,
+  while Chapter 5 contains prompt changes and the full final optimized prompt
+  that explain the reported results. Large logs should remain summarized or
+  linked, not embedded.
 
 ### 4.9 Missing Items Before Final Thesis Writing
 
