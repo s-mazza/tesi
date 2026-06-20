@@ -60,11 +60,20 @@ there, not as a standalone related-work section.
 
 ## Figure Policy
 
-Do not add paper figures to Chapter 2 unless they clearly reduce explanatory
-text and are explicitly referenced in the surrounding paragraph. The current
-draft intentionally avoids paper figures because the related-work claims are
-short enough to explain in prose, while copied figures would require careful
-copyright handling and source captions.
+Use original-paper figures in Chapter 2 when they reduce ambiguity or make a
+method easier to understand than prose alone. A figure should not be added only
+because the cited work has one: it must be explicitly referenced in the
+surrounding paragraph and the caption must state the original source.
+
+For copied or lightly cropped figures:
+
+- keep only the part that helps the reader understand the mechanism;
+- remove duplicated paper captions from the image when possible;
+- state `Reproduced from Figure X of ...` or equivalent wording in the thesis
+  caption;
+- cite the corresponding bibliographic entry in the caption;
+- avoid screenshots of tables, logs, or dense algorithm blocks when a normal
+  thesis table or pseudocode would be clearer.
 
 Preferred figures for the thesis:
 
@@ -74,15 +83,25 @@ Preferred figures for the thesis:
   experimental variants;
 - Chapter 5 result plots produced from our artifacts.
 
-Possible Chapter 2 paper figures, only if later needed:
+Chapter 2 paper figures currently included:
 
-- a GEPA optimization-loop figure, if the method text becomes too long;
-- an NLA AV/AR schematic, if the distinction between activation verbalization
-  and reconstruction remains unclear after Chapter 3 is drafted.
+- embedding inversion conditional masked diffusion diagram from Xiao
+  \cite{DBLP:journals/corr/abs-2602-11047};
+- Prompt Waywardness continuous-prompt/discrete-projection diagram from
+  Khashabi et al. \cite{DBLP:conf/naacl/KhashabiLMQ0WHK22};
+- NLA activation verbalizer/reconstructor schematic from Fraser-Taliente et al.
+  \cite{frasertaliente2026nla};
+- G-EVAL framework diagram from Liu et al.
+  \cite{DBLP:conf/emnlp/LiuIXWXZ23};
+- GEPA candidate-pool and prompt-evolution loop from Agrawal et al.
+  \cite{DBLP:journals/corr/abs-2507-19457}.
 
-If any paper figure is included, the caption must explicitly state that it is
-adapted or reproduced from the cited work and the figure must be mentioned in
-the text.
+Figures intentionally not included:
+
+- SIPIT: the locally inspected paper figure was more theoretical than
+  explanatory for the reader at this point of the thesis;
+- semantic stress tests: the thesis-specific examples explain the issue more
+  directly than adding another benchmark figure.
 
 ## Proposed Section Structure
 
