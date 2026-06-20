@@ -571,6 +571,19 @@ Conditional masked diffusion methods, such as the Jina embedding inversion
 work, approach the problem through iterative denoising conditioned on the
 observed embedding \cite{DBLP:journals/corr/abs-2602-11047}.
 
+Figure~\ref{fig:related-embedding-diffusion} shows why this family is useful as
+a reference point for the thesis: the latent representation is not treated as a
+label or retrieval key, but as a conditioning signal that guides an explicit
+text-generation process.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.94\linewidth]{figures/chapter2/related_embedding_diffusion_architecture.png}
+    \caption{Conditional masked diffusion view of embedding inversion.
+    Reproduced from Figure~1 of Xiao \cite{DBLP:journals/corr/abs-2602-11047}.}
+    \label{fig:related-embedding-diffusion}
+\end{figure}
+
 These works establish that embeddings are not opaque summaries. They can retain
 recoverable lexical, syntactic, and semantic information. However, the main
 success criteria are usually reconstruction quality, token overlap, semantic
@@ -653,6 +666,18 @@ More recent work on interpretable soft prompts studies methods for making
 learned prompt vectors more understandable while preserving task performance
 \cite{DBLP:journals/corr/abs-2504-02144}.
 
+Figure~\ref{fig:related-prompt-waywardness} illustrates the core failure mode:
+a continuous prompt can perform the intended task while its discrete projection
+can look unrelated or even misleading.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.72\linewidth]{figures/chapter2/related_prompt_waywardness.png}
+    \caption{Prompt waywardness in continuous prompts. Reproduced from
+    Figure~1 of Khashabi et al. \cite{DBLP:conf/naacl/KhashabiLMQ0WHK22}.}
+    \label{fig:related-prompt-waywardness}
+\end{figure}
+
 This line of work is relevant to two parts of the thesis. In the SIPIT branch,
 continuous or random prefix experiments test whether inversion methods remain
 meaningful when the input representation is not a simple natural-language
@@ -672,6 +697,19 @@ vector to a natural-language description and can also reconstruct an activation
 from such a description \cite{frasertaliente2026nla}. The component used in
 this thesis is the activation verbalizer, because the relevant direction is
 latent-to-text: an internal state is turned into a readable description.
+
+The NLA autoencoder structure in Figure~\ref{fig:related-nla-autoencoder}
+clarifies the boundary used in this thesis. The full method includes both an
+activation verbalizer and an activation reconstructor, but the experiments use
+only the verbalizer output as text feedback.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/chapter2/related_nla_autoencoder.png}
+    \caption{Natural Language Activation autoencoder structure. Reproduced from
+    Fraser-Taliente et al. \cite{frasertaliente2026nla}.}
+    \label{fig:related-nla-autoencoder}
+\end{figure}
 
 NLA is important for this thesis because it offers a potential interface
 between \textbf{model internals} and \textbf{prompt optimization}. If an
@@ -707,6 +745,19 @@ rubric-based evaluation dimensions and reports correlations with human scores.
 Those correlation metrics, rather than the raw model scores alone, are the
 scientific target for comparison.
 
+Figure~\ref{fig:related-geval-framework} shows the G-EVAL pipeline at a high
+level: task instructions and criteria are turned into evaluation steps, the
+input-output pair is scored by the judge, and the final scalar score is derived
+from the model's score distribution.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.82\linewidth]{figures/chapter2/related_geval_framework.png}
+    \caption{Overall G-EVAL framework. Reproduced from Figure~1 of Liu et al.
+    \cite{DBLP:conf/emnlp/LiuIXWXZ23}.}
+    \label{fig:related-geval-framework}
+\end{figure}
+
 This thesis does not treat G-EVAL as synonymous with LLM-as-a-judge evaluation.
 G-EVAL is a particular method and experimental protocol within the broader
 LLM-as-a-judge family. The thesis adopts G-EVAL-style datasets, dimensions, and
@@ -732,6 +783,19 @@ appropriate for this work because its optimization loop is itself language
 mediated. It can incorporate textual feedback, not only scalar rewards. That
 makes it a natural place to test perplexity summaries, NLA verbalizations, and
 auxiliary-judge comments as additional proposer context.
+
+Figure~\ref{fig:related-gepa-overview} makes explicit the part of GEPA that is
+most relevant for the thesis: prompts are kept in a candidate pool, evaluated on
+tasks, filtered through a Pareto-style frontier, and mutated or merged by a
+proposer using textual feedback.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.94\linewidth]{figures/chapter2/related_gepa_overview.png}
+    \caption{GEPA candidate-pool and prompt-evolution loop. Reproduced from
+    Figure~3 of Agrawal et al. \cite{DBLP:journals/corr/abs-2507-19457}.}
+    \label{fig:related-gepa-overview}
+\end{figure}
 
 The thesis differs from the GEPA paper in the role assigned to the optimizer.
 The goal is not to benchmark GEPA broadly against reinforcement learning or

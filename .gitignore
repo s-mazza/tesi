@@ -64,6 +64,7 @@ messaggio_relatore.txt
 # Paper PDFs and generated binary assets should stay out of this progress repo.
 *.pdf
 *.png
+!thesis/latex/figures/**/*.png
 *.jpg
 *.jpeg
 *.gif
