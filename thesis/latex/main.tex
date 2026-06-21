@@ -1209,7 +1209,7 @@ predicate and negation.
         font=\scriptsize,
         >=Latex,
         stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
-            align=center, text width=27mm, minimum height=19mm, inner sep=3.2pt},
+            align=center, text width=22mm, minimum height=22mm, inner sep=3.0pt},
         wide stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
             align=left, text width=95mm, minimum height=18mm, inner sep=4pt},
         note/.style={draw=#1!65!black, fill=#1!8, very thick, rounded corners=4pt,
@@ -1217,7 +1217,8 @@ predicate and negation.
         lane/.style={draw=#1!55!black, fill=#1!5, very thick, rounded corners=6pt},
         badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
             minimum size=8.5mm, inner sep=0pt},
-        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black,
+            shorten >=0.8mm, shorten <=0.8mm},
         small label/.style={font=\scriptsize\bfseries, text=#1!70!black},
         pics/doc/.style={code={
             \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.17,-0.17) rectangle (0.18,0.20);
@@ -1248,15 +1249,15 @@ predicate and negation.
             \fill[orange!80!black] (0,-0.12) circle (0.018);
         }}
     ]
-        \node[lane=blue, minimum width=11.7cm, minimum height=5.45cm, anchor=west] at (0,-1.55) {};
+        \node[lane=blue, minimum width=11.7cm, minimum height=5.65cm, anchor=west] at (0,-1.62) {};
 
-        \node[stage=blue] (source) at (1.50,0.00) {\textbf{Input text}\\
+        \node[stage=blue] (source) at (1.35,0.00) {\textbf{Input text}\\
             \quotes{A man not playing guitar on stage.}};
         \node[stage=green] (embed) at (4.25,0.00) {\textbf{Encoder}\\
             Jina/Qwen3 demo\\embedding vector};
-        \node[stage=orange] (masked) at (7.00,0.00) {\textbf{Initial decoder state}\\
+        \node[stage=orange] (masked) at (7.15,0.00) {\textbf{Initial decoder state}\\
             all text positions\\masked};
-        \node[stage=lightviolet] (decode) at (9.75,0.00) {\textbf{Conditional MDLM}\\
+        \node[stage=lightviolet] (decode) at (10.05,0.00) {\textbf{Conditional MDLM}\\
             iterative\\unmasking};
         \node[wide stage=darkgreen] (output) at (5.85,-1.95) {\textbf{Recovered text}\\
             \textit{A man on a stage guitar playing a guitar on a flat bench.}\\
@@ -1275,12 +1276,12 @@ predicate and negation.
         \draw[line=orange] (masked.east) -- (decode.west);
         \draw[line=lightviolet] (decode.south) -- ([xshift=39mm]output.north);
 
-        \node[note=orange] (check) at (5.85,-3.55) {\textbf{Semantic check}\\
+        \node[note=orange] (check) at (5.85,-3.68) {\textbf{Semantic check}\\
             The word \quotes{not} appears, but it attaches to a different
             predicate (\quotes{not a stage}); the main event drifts back toward
             \quotes{playing guitar}.};
-        \node[badge=orange] at ([xshift=-48mm,yshift=2.0mm]check.north) {};
-        \pic[scale=0.72] at ([xshift=-48mm,yshift=2.0mm]check.north) {warn};
+        \node[badge=orange] at ([xshift=-6.0mm]check.west) {};
+        \pic[scale=0.68] at ([xshift=-6.0mm]check.west) {warn};
         \draw[line=orange] (output.south) -- (check.north);
     \end{tikzpicture}}
     \caption[Embedding-inversion script example.]{Concrete embedding-inversion example from the local
