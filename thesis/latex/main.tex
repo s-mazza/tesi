@@ -1301,10 +1301,13 @@ decoding probes, embedding provenance checks, and controlled overfit tests. It
 did \textbf{not} reproduce the original paper-level full-data baseline. The
 unresolved gap is therefore not treated as a thesis failure by itself: the exact
 paper training data, full set of training conditions, and encoder/task-adapter
-choices were not fully recoverable from the public material, while local
-provenance checks showed that the cached embeddings matched the public
-no-task/no-adapter generation path. \ChapterRef{chapter:results} reports the diagnostic evidence
-and the resulting negative conclusion.
+choices were not fully recoverable from the paper artifacts. The local
+\texttt{data\_jinav3} cache was generated in this thesis from the released data
+preparation code: raw C4/mC4 text was tokenized for the decoder and encoded with
+\texttt{jinaai/jina-embeddings-v3}. Here, an encoder task adapter means a
+task-specific embedding mode, such as retrieval or classification, that changes
+the generated vector while keeping the same input text. \ChapterRef{chapter:results}
+reports the diagnostic evidence and the resulting negative conclusion.
 
 \subsection{Diagnostic Design}
 \label{subsec:method-embedding-diagnostics}
@@ -2966,6 +2969,9 @@ preserves the intended semantic phenomenon.
 \section{Embedding-Inversion Diagnostics}
 \label{sec:results-embedding-inversion}
 
+\subsection{Reproduction Scope}
+\label{subsec:results-embedding-scope}
+
 The embedding-inversion branch was useful mainly as a diagnostic reproduction
 study. It did not produce a clean paper-level reproduction, but it identified
 conditions under which the implementation can overfit and conditions under
@@ -2974,29 +2980,88 @@ which full-mask recovery remains weak.
 The negative result should not be read as a single failed script. The local work
 replicated the core conditional masked-diffusion formulation, embedding
 conditioning path, paper-equation loss variants, fixed-mask/sequential decoding
-checks, and multiple control probes. At the same time, the public material did
-not fully pin every condition needed for an exact paper-level baseline: the
-precise large-scale training setting, task-adapter choice for Jina embeddings,
-and data/provenance assumptions remained partially ambiguous. Local provenance
-checks showed that the cached embeddings matched the public no-task/no-adapter
-path, so the evidence points to an unresolved reproduction gap rather than a
-confirmed local data-generation bug.
+checks, and multiple control probes.
 
-In practical terms, this means that the cached Jina-v3 vectors were audited by
-regenerating embeddings for sampled cached rows with the public Jina model and
-then comparing the regenerated vectors with the cached vectors by cosine
-similarity. The cache matched the direct public path exactly: both the raw
-\texttt{AutoModel} forward path without adapter and the public
-\texttt{encode(...)} path without an explicit task produced mean cosine
-similarity 1.000000 against the cached embeddings. By contrast, explicit Jina
-task adapters produced visibly different vectors: \texttt{retrieval.query},
-\texttt{retrieval.passage}, \texttt{separation}, \texttt{classification}, and
-\texttt{text-matching} gave lower cosine matches, roughly between 0.69 and
-0.92. Therefore, the negative reproduction result is not explained by an
-accidental mismatch such as using a different local pooling rule or a corrupted
-embedding cache. The remaining ambiguity is whether the paper-level setup used
-a task-adapted or otherwise different embedding-generation condition that is
-not fully specified by the public artifacts available locally.
+At the same time, the public material did not fully pin every condition needed
+for an exact paper-level baseline. The precise large-scale training setting,
+the task-adapter choice for Jina embeddings, and some data/provenance
+assumptions remained partially ambiguous. The evidence therefore points to an
+unresolved reproduction gap rather than to one confirmed local data-generation
+bug.
+
+\subsection{Public Encoder Versus Inverter}
+\label{subsec:results-embedding-public-encoder}
+
+The phrase \quotes{public Jina model} refers here only to the publicly released
+\textbf{embedding encoder}, \texttt{jinaai/jina-embeddings-v3}. This encoder
+maps text to vectors. It is not an inversion model and it does not decode
+vectors back into text. Therefore, using the public encoder alone would not
+remove the need to train or reproduce the conditional masked-diffusion
+\textbf{inverter}; it would only provide the input embedding that the inverter
+must learn to decode.
+
+There are three different sources involved in this diagnostic branch. The
+embedding-inversion paper provides the method and public code/artifact trail for
+the inversion model. Jina provides the released Jina-v3 encoder checkpoint. This
+thesis produced the local reproduction runs and the local \texttt{data\_jinav3}
+training cache. The provenance check below is
+therefore one of our diagnostic experiments, not a metric reported by the
+embedding-inversion paper.
+
+\subsection{Task-Adapter Provenance Check}
+\label{subsec:results-embedding-provenance}
+
+The provenance question was narrower than the reproduction problem as a whole:
+were the vectors in our local \texttt{data\_jinav3} cache generated with the
+same Jina-v3 encoder call used by the released repository/demo path, or did our
+local data preparation accidentally train the inverter against a different
+embedding function?
+
+No private Jina path was used in this thesis. The comparison is between our
+locally generated cache and several public ways of calling the released Jina-v3
+encoder: direct \texttt{AutoModel(...)} forward passes, \texttt{encode(...)}
+calls, and optional task-adapter calls.
+
+The \texttt{data\_jinav3} cache is the dataset consumed by the local inverter
+training loop. It was produced by our reproduction pipeline: Stage 1 collected
+raw C4/mC4 text, and Stage 2 tokenized each text for the decoder and encoded the
+same text with Jina-v3. For each example, the cache stores two aligned objects:
+decoder token ids in files named like \texttt{token\_ids\_*.npy}, and the
+corresponding Jina-v3 embedding vectors in files named like
+\texttt{embeddings\_*.npy}. These vectors were therefore generated locally, not
+downloaded as ready-made embeddings from the paper authors.
+
+In this context, a \textbf{Jina task adapter} is a task-specific embedding mode
+exposed by Jina-v3. The same text can be embedded through the default encoder
+path, or through an adapter intended for a downstream use case such as retrieval,
+classification, clustering, or text matching. These modes are still part of the
+embedding encoder; they are not separate text-generation or inversion models.
+The relevant consequence for this thesis is practical: if the local cache was
+generated with one adapter and the reproduction assumes another, the inverter is
+trained against a different vector space.
+
+To test this, sampled rows from \texttt{data\_jinav3} were decoded back to text,
+re-encoded with several Jina-v3 calls, and compared against the stored vectors by
+cosine similarity. The local cache matched the no-task/no-adapter call exactly.
+Both the raw
+\texttt{AutoModel(...)} forward path without adapter and \texttt{encode(...)}
+without an explicit task produced mean cosine similarity 1.000000 against the
+stored \texttt{data\_jinav3} embeddings.
+
+Explicit Jina task adapters produced visibly different vectors. The tested
+adapter modes were:
+\begin{itemize}
+    \item \texttt{retrieval.query} and \texttt{retrieval.passage};
+    \item \texttt{separation}, \texttt{classification}, and \texttt{text-matching}.
+\end{itemize}
+Their cosine matches were lower, roughly between 0.69 and 0.92. This rules out
+a simple local-cache corruption or pooling-rule mismatch. The remaining
+ambiguity is whether the paper-level setup used a task-adapted or otherwise
+different embedding-generation condition that is not fully specified by the
+public artifacts available locally.
+
+\subsection{Diagnostic Outcomes}
+\label{subsec:results-embedding-outcomes}
 
 \begin{table}[!htb]
     \centering
@@ -3032,6 +3097,9 @@ not fully specified by the public artifacts available locally.
     \caption{Embedding-inversion diagnostic outcomes.}
     \label{tab:embedding-inversion-diagnostics}
 \end{table}
+
+\subsection{Interpretation}
+\label{subsec:results-embedding-interpretation}
 
 This branch supports the broader thesis motivation: standard reconstruction
 signals can hide important differences between a small positive control and a

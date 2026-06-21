@@ -147,6 +147,27 @@ Open result gap:
 
 Purpose: report the early embedding-inversion work as diagnostic evidence.
 
+Planned subsections:
+
+- `Reproduction Scope`: state that this branch is a diagnostic reproduction
+  study, not a clean paper-level reproduction.
+- `Public Encoder Versus Inverter`: clarify that the public Jina component is only
+  the embedding encoder (`jinaai/jina-embeddings-v3`), not an inversion model;
+  the local conditional masked-diffusion inverter still has to be trained or
+  reproduced. Explicitly separate the original embedding-inversion paper
+  authors, the released Jina-v3 encoder checkpoint, and our local reproduction
+  experiments.
+- `Task-Adapter Provenance Check`: define Jina task adapters as task-specific
+  embedding modes that alter the generated vector space for uses such as
+  retrieval, classification, clustering, or text matching; report the cache
+  provenance check. Define `data_jinav3` as our local training cache: raw
+  C4/mC4 text tokenized for the decoder and encoded locally with Jina-v3 into
+  `token_ids_*.npy` and `embeddings_*.npy` files, not as ready-made embeddings
+  downloaded from the paper authors.
+- `Diagnostic Outcomes`: report the main run/probe table.
+- `Interpretation`: explain why this is negative diagnostic evidence rather
+  than a successful embedding-inversion reproduction.
+
 Expected table:
 
 | Run / branch | Architecture or change | Main metric | Outcome | Interpretation |
