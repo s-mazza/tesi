@@ -3414,30 +3414,41 @@ emphasizing specificity, conversational momentum, and parsing discipline.
     change in the historical PPL-positive long run.}}
     \scriptsize
     \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.22\linewidth} p{0.34\linewidth} p{0.34\linewidth}}
+    \begin{tabular}{
+        >{\RaggedRight\arraybackslash}p{0.17\linewidth}
+        >{\RaggedRight\arraybackslash}p{0.27\linewidth}
+        >{\RaggedRight\arraybackslash}p{0.28\linewidth}
+        >{\RaggedRight\arraybackslash}p{0.20\linewidth}
+    }
         \toprule
-        \textbf{Prompt aspect} & \textbf{Seed prompt} & \textbf{PPL-optimized prompt} \\
+        \textbf{Prompt aspect} & \textbf{Seed prompt} & \textbf{PPL-optimized prompt} & \textbf{Our comment} \\
         \midrule
         Rubric headline &
         ``Is the response dull or interesting?'' &
         ``Does the response \textbf{capture interest and propel the conversation
-        forward}?'' \\
+        forward}?'' &
+        The optimized prompt makes engagingness explicitly conversational, not
+        just stylistic. \\
         Low score boundary &
         Generic, repetitive, evasive, or unlikely to continue the conversation. &
         Generic, repetitive, evasive, \textbf{closed-ended}, or likely to stall
-        the conversation; \textbf{short vague replies} are explicitly included. \\
+        the conversation; \textbf{short vague replies} are explicitly included. &
+        The low boundary becomes stricter about responses that stop the dialogue. \\
         High score boundary &
         Very interesting, specific, or fact-like. &
         \textbf{Vivid, specific, curiosity-provoking}, adds a relevant thought,
-        asks a \textbf{meaningful follow-up}, or invites a natural next turn. \\
+        asks a \textbf{meaningful follow-up}, or invites a natural next turn. &
+        The high boundary rewards concrete content plus conversational momentum. \\
         Added judging instruction &
         Read the context, fact, and candidate response; assign one score. &
         \textbf{Avoid underrating concise but useful replies} and avoid
-        overrating vague low-substance replies. \\
+        overrating vague low-substance replies. &
+        This is a calibration rule against a failure seen during optimization. \\
         Parsing constraint &
         End with \texttt{Score: <1, 2, or 3>}. &
         Same final-line constraint, stated as a strict output-format
-        requirement. \\
+        requirement. &
+        This is mainly an operational constraint, not a semantic rubric change. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
