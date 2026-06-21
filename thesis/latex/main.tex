@@ -1571,21 +1571,34 @@ component.\footnote{\url{https://transformer-circuits.pub/2026/nla/index.html}}
     \centering
     \scriptsize
     \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.24\linewidth} p{0.15\linewidth} p{0.17\linewidth} p{0.36\linewidth}}
+    \begin{tabular}{p{0.22\linewidth} p{0.16\linewidth} p{0.15\linewidth} p{0.39\linewidth}}
         \toprule
-        \textbf{Artifact field} & \textbf{Value} & \textbf{Token} & \textbf{Verbalization} \\
+        \textbf{Artifact field} & \textbf{Position} & \textbf{Token} & \textbf{Verbalization} \\
         \midrule
-        \texttt{context\_016\_response\_01} &
+        \shortstack[l]{\texttt{context\_016}\\\texttt{response\_01}} &
         candidate middle &
         \texttt{warriors} &
         \quotes{team} or \quotes{and basketball} or \quotes{but my favorite sports team} \\
+        \shortstack[l]{\texttt{context\_020}\\\texttt{response\_00}} &
+        candidate middle &
+        \texttt{made} &
+        or \quotes{a tiny amount of money,} completing the absurdity about box office failure \\
+        \shortstack[l]{\texttt{context\_011}\\\texttt{response\_03}} &
+        candidate middle &
+        \texttt{human} &
+        the parallel phrase about human diseases, continuing the specific disease-correlation example \\
+        \shortstack[l]{\texttt{context\_054}\\\texttt{response\_05}} &
+        candidate middle &
+        \texttt{need} &
+        or \quotes{a friend to fill my streaming void,} completing the informal request \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Example NLA verbalization from a saved Topical-Chat artifact. The
-    candidate response was \quotes{i love the golden state warriors . i love the
-    philadelphia brewers .}; the selected token \texttt{warriors} is verbalized
-    toward sports-team semantics.}
+    \caption{Example NLA verbalizations from saved Topical-Chat artifacts. Each
+    row reports one selected token from a candidate response and the corresponding
+    Layer-20 activation readout. The selected examples show sports-team semantics,
+    numerical box-office contradiction, factual biological relation, and
+    conversational intent.}
     \label{tab:nla-standalone-example}
 \end{table}
 
