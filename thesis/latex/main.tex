@@ -31,9 +31,9 @@
 \annoaccademico{2025 -- 2026}
 
 \parolechiave
-{Semantic Fidelity}
-{Activation Inversion}
-{Natural Language Activations}
+{Natural Language Processing}
+{Explainable AI}
+{Latent Representations}
 {LLM-as-a-Judge Evaluation}
 {Prompt Optimization}
 
@@ -64,18 +64,16 @@ LLM-as-a-judge evaluation. The work combines dataset construction, diagnostic
 experiments on inversion and verbalization methods, and a G-EVAL-style
 evaluation pipeline optimized with GEPA. The method can be summarized as a
 two-track analysis: first, latent representations are inverted or verbalized
-and checked for semantic preservation; second, perplexity and Natural Language
-Activation verbalizations are tested as signals for improving judge prompts.
+and checked for semantic preservation; second, perplexity and activation
+verbalizations are tested as signals for improving judge prompts.
 
-The experimental setup uses semantic-stress examples, SIPIT-style hidden-state
-inversion diagnostics, NLA activation verbalizations from a base language
-model, and G-EVAL-style datasets evaluated with correlation metrics against
-human judgments. Early results show that perplexity feedback can improve GEPA
-prompt optimization in this setting, while raw NLA feedback is not a reliably
-positive signal without further transformation. These findings frame
-the thesis as both an empirical study of semantic fidelity and a diagnostic
-analysis of how activation information can be made useful for downstream
-evaluation.
+The experimental setup uses semantic-stress examples, hidden-state inversion
+diagnostics, activation verbalizations from a base language model, and
+G-EVAL-style datasets evaluated with correlation metrics against human
+judgments. Early results show that perplexity feedback can improve GEPA prompt
+optimization in this setting. These findings frame the thesis as both an
+empirical study of semantic fidelity and a diagnostic analysis of how activation
+information can be made useful for downstream evaluation.
 
 \chapter*{Introduction}
 \markboth{Introduction}{Introduction}
@@ -109,15 +107,14 @@ continuations. If an inversion method normalizes an unusual input into a more
 likely sentence, it may look successful by standard metrics while failing the
 semantic property that matters.
 
-The work is organized around two connected experimental tracks. The first track
-concerns latent-to-text inversion and verbalization. It includes embedding
-inversion diagnostics, SIPIT-style hidden-state prompt recovery, and Natural
-Language Activation (NLA) verbalizations. SIPIT is relevant because it treats
-hidden-state inversion as prompt recovery, while NLA is relevant because it maps
-internal activations to readable descriptions rather than necessarily trying to
-reconstruct the original prompt exactly. Together, these methods offer different
-ways to ask what information is present in a representation and how faithfully
-that information can be expressed in text.
+The work is organized around two connected topics. The first is the analysis of
+embedding and activation-inversion methods, with the goal of identifying both
+their potential and their semantic failure modes. This part asks whether latent
+representations can be mapped back to text while preserving fragile meaning. The
+second topic is the use of latent-representation analysis to optimize GEPA for
+LLM-as-a-judge evaluation. In this branch, internal signals are not treated as
+final answers; they are converted into feedback that may help a prompt optimizer
+produce a better judge prompt.
 
 The second track uses G-EVAL-style LLM-as-a-judge tasks as a downstream testbed.
 In this setting, a language model scores generated text according to a rubric,
@@ -125,31 +122,16 @@ and the quality of the judge is measured by agreement with human annotations.
 The thesis uses GEPA, a prompt optimization method, to improve judge prompts and
 then studies whether additional signals can help the optimization process.
 Perplexity is used as a model-confidence signal computed from the base model.
-NLA verbalizations are tested as activation-derived feedback. An optional
+Activation verbalizations are tested as activation-derived feedback. An optional
 auxiliary judge can also be used to compress raw feedback into a form that is
 closer to the evaluation rubric.
 
-This framing leads to the following research questions. First, do
-embedding-inversion and activation-inversion methods preserve logical semantic
-content, or do they reconstruct more plausible but altered text? Second, do
-standard reconstruction metrics capture errors such as lost negation, inverted
-polarity, or commonsense normalization? Third, can SIPIT recover prompts under
-standard and logical stress-test settings, and what changes when continuous
-random prefixes are introduced? Fourth, do NLA verbalizations preserve
-semantically important activation content, or do they produce generic
-completion-like descriptions? Fifth, can GEPA improve LLM-as-a-judge prompts on
-G-EVAL-style tasks, and does adding perplexity or NLA feedback make those
-improvements more reliable?
-
-The thesis does not aim to claim that every tested method is improved by NLA in
-its raw form. Instead, it treats negative results as part of the analysis. If
-raw activation verbalizations do not improve prompt optimization, the relevant
-question becomes why: whether the selected token positions are uninformative,
-whether the verbalizations are too generic, whether the proposer model cannot
-use them, or whether the signal must first be transformed into rubric-level
-feedback. This diagnostic perspective is important because the broader research
-problem is not only to use latent information, but to understand when latent
-information is aligned with the downstream task.
+This framing leads to two main research questions. First, what do inversion and
+verbalization methods reveal about the semantic content preserved in latent
+representations, especially under negation, polarity changes, and
+counterfactual inputs? Second, can the same kind of latent analysis be turned
+into useful guidance for \textbf{Latent-GEPA}, the prompt-optimization pipeline
+proposed in this thesis for improving G-EVAL-style judge prompts?
 
 Our thesis work is subdivided into the following structure:
 
@@ -164,15 +146,15 @@ Our thesis work is subdivided into the following structure:
 
     \item \textbf{\ChapterRef{chapter:related-work} - Related Work}: This chapter reviews the research
     lines most closely related to the thesis, including embedding inversion,
-    hidden-state inversion, interpretable soft prompts, NLA, G-EVAL, and prompt
-    optimization. Each section clarifies how this thesis differs from previous
-    work.
+    hidden-state inversion, interpretable soft prompts, activation
+    verbalization, G-EVAL, and prompt optimization. Each section clarifies how
+    this thesis differs from previous work.
 
     \item \textbf{\ChapterRef{chapter:method} - Method}: This chapter defines the semantic
-    fidelity task and describes the implemented methodology, including the
-    canonical logical dataset, SIPIT diagnostics, NLA extraction, GEPA
-    optimization, perplexity feedback, auxiliary-judge feedback, and prompt
-    trajectory logging.
+    fidelity task and describes \textbf{Latent-GEPA}, the proposed pipeline
+    that augments GEPA-style prompt optimization with latent-derived feedback.
+    It also defines the diagnostic inversion and verbalization branches used to
+    interpret the latent signals.
 
     \item \textbf{\ChapterRef{chapter:experimental_setup} - Experimental Setup}: This chapter reports the
     datasets, model roles, metrics, baselines, hyperparameters, cluster
@@ -180,9 +162,9 @@ Our thesis work is subdivided into the following structure:
     the experiments.
 
     \item \textbf{\ChapterRef{chapter:results} - Results}: This chapter presents the experimental
-    outcomes: inversion diagnostics, SIPIT checks, NLA verbalization
-    diagnostics, GEPA long runs, perplexity and NLA ablations, and efficiency
-    measurements.
+    outcomes: inversion diagnostics, hidden-state recovery checks, activation
+    verbalization diagnostics, GEPA long runs, perplexity and
+    activation-feedback ablations, and efficiency measurements.
 
     \item \textbf{Conclusion and Future Work}: This final chapter summarizes
     what can be claimed from the experiments, discusses limitations, and
@@ -215,7 +197,7 @@ Our thesis work is subdivided into the following structure:
 
 \section{Neural Text Representations}
 
-\subsection{From Tokens To Internal States}
+\subsection{From Tokens to Internal States}
 
 Language models process text through numerical representations. Tokens are
 mapped to vectors, vectors are transformed layer after layer, and the final
@@ -244,7 +226,7 @@ where different components of the Transformer write information. This makes
 them natural targets for methods that try to \textbf{inspect}, \textbf{describe},
 or \textbf{decode} what a model represents internally.
 
-\subsection{Output-Side And Prompt-Side Representations}
+\subsection{Output-Side and Prompt-Side Representations}
 
 \textbf{Logits} are the pre-softmax scores assigned to each vocabulary token
 before the model samples or selects an output token. After applying a softmax,
@@ -292,7 +274,7 @@ appears to encode. A verbalization may say that an activation concerns a
 refusal, a factual correction, a sentiment, or a mathematical operation without
 reconstructing the exact input sentence.
 
-\subsection{Different Notions Of Success}
+\subsection{Different Notions of Success}
 
 These tasks should not be collapsed into a single notion of success. Exact
 reconstruction, plausible paraphrase, semantic preservation, and useful
@@ -326,7 +308,7 @@ more plausible ones. A method that reconstructs \quotes{The glass did not break
 after falling on concrete} as \quotes{The glass broke after falling on concrete}
 has produced a more typical sentence, but not a faithful one.
 
-\subsection{Consequences For Evaluation}
+\subsection{Consequences for Evaluation}
 
 This thesis therefore treats standard reconstruction metrics as incomplete.
 Token overlap, semantic similarity, and embedding similarity remain useful, but
@@ -336,7 +318,7 @@ preserve the aspects of meaning that are easiest to lose.
 
 \section{Exact Hidden-State Recovery}
 
-\subsection{Input Recovery As A Stronger Target}
+\subsection{Input Recovery as a Stronger Target}
 
 Exact hidden-state recovery asks whether an internal state contains enough
 information to identify the input text that produced it. This is a stronger
@@ -351,7 +333,7 @@ given that context. A recovery method instead tries to recover the input
 sentence or an equivalent representation of it. The second target gives a much
 stricter way to ask what information is actually present in the hidden state.
 
-\subsection{Why It Matters For Semantic Fidelity}
+\subsection{Why It Matters for Semantic Fidelity}
 
 Exact recovery is useful as a conceptual upper bound for semantic fidelity. If a
 method recovers the original input exactly, then negation, polarity, and
@@ -407,7 +389,7 @@ than verbalizing several candidate tokens around a model decision. Later
 chapters use these theoretical distinctions to interpret method-specific
 results without assuming that every readable description is also a faithful one.
 
-\section{Perplexity And Model Confidence}
+\section{Perplexity and Model Confidence}
 
 \subsection{Definition}
 
@@ -428,7 +410,7 @@ Perplexity is the exponential of this value:
     \exp\left(-\frac{1}{n}\sum_{i=1}^{n}\log p(y_i \mid x, y_{<i})\right).
 \]
 
-\subsection{Use As An Auxiliary Signal}
+\subsection{Use as an Auxiliary Signal}
 
 In this thesis, perplexity is used as auxiliary feedback for prompt
 optimization. It is computed from the evaluated model and can indicate whether a
@@ -438,9 +420,31 @@ annotations. A low-perplexity answer can still be wrong. Nevertheless, it can
 provide useful evidence about model confidence or hesitation when combined with
 task metrics.
 
-\section{LLM-As-A-Judge Evaluation}
+\section{LLM-as-a-Judge Evaluation}
 
-\subsection{Rubrics And Scoring Tasks}
+LLM-as-a-judge evaluation uses a language model as an automated evaluator for
+outputs produced by another system, or by another prompt of the same system. The
+judge receives the task context, the candidate output, and an evaluation
+instruction; it then returns a score, preference, label, or explanation. This
+paradigm became common for open-ended generation tasks because surface metrics
+such as token overlap often fail to capture quality, factuality, helpfulness, or
+style. MT-Bench and Chatbot Arena popularized the use of strong LLMs as judges
+for assistant evaluation \cite{DBLP:journals/corr/abs-2306-05685}, while
+G-EVAL showed that rubric-guided prompting can align well with human ratings in
+summarization and dialogue evaluation \cite{DBLP:conf/emnlp/LiuIXWXZ23}.
+
+The same idea appears in more specialized settings. Prometheus trains an open
+evaluator model for fine-grained rubric scoring
+\cite{DBLP:journals/corr/abs-2310-08491}, JUDGE-BENCH studies LLM judges across
+20 NLP evaluation tasks \cite{DBLP:journals/corr/abs-2406-18403}, clinical work
+uses calibrated LLM-as-a-judge protocols against human raters
+\cite{DBLP:journals/corr/abs-2605-16215}, and legal-domain work proposes
+domain-specific legal judge procedures \cite{DBLP:journals/corr/abs-2510-07243}.
+These examples motivate a key methodological point for this thesis: an LLM
+judge is useful only if its scoring behavior is validated against human
+judgments for the task being studied.
+
+\subsection{Rubrics and Scoring Tasks}
 
 A \textbf{rubric} is a written set of criteria that defines how an output should
 be evaluated. For example, a rubric may ask whether an answer is factually
@@ -449,7 +453,7 @@ information from an input. The rubric defines the \textbf{evaluation task}: what
 object is being judged, which criterion matters, and what kind of score should
 be produced.
 
-\subsection{The LLM As The Scoring Procedure}
+\subsection{The LLM as the Scoring Procedure}
 
 LLM-as-a-judge evaluation is a method for carrying out such a scoring task. A
 language model receives the material to evaluate, the rubric, and usually an
@@ -464,7 +468,7 @@ how the model should apply a rubric. The LLM-as-a-judge method is the act of
 using the model to assign scores under those instructions. Later chapters
 introduce the specific benchmarks and implementations used in this thesis.
 
-\subsection{The Judge Prompt As Part Of The Measurement}
+\subsection{The Judge Prompt as Part of the Measurement}
 
 The prompt given to the judge is part of the measurement procedure. It translates
 the rubric into operational instructions for the model: what to read, what to
@@ -476,7 +480,7 @@ problem.
 
 \section{Agreement Metrics}
 
-\subsection{Agreement Rather Than Absolute Truth}
+\subsection{Agreement Rather than Absolute Truth}
 
 When a judge model assigns scores to examples that already have human
 annotations, performance is measured by agreement between the model scores and
@@ -484,15 +488,47 @@ the human scores. The most important distinction is that these metrics evaluate
 relative alignment, not absolute truth. A judge is useful if examples that
 humans rate higher also tend to receive higher model scores.
 
+Recent work on LLM judges makes this boundary explicit. High correlation with
+human scores is informative, but it does not guarantee that the model agrees
+with humans case by case or that it has the same error distribution. For
+example, agreement-focused judge studies move from correlation to measures such
+as Cohen's kappa and human-likeness tests
+\cite{DBLP:journals/corr/abs-2510-09738}, while selective-evaluation methods ask
+the judge to abstain or escalate when confidence is insufficient to guarantee a
+target level of human agreement \cite{DBLP:journals/corr/abs-2407-18370}. This
+is why the thesis reports correlation metrics as agreement indicators, not as
+proof that the model has discovered an objective notion of quality.
+
 \subsection{Correlation Metrics}
 
-Pearson correlation measures linear association between two sets of scores. It
-is sensitive to the scale of the values and answers the question of whether
-model scores increase proportionally with human scores. Spearman correlation
-uses ranks instead of raw values, so it measures whether the order induced by
-the model agrees with the order induced by humans. Kendall correlation also
-focuses on rank agreement and can be interpreted through concordant and
-discordant pairs.
+Pearson correlation measures linear association between two sets of scores
+\cite{pearson1895}. Given model scores $x_i$ and human scores $y_i$, it is
+
+\[
+r =
+\frac{\sum_i (x_i-\bar{x})(y_i-\bar{y})}
+     {\sqrt{\sum_i (x_i-\bar{x})^2}\sqrt{\sum_i (y_i-\bar{y})^2}}.
+\]
+
+It is sensitive to the scale of the values and answers whether model scores
+increase proportionally with human scores. Spearman correlation uses ranks
+instead of raw values \cite{spearman1904}:
+
+\[
+\rho = r(\operatorname{rank}(x), \operatorname{rank}(y)).
+\]
+
+It therefore measures whether the order induced by the model agrees with the
+order induced by humans. Kendall correlation also focuses on rank agreement
+\cite{kendall1938}. If $C$ is the number of concordant pairs and $D$ is the
+number of discordant pairs, then
+
+\[
+\tau = \frac{C-D}{\binom{n}{2}}.
+\]
+
+This interpretation is useful when the exact numerical distance between scores
+is less important than whether two raters order examples similarly.
 
 \subsection{Interpreting Improvements}
 
@@ -505,7 +541,7 @@ like human annotators.
 
 \section{Prompt Optimization}
 
-\subsection{Prompts As Search Objects}
+\subsection{Prompts as Search Objects}
 
 Prompt optimization is the process of improving a prompt so that a language
 model performs better on a target task. A prompt can define the task, specify a
@@ -519,7 +555,7 @@ scores, and other available feedback can then be used to suggest a revised
 prompt. The revised prompt is evaluated again, and better candidates are kept
 according to validation performance.
 
-\subsection{Optimization In Judge Tasks}
+\subsection{Optimization in Judge Tasks}
 
 In judge tasks, prompt optimization operates on the instructions given to the
 judge model. The evaluation task and the human reference scores stay fixed; what
@@ -562,7 +598,7 @@ Early generative attacks showed that sentence embeddings can leak substantial
 information about the original input. GEIA, for instance, frames inversion as a
 generation problem and demonstrates that embeddings can support recovery of
 whole sentences rather than only coarse semantic summaries
-\cite{DBLP:journals/corr/abs-2305-03010}. Later work moves toward more general and less
+\cite{DBLP:conf/acl/0003XS23}. Later work moves toward more general and less
 task-specific settings. Universal zero-shot inversion aims to recover text from
 embeddings without training a separate attacker for each embedding model
 \cite{DBLP:journals/corr/abs-2504-00147}. Zero2Text similarly studies cross-domain inversion
@@ -580,7 +616,7 @@ text-generation process.
     \centering
     \includegraphics[width=0.94\linewidth]{figures/chapter2/related_embedding_diffusion_architecture.png}
     \caption{Conditional masked diffusion view of embedding inversion.
-    Reproduced from Figure~1 of Xiao \cite{DBLP:journals/corr/abs-2602-11047}.}
+    Reproduced from Xiao \cite{DBLP:journals/corr/abs-2602-11047}.}
     \label{fig:related-embedding-diffusion}
 \end{figure}
 
@@ -595,7 +631,7 @@ similarity metrics. The contribution here is therefore not a new embedding
 inversion attack, but a semantic-fidelity analysis of what inversion-style
 outputs preserve and what they distort.
 
-\section{Hidden-State Inversion And SIPIT}
+\section{Hidden-State Inversion and SIPIT}
 \label{sec:related-sipit}
 
 Hidden-state inversion is closely related to embedding inversion, but the
@@ -623,7 +659,7 @@ this work is not satisfied with exactness only on standard prompts. It asks
 whether the inversion behavior remains informative when the original input
 contains negation, contradiction, or other meaning-sensitive phenomena.
 
-\section{Semantic Stress Tests And Negation}
+\section{Semantic Stress Tests and Negation}
 \label{sec:related-semantic-stress-tests}
 
 The importance of negation and logical polarity has been studied in benchmark
@@ -649,13 +685,24 @@ benchmark. They are used to test whether latent representations and their
 verbalizations preserve the meaning components that are easiest to normalize
 away.
 
-\section{Prompt Waywardness And Soft-Prompt Interpretability}
+\section{Prompt Optimization}
+\label{sec:related-prompt-optimization}
+
+Prompt optimization studies how to improve a model's behavior by changing the
+input interface rather than necessarily updating all model weights. This
+research line is relevant to the thesis in two different forms. The first form
+uses \textbf{latent or continuous} prompt parameters, such as soft prompts and
+prefix vectors. The second form optimizes \textbf{hard natural-language}
+instructions, where the prompt remains readable and can be inspected by a human.
+
+\subsection{Latent and Continuous Prompt Optimization}
 \label{sec:related-soft-prompts}
 
-Soft prompts are continuous vectors optimized to control a model without being
-ordinary readable text. They are effective, but their interpretability is
-problematic because the nearest vocabulary tokens to a learned vector need not
-represent what the prompt is doing.
+Soft prompts and prefix-tuning methods optimize continuous vectors that are
+prepended to a model input. They can steer the model effectively without being
+ordinary readable text, but their interpretability is problematic because the
+nearest vocabulary tokens to a learned vector need not represent what the prompt
+is doing.
 
 Prompt waywardness formalizes this issue: continuous prompts can behave in ways
 that are not faithfully explained by mapping them to nearby discrete tokens
@@ -674,7 +721,7 @@ can look unrelated or even misleading.
     \centering
     \includegraphics[width=0.72\linewidth]{figures/chapter2/related_prompt_waywardness.png}
     \caption{Prompt waywardness in continuous prompts. Reproduced from
-    Figure~1 of Khashabi et al. \cite{DBLP:conf/naacl/KhashabiLMQ0WHK22}.}
+    Khashabi et al. \cite{DBLP:conf/naacl/KhashabiLMQ0WHK22}.}
     \label{fig:related-prompt-waywardness}
 \end{figure}
 
@@ -687,6 +734,54 @@ methods can explain the learned soft embeddings. The thesis therefore treats
 soft prompts as an interpretability stress case: useful internal vectors may be
 hard to verbalize faithfully.
 
+\subsection{Hard and Natural-Language Prompt Optimization}
+\label{sec:related-hard-prompt-optimization}
+
+Hard prompt optimization instead searches over ordinary textual instructions.
+In judge tasks, this means that the rubric, input fields, output format, and
+common-error warnings can be rewritten while the underlying examples and human
+labels remain fixed. This form is easier to audit than continuous prompt tuning:
+the final artifact is a natural-language prompt that can be read, compared with
+the seed prompt, and included in the thesis.
+
+GEPA is the hard-prompt optimizer used in this thesis. It performs reflective
+prompt evolution: candidate prompts are evaluated, failures are summarized in
+natural language, and a proposer model generates prompt revisions that are
+tested on subsets and validation examples
+\cite{DBLP:journals/corr/abs-2507-19457}. GEPA is particularly appropriate for
+this work because its optimization loop is itself language mediated. It can
+incorporate textual feedback, not only scalar rewards. That makes it a natural
+place to test perplexity summaries, activation verbalizations, and
+auxiliary-judge comments as additional proposer context.
+
+\FigureRef{fig:related-gepa-overview} makes explicit the part of GEPA that is
+most relevant for the thesis: prompts are kept in a candidate pool, evaluated on
+tasks, filtered through a Pareto-style frontier, and mutated or merged by a
+proposer using textual feedback.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=0.94\linewidth]{figures/chapter2/related_gepa_overview.png}
+    \caption{GEPA candidate-pool and prompt-evolution loop. Reproduced from
+    Agrawal et al. \cite{DBLP:journals/corr/abs-2507-19457}.}
+    \label{fig:related-gepa-overview}
+\end{figure}
+
+\subsection{Why GEPA Fits This Thesis}
+\label{sec:related-gepa}
+
+The thesis differs from the GEPA paper in the role assigned to the optimizer.
+The goal is not to benchmark GEPA broadly against reinforcement learning or
+other prompt optimizers. Instead, GEPA is used as an experimental mechanism for
+asking whether latent-derived feedback helps a prompt proposer discover better
+LLM-as-a-judge prompts. The prompt trajectory is therefore as important as the
+final score: intermediate prompts can reveal whether feedback changes the
+optimizer's reasoning or only adds noise. \ChapterRef{chapter:theory}
+introduced perplexity as a model surprisal signal, while this chapter introduces
+activation verbalization as a way to turn internal states into text. The method
+chapter combines these signals with GEPA, treating them as \textbf{proposal
+aids} rather than as final evaluation metrics.
+
 \section{Natural Language Activations}
 \label{sec:related-nla}
 
@@ -697,6 +792,18 @@ vector to a natural-language description and can also reconstruct an activation
 from such a description \cite{frasertaliente2026nla}. The component used in
 this thesis is the activation verbalizer, because the relevant direction is
 latent-to-text: an internal state is turned into a readable description.
+
+The released NLA system is an autoencoder over residual-stream activations. Its
+two components have complementary roles. The \textbf{Activation Verbalizer}
+(AV) takes an activation vector, injects it into a prompt as if it were a token
+embedding, and autoregressively generates a textual explanation. The
+\textbf{Activation Reconstructor} (AR) performs the reverse direction: it reads a
+description and predicts an activation vector. The round-trip objective is
+therefore not ordinary text reconstruction, but whether the text emitted by the
+AV carries enough information for the AR to recover the original activation
+direction. The public implementation reports this comparison after normalizing
+vectors, so the reconstruction error is tied to cosine-direction agreement
+rather than raw vector magnitude.
 
 The NLA autoencoder structure in \FigureRef{fig:related-nla-autoencoder}
 clarifies the boundary used in this thesis. The full method includes both an
@@ -710,6 +817,15 @@ only the verbalizer output as text feedback.
     Fraser-Taliente et al. \cite{frasertaliente2026nla}.}
     \label{fig:related-nla-autoencoder}
 \end{figure}
+
+The released checkpoints are model- and layer-specific. The public repository
+lists AV/AR pairs for Qwen2.5-7B-Instruct, Gemma-3-12B-IT,
+Gemma-3-27B-IT, and Llama-3.3-70B-Instruct, with extraction layers chosen
+roughly two thirds through the corresponding transformer. This design choice is
+important for the experiments in this thesis: an AV trained for one base model
+and layer should not be used as an explanation model for another base model or
+layer. The concrete checkpoint choice is therefore an experimental constraint,
+not a cosmetic implementation detail.
 
 NLA is important for this thesis because it offers a potential interface
 between \textbf{model internals} and \textbf{prompt optimization}. If an
@@ -728,7 +844,7 @@ descriptions are automatically beneficial. It evaluates whether they become
 useful feedback, and when they do not, it treats the failure as evidence about
 the mismatch between activation-level descriptions and task-level guidance.
 
-\section{LLM-As-A-Judge Evaluation And G-EVAL}
+\section{LLM-as-a-Judge Evaluation and G-EVAL}
 \label{sec:related-geval}
 
 LLM-as-a-judge evaluation uses a language model to assign scores to generated
@@ -753,7 +869,7 @@ from the model's score distribution.
 \begin{figure}[!htb]
     \centering
     \includegraphics[width=0.82\linewidth]{figures/chapter2/related_geval_framework.png}
-    \caption{Overall G-EVAL framework. Reproduced from Figure~1 of Liu et al.
+    \caption{Overall G-EVAL framework. Reproduced from Liu et al.
     \cite{DBLP:conf/emnlp/LiuIXWXZ23}.}
     \label{fig:related-geval-framework}
 \end{figure}
@@ -767,49 +883,7 @@ interpretation: improvements in this thesis evaluate whether the optimized
 judge prompt aligns better with human scores in a G-EVAL-style setting, not
 whether the original GPT-4 G-EVAL system has been exactly reproduced.
 
-\section{Prompt Optimization And GEPA}
-\label{sec:related-gepa}
-
-Prompt optimization methods improve a model's behavior by changing the prompt
-rather than updating model weights. In judge tasks, this means that the rubric,
-input fields, output format, and common-error warnings can be rewritten while
-the underlying examples and human labels remain fixed.
-
-GEPA is the prompt optimizer used in this thesis. It performs reflective prompt
-evolution: candidate prompts are evaluated, failures are summarized in natural
-language, and a proposer model generates prompt revisions that are tested on
-subsets and validation examples \cite{DBLP:journals/corr/abs-2507-19457}. GEPA is particularly
-appropriate for this work because its optimization loop is itself language
-mediated. It can incorporate textual feedback, not only scalar rewards. That
-makes it a natural place to test perplexity summaries, NLA verbalizations, and
-auxiliary-judge comments as additional proposer context.
-
-\FigureRef{fig:related-gepa-overview} makes explicit the part of GEPA that is
-most relevant for the thesis: prompts are kept in a candidate pool, evaluated on
-tasks, filtered through a Pareto-style frontier, and mutated or merged by a
-proposer using textual feedback.
-
-\begin{figure}[!htb]
-    \centering
-    \includegraphics[width=0.94\linewidth]{figures/chapter2/related_gepa_overview.png}
-    \caption{GEPA candidate-pool and prompt-evolution loop. Reproduced from
-    Figure~3 of Agrawal et al. \cite{DBLP:journals/corr/abs-2507-19457}.}
-    \label{fig:related-gepa-overview}
-\end{figure}
-
-The thesis differs from the GEPA paper in the role assigned to the optimizer.
-The goal is not to benchmark GEPA broadly against reinforcement learning or
-other prompt optimizers. Instead, GEPA is used as an experimental mechanism for
-asking whether latent-derived feedback helps a prompt proposer discover better
-LLM-as-a-judge prompts. The prompt trajectory is therefore as important as the
-final score: intermediate prompts can reveal whether feedback changes the
-optimizer's reasoning or only adds noise. \ChapterRef{chapter:theory}
-introduced perplexity as a model surprisal signal, while this chapter introduced
-NLA as an activation-verbalization method. The method chapter combines these
-signals with GEPA, treating them as \textbf{proposal aids} rather than as final
-evaluation metrics.
-
-\section{Summary Of The Research Gap}
+\section{Summary of the Research Gap}
 \label{sec:related-summary-gap}
 
 The reviewed work provides the building blocks for this thesis but leaves an
@@ -1305,10 +1379,13 @@ paper training data, full set of training conditions, and encoder/task-adapter
 choices were not fully recoverable from the paper artifacts. The local
 \texttt{data\_jinav3} cache was generated in this thesis from the released data
 preparation code: raw C4/mC4 text was tokenized for the decoder and encoded with
-\texttt{jinaai/jina-embeddings-v3}. Here, an encoder task adapter means a
-task-specific embedding mode, such as retrieval or classification, that changes
-the generated vector while keeping the same input text. \ChapterRef{chapter:results}
-reports the diagnostic evidence and the resulting negative conclusion.
+Jina Embeddings v3 \cite{DBLP:journals/corr/abs-2409-10173}.\footnote{Exact
+model identifier used in the local reproduction scripts:
+\url{https://huggingface.co/jinaai/jina-embeddings-v3}.} Here, an encoder task
+adapter means a task-specific embedding mode, such as retrieval or
+classification, that changes the generated vector while keeping the same input
+text. \ChapterRef{chapter:results} reports the diagnostic evidence and the
+resulting negative conclusion.
 
 \subsection{Diagnostic Design}
 \label{subsec:method-embedding-diagnostics}
@@ -1623,7 +1700,10 @@ dataset, and human scores for one or more evaluation dimensions. The judge model
 receives a dimension-specific prompt and must output a score that can be parsed
 and compared with the human target.
 
-\begin{Verbatim}[fontsize=\small, frame=single]
+\begin{figure}[!htb]
+    \centering
+    \begin{thesispromptbox}[width=0.96\linewidth]{G-EVAL-Style Judge Record Schema}
+\begin{Verbatim}[fontsize=\small]
 {
   "context": "...",
   "candidate_output": "...",
@@ -1635,6 +1715,10 @@ and compared with the human target.
   "parsed_score_status": "ok"
 }
 \end{Verbatim}
+    \end{thesispromptbox}
+    \caption{Method-level schema for a parseable G-EVAL-style judge record.}
+    \label{fig:method-geval-record-schema}
+\end{figure}
 
 The schema above is illustrative, but it captures the method-level contract. The
 task is not open-ended generation. The judge must produce a bounded score, and
@@ -1654,9 +1738,10 @@ proposer model receives feedback about prompt behavior and proposes revised
 instructions. These revised prompts are evaluated, and the best prompt is
 selected according to validation behavior.
 
-\begin{center}
-\begin{minipage}{0.96\linewidth}
-\begin{Verbatim}[fontsize=\small, frame=single]
+\begin{figure}[!htb]
+    \centering
+    \begin{thesispromptbox}[width=0.96\linewidth]{GEPA Optimization Pseudocode}
+\begin{Verbatim}[fontsize=\small]
 seed_prompt = initial judge rubric
 candidate_pool = {seed_prompt}
 
@@ -1671,8 +1756,10 @@ for each GEPA iteration:
 selected_prompt = best validation prompt
 evaluate selected_prompt on held-out final-test examples
 \end{Verbatim}
-\end{minipage}
-\end{center}
+    \end{thesispromptbox}
+    \caption{High-level GEPA loop used for prompt optimization in this thesis.}
+    \label{fig:method-gepa-pseudocode}
+\end{figure}
 
 The model roles are deliberately separated. The evaluated judge is the base
 Qwen2.5-7B model. The proposer is a stronger Qwen35B model used to propose
@@ -1688,9 +1775,10 @@ the matched Topical-Chat / USR engagingness runs, with only line wrapping
 adapted to the page. It is shown as plain text because this is the object that
 GEPA edits.
 
-\begin{center}
-\begin{minipage}{0.96\linewidth}
-\begin{Verbatim}[fontsize=\scriptsize, frame=single]
+\begin{figure}[!p]
+    \centering
+    \begin{thesispromptbox}[width=0.98\linewidth]{Seed Judge Prompt for Topical-Chat Engagingness}
+\begin{Verbatim}[fontsize=\scriptsize]
 You are evaluating one potential next response in a dialogue.
 
 Your task is to rate the response on Engagingness using a 1 to 3 scale.
@@ -1718,8 +1806,10 @@ Score: <1, 2, or 3>
 
 Do not output scores outside this scale. Never output 0, 4, or 5 for Engagingness.
 \end{Verbatim}
-\end{minipage}
-\end{center}
+    \end{thesispromptbox}
+    \caption{Seed prompt used before GEPA optimization for the Topical-Chat / USR engagingness task.}
+    \label{fig:method-seed-engagingness-prompt}
+\end{figure}
 
 Methodologically, this prompt fixes four properties before optimization starts:
 the bounded 1--3 score space, the evidence order, the requirement that the
@@ -1793,7 +1883,7 @@ This distinction matters because final evaluation is still based on agreement
 with human scores. Perplexity can help explain a model response, but it cannot
 replace the target metric.
 
-\section{NLA Feedback For GEPA}
+\section{NLA Feedback for GEPA}
 \label{sec:method-nla-feedback}
 
 In the GEPA branch, NLA verbalizations are transformed into feedback for the
@@ -1997,7 +2087,7 @@ If the auxiliary judge produces no usable content, the run is excluded from the
 auxiliary-feedback condition. This prevents a silent failure from being
 interpreted as evidence against the method.
 
-\section{Soft-Prompt Training And SIPIT Readout}
+\section{Soft-Prompt Training and SIPIT Readout}
 \label{sec:method-soft-prompt-readout}
 
 \subsection{Purpose}
@@ -2139,7 +2229,7 @@ The setup follows three rules:
     through their downstream effect on held-out examples.
 \end{itemize}
 
-\section{Datasets And Splits}
+\section{Datasets and Splits}
 \label{sec:setup-datasets}
 
 The experiments use two main families of data. The first family is a
@@ -2251,13 +2341,19 @@ natural-language prompt. Its main setup is:
     final-test groups, corresponding to 240, 60, and 60 rows respectively.
 \end{itemize}
 
-\section{Model Roles And Checkpoints}
+\section{Model Roles and Checkpoints}
 \label{sec:setup-models}
 
 Several language models appear in the experiments, but they do not play the same
 role. \TableRef{tab:model-roles} lists the roles explicitly. This avoids a
 common ambiguity: the model that proposes a prompt edit is not necessarily the
 model whose final scores are evaluated.
+When an exact repository identifier is needed for reproduction, it is reported
+in a footnote or in the run manifest rather than used as the model name in the
+main prose. The main evaluated model is Qwen2.5-7B-Instruct
+\cite{DBLP:journals/corr/abs-2412-15115}.\footnote{Exact Hugging Face
+identifier used in the GEPA and soft-prompt runs:
+\url{https://huggingface.co/Qwen/Qwen2.5-7B-Instruct}.}
 
 \begin{table}[!htb]
     \centering
@@ -2276,7 +2372,7 @@ model whose final scores are evaluated.
         Hidden-state inversion and exact prompt recovery. &
         Yes, for SIPIT. \\
         Standalone NLA base model &
-        Qwen/Qwen2.5-7B-Instruct &
+        Qwen2.5-7B-Instruct &
         Activation extraction from selected token positions. &
         No. \\
         NLA AV checkpoint &
@@ -2284,7 +2380,7 @@ model whose final scores are evaluated.
         Natural-language verbalization of residual-stream activations. &
         No. \\
         GEPA base judge &
-        Qwen/Qwen2.5-7B-Instruct &
+        Qwen2.5-7B-Instruct &
         Producing the scores compared with human annotations. &
         Yes. \\
         Perplexity model &
@@ -2300,7 +2396,7 @@ model whose final scores are evaluated.
         Compressing raw feedback into proposer-facing lessons. &
         No. \\
         Soft-prompt base model &
-        Qwen/Qwen2.5-7B-Instruct &
+        Qwen2.5-7B-Instruct &
         Frozen model whose virtual prompt tokens are trained. &
         Sanity metrics only. \\
         \bottomrule
@@ -2330,23 +2426,23 @@ The most important role distinctions are:
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{p{0.23\linewidth} p{0.15\linewidth} p{0.33\linewidth} p{0.23\linewidth}}
         \toprule
-        \textbf{Base model} & \textbf{Layer} & \textbf{Activation verbalizer checkpoint} & \textbf{Use in this thesis} \\
+        \textbf{Base model} & \textbf{Layer} & \textbf{Activation verbalizer} & \textbf{Use in this thesis} \\
         \midrule
         Qwen2.5-7B-Instruct &
         20 / 28 &
-        \texttt{kitft/nla-qwen2.5-7b-L20-av} &
+        Qwen2.5-7B layer-20 AV &
         Used, because it matches the Qwen2.5-7B judge family. \\
         Gemma-3-12B-IT &
         32 / 48 &
-        \texttt{kitft/nla-gemma3-12b-L32-av} &
+        Gemma-3-12B layer-32 AV &
         Available, but not used in the reported GEPA pipeline. \\
         Gemma-3-27B-IT &
         41 / 62 &
-        \texttt{kitft/nla-gemma3-27b-L41-av} &
+        Gemma-3-27B layer-41 AV &
         Available, but not used because the base judge is Qwen. \\
         Llama-3.3-70B-Instruct &
         53 / 80 &
-        \texttt{kitft/Llama-3.3-70B-NLA-L53-av} &
+        Llama-3.3-70B layer-53 AV &
         Available, but too different and heavier than the chosen 7B judge setting. \\
         \bottomrule
     \end{tabular}
@@ -2361,40 +2457,41 @@ The most important role distinctions are:
 Qwen2.5-7B layer-20 activations with the compatible Qwen verbalizer checkpoint.
 Moving NLA feedback to a different base model would require changing both the
 activation source and the verbalizer checkpoint.
+The exact released checkpoint identifiers are recorded in the NLA collection and
+in the run manifests; the Qwen AV used in the reported GEPA runs is the
+Qwen2.5-7B layer-20 AV checkpoint.\footnote{Exact checkpoint identifier:
+\url{https://huggingface.co/kitft/nla-qwen2.5-7b-L20-av}. The related released
+AV checkpoints are listed in the NLA model collection:
+\url{https://huggingface.co/collections/kitft/nla-models}.}
 
-\section{Hardware And Cluster Environment}
+\section{Hardware and Cluster Environment}
 \label{sec:setup-environment}
 
 The experiments were run on the university Slurm cluster. The cluster matters
 for reproducibility because several runs are memory-bound and because
 Qwen35B-proposer configurations require more than one GPU on the same node.
-The hardware snapshot in \TableRef{tab:cluster-hardware} records the main nodes
-used during development and long runs.
+Following the same level of detail used in the reference thesis, the hardware
+snapshot in \TableRef{tab:cluster-hardware} records only the GPU resources that
+affect the experiments.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
     \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.13\linewidth} p{0.17\linewidth} p{0.19\linewidth} p{0.17\linewidth} p{0.16\linewidth} p{0.21\linewidth}}
+    \begin{tabular}{p{0.32\linewidth} p{0.30\linewidth} p{0.30\linewidth}}
         \toprule
-        \textbf{Node} & \textbf{Address} & \textbf{GPUs} & \textbf{CPU} & \textbf{RAM} & \textbf{Use in this thesis} \\
+        \textbf{Resource role} & \textbf{GPU resources} & \textbf{Use in this thesis} \\
         \midrule
-        \texttt{faretra} &
-        \texttt{137.204.107.40} &
+        Multi-GPU cluster node &
         4 x NVIDIA RTX 3090, 24 GiB each &
-        AMD EPYC 7443, 48 logical CPUs &
-        about 124 GB &
         Primary node for two-GPU GEPA runs with vLLM judge and Qwen35B proposer. \\
-        \texttt{moro232} &
-        \texttt{137.204.107.232} &
+        Single-GPU cluster node &
         1 x NVIDIA RTX 3090, 24 GiB &
-        Intel i5-6400, 4 CPUs &
-        about 31 GB &
         Single-GPU fallback for soft-prompt, SIPIT-readout, and smaller diagnostic jobs. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Primary cluster nodes used in the experiments. Driver and CUDA
+    \caption{GPU resources used in the experiments. Driver and CUDA
     versions are recorded per final run because they may change independently of
     the code.}
     \label{tab:cluster-hardware}
@@ -2466,7 +2563,7 @@ judge runs through llama.cpp when enabled. The final-test evaluation and all
 intermediate artifacts are saved separately so that \ChapterRef{chapter:results} can audit a run
 without rerunning it.
 
-\section{Software Stack And Artifacts}
+\section{Software Stack and Artifacts}
 \label{sec:setup-software-artifacts}
 
 The implementation is organized around Python experiment scripts, Slurm launch
@@ -2694,7 +2791,7 @@ tried or remain run-dependent.
         Group-id split$^*$ &
         Prevents related candidates from leaking across splits. \\
         Base judge &
-        Qwen/Qwen2.5-7B-Instruct$^*$ &
+        Qwen2.5-7B-Instruct$^*$ &
         Compatible with the NLA checkpoint and fits the available GPUs. \\
         Proposer &
         Qwen35B via llama.cpp$^*$ &
@@ -2724,7 +2821,7 @@ tried or remain run-dependent.
         \textbf{Soft-prompt hyperparameter} & \textbf{Values} & \textbf{Reason} \\
         \midrule
         Base model &
-        Qwen/Qwen2.5-7B-Instruct$^*$ &
+        Qwen2.5-7B-Instruct$^*$ &
         Same model family as the GEPA base judge. \\
         Dataset / dimension &
         Topical-Chat / USR engagingness$^*$ &
@@ -2788,7 +2885,7 @@ tried or remain run-dependent.
     \label{tab:sipit-readout-hyperparameters}
 \end{table}
 
-\section{Baselines And Comparisons}
+\section{Baselines and Comparisons}
 \label{sec:setup-baselines}
 
 Each result family has its own baseline:
@@ -2819,7 +2916,7 @@ are not sufficient to make convergence claims about GEPA, because the optimizer
 can behave differently when it is given hours of search rather than a few
 minutes.
 
-\section{Runtime And Efficiency Measurements}
+\section{Runtime and Efficiency Measurements}
 \label{sec:setup-runtime}
 
 Runtime is part of the setup because several branches are computationally
@@ -3007,12 +3104,12 @@ bug.
 \label{subsec:results-embedding-public-encoder}
 
 The phrase \quotes{public Jina model} refers here only to the publicly released
-\textbf{embedding encoder}, \texttt{jinaai/jina-embeddings-v3}. This encoder
-maps text to vectors. It is not an inversion model and it does not decode
-vectors back into text. Therefore, using the public encoder alone would not
-remove the need to train or reproduce the conditional masked-diffusion
-\textbf{inverter}; it would only provide the input embedding that the inverter
-must learn to decode.
+\textbf{embedding encoder}, Jina Embeddings v3
+\cite{DBLP:journals/corr/abs-2409-10173}. This encoder maps text to vectors. It
+is not an inversion model and it does not decode vectors back into text.
+Therefore, using the public encoder alone would not remove the need to train or
+reproduce the conditional masked-diffusion \textbf{inverter}; it would only
+provide the input embedding that the inverter must learn to decode.
 
 There are three different sources involved in this diagnostic branch. The
 embedding-inversion paper provides the method and public code/artifact trail for
@@ -3121,7 +3218,7 @@ realistic inversion setting. The results should therefore be discussed as
 diagnostic evidence rather than as a successful reproduction of the original
 embedding-inversion method.
 
-\section{SIPIT And Continuous-Prompt Readout}
+\section{SIPIT and Continuous-Prompt Readout}
 \label{sec:results-sipit}
 
 SIPIT is evaluated in two distinct settings. The first is the standard
@@ -3270,7 +3367,7 @@ readout experiment.
     \label{fig:soft-prompt-deltas}
 \end{figure}
 
-\subsection{SIPIT-Style Readout Of Soft Prompts}
+\subsection{SIPIT-Style Readout of Soft Prompts}
 \label{subsec:results-soft-prompt-readout}
 
 The readout results answer a different question: after task training, do the
@@ -3381,7 +3478,7 @@ verbalize activations. This operational validation is scoped to extraction and
 verbalization quality; semantic-fidelity claims require comparisons against
 held-out task labels or controlled semantic phenomena.
 
-\section{GEPA And G-EVAL Prompt Optimization}
+\section{GEPA and G-EVAL Prompt Optimization}
 \label{sec:results-gepa}
 
 The GEPA branch tests whether additional feedback helps optimize an
@@ -3477,7 +3574,10 @@ The full optimized prompt selected by that run is reported below. The text is
 copied from the saved artifact, with line wrapping adapted for page layout; the
 main semantic changes are highlighted in \TableRef{tab:ppl-prompt-change}.
 
-\begin{Verbatim}[fontsize=\scriptsize, frame=single]
+\begin{figure}[!p]
+    \centering
+    \begin{thesispromptbox}[width=0.98\linewidth]{Optimized Engagingness Prompt from the PPL Long Run}
+\begin{Verbatim}[fontsize=\scriptsize]
 You are evaluating one potential next response in a dialogue.
 
 Your task is to rate the response on Engagingness using a 1 to 3 scale.
@@ -3517,6 +3617,10 @@ Output Format Requirements:
 - Do not output scores outside this scale. Never output 0, 4, or 5.
 - Ensure the final line matches the format exactly to avoid parsing errors.
 \end{Verbatim}
+    \end{thesispromptbox}
+    \caption{Full optimized prompt selected by the historical PPL-positive long run.}
+    \label{fig:results-ppl-optimized-prompt}
+\end{figure}
 
 For later NLA comparisons, the chapter uses the matched current-code PPL
 control shown in \TableRef{tab:gepa-long-nla-comparison}.
@@ -3690,7 +3794,7 @@ only because the feedback repeats source or reference text. Even when duplicate
 rows are removed, the proposer still receives feedback that is mostly
 completion-like rather than error-directed and rubric-conditioned.
 
-\subsection{Dataset And Dimension Diagnostics}
+\subsection{Dataset and Dimension Diagnostics}
 \label{subsec:results-gepa-matrix}
 
 The matrix extension beyond Topical-Chat is reported as small diagnostic
@@ -3736,7 +3840,7 @@ This table supports a narrow claim: the pipeline can run beyond Topical-Chat,
 but the current thesis-grade evidence is still concentrated on Topical-Chat /
 USR engagingness.
 
-\section{Runtime And Efficiency}
+\section{Runtime and Efficiency}
 \label{sec:results-runtime}
 
 Runtime is reported as an efficiency diagnostic. It should not be compared as a
@@ -3772,7 +3876,7 @@ show that the main long-run comparisons operate in the same practical time scale
 approximately eight GPU hours per configuration under the observed cluster
 conditions.
 
-\section{Failure Modes And Negative Evidence}
+\section{Failure Modes and Negative Evidence}
 \label{sec:results-failure-modes}
 
 The negative results are part of the thesis evidence because they explain which

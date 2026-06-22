@@ -50,6 +50,7 @@
   urlcolor={black}
 }
 \usepackage{tcolorbox}
+\tcbuselibrary{breakable}
 
 % -------------------------------
 %   COLORS
@@ -81,3 +82,17 @@
 \newcommand{\FigureRef}[1]{\hyperref[#1]{Figure~\ref*{#1}}}
 \newcommand{\TableRef}[1]{\hyperref[#1]{Table~\ref*{#1}}}
 \newcommand{\ListingRef}[1]{\hyperref[#1]{Listing~\ref*{#1}}}
+
+\newtcolorbox{thesispromptbox}[2][]{
+  colframe=black,
+  colback=gray!5,
+  title={#2},
+  fonttitle=\bfseries,
+  boxrule=0.5pt,
+  arc=1mm,
+  left=1mm,
+  right=1mm,
+  top=1mm,
+  bottom=1mm,
+  #1
+}
