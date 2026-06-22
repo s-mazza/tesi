@@ -50,6 +50,8 @@ there, not as a standalone related-work section.
 
 - Primary BibTeX source: DBLP.
 - Secondary source: ACL Anthology or arXiv when DBLP is missing.
+- If DBLP lists both a peer-reviewed venue entry and a `CoRR` entry for the
+  same paper, cite the peer-reviewed venue entry.
 - Use Google Scholar only when the above sources do not provide a usable entry.
 - Avoid URLs in bibliography entries. Use footnotes for software/project links
   when needed.
@@ -69,8 +71,8 @@ For copied or lightly cropped figures:
 
 - keep only the part that helps the reader understand the mechanism;
 - remove duplicated paper captions from the image when possible;
-- state `Reproduced from Figure X of ...` or equivalent wording in the thesis
-  caption;
+- state `Reproduced from ...` or `Adapted from ...` in the thesis caption, but
+  do not name the original paper figure number;
 - cite the corresponding bibliographic entry in the caption;
 - avoid screenshots of tables, logs, or dense algorithm blocks when a normal
   thesis table or pseudocode would be clearer.
@@ -134,7 +136,7 @@ The thesis is not only asking whether text can be reconstructed. It asks
 whether logically important meaning is preserved when the input is negated,
 counterfactual, or contrary to commonsense.
 
-### 2.2 Hidden-State Inversion And SIPIT
+### 2.2 Hidden-State Inversion and SIPIT
 
 Purpose: position SIPIT as the strongest exact-recovery method for decoder-only
 hidden states and separate hidden-state inversion from embedding inversion.
@@ -161,7 +163,7 @@ The thesis uses SIPIT not only as a reproduction target, but also as a way to
 test whether exact recovery remains meaningful under semantic stress and
 continuous/random-prefix variants.
 
-### 2.3 Semantic Stress Tests And Negation
+### 2.3 Semantic Stress Tests and Negation
 
 Purpose: motivate why semantic fidelity requires more than standard surface
 reconstruction metrics.
@@ -188,10 +190,18 @@ The thesis applies this semantic-stress perspective to inversion and
 activation-verbalization methods, not only to ordinary LLM classification or
 generation.
 
-### 2.4 Prompt Waywardness And Soft-Prompt Interpretability
+### 2.4 Prompt Optimization
 
-Purpose: cover the risk of treating continuous prompt-like representations as
-if their nearest discrete tokens were faithful natural-language explanations.
+Purpose: discuss prompt optimization as a standalone related-work area. The
+section should first cover latent/continuous prompt optimization, then hard or
+natural-language prompt optimization, with GEPA as the concrete optimizer used
+in the thesis.
+
+#### 2.4.1 Latent and Continuous Prompt Optimization
+
+Purpose: cover soft prompting, prefix tuning, and the risk of treating
+continuous prompt-like representations as if their nearest discrete tokens were
+faithful natural-language explanations.
 
 Papers/resources to cover:
 
@@ -212,6 +222,37 @@ Thesis contrast:
 
 The thesis treats textual explanations of continuous or latent objects as
 hypotheses to validate, not as automatically faithful interpretations.
+
+#### 2.4.2 Hard and Natural-Language Prompt Optimization
+
+Purpose: explain prompt optimization methods that search over readable
+instructions rather than continuous vectors.
+
+Papers to cover:
+
+- GEPA as the central prompt optimizer;
+- other prompt-search or prompt-optimization papers only if they clarify what
+  GEPA does differently.
+
+Expected discussion:
+
+- manual prompt engineering versus automated prompt search;
+- reflective prompt proposal from examples, trajectories, and feedback;
+- validation-based prompt selection;
+- risk of overfitting validation examples;
+- why prompt trajectories and intermediate prompts must be stored.
+
+#### 2.4.3 Why GEPA Fits This Thesis
+
+Purpose: make clear that GEPA is not the whole prompt-optimization field, but
+the natural hard-prompt optimizer for this thesis because it can consume textual
+feedback.
+
+Thesis contrast:
+
+The thesis does not propose a new general prompt optimizer. It studies whether
+perplexity, NLA, and auxiliary-judge feedback can make GEPA improve a
+G-EVAL-style judge prompt.
 
 ### 2.5 Natural Language Activations
 
@@ -239,7 +280,7 @@ Thesis contrast:
 The thesis tests whether NLA verbalizations can become useful feedback for GEPA,
 not merely whether they are readable in isolation.
 
-### 2.6 LLM-As-A-Judge And G-EVAL
+### 2.6 LLM-as-a-Judge and G-EVAL
 
 Purpose: introduce the evaluation setting used by the GEPA branch and define
 why agreement with human judgments is the relevant target.
@@ -247,7 +288,13 @@ why agreement with human judgments is the relevant target.
 Papers to cover:
 
 - G-EVAL as the core benchmark/reference;
-- other LLM-as-a-judge work only if needed to contextualize G-EVAL.
+- MT-Bench / Chatbot Arena as general LLM-as-a-judge evaluation context;
+- Prometheus as an open evaluator model for fine-grained rubric scoring;
+- JUDGE-BENCH as evidence that judge validity varies across tasks;
+- agreement-focused judge work, including the Gemma-3-27B-IT result if the
+  exact claim is verified;
+- medical and legal LLM-as-a-judge examples to show the technique is used
+  beyond generic NLG.
 
 Expected discussion:
 
@@ -262,31 +309,6 @@ Thesis contrast:
 The thesis uses G-EVAL-style tasks as a controlled testbed for prompt
 optimization and NLA-derived feedback, not as a claim of exact model-level
 reproduction of the original paper.
-
-### 2.7 Prompt Optimization And GEPA
-
-Purpose: position GEPA among methods that improve prompts using feedback from
-task executions.
-
-Papers to cover:
-
-- GEPA as the central prompt optimizer;
-- other prompt-search or prompt-optimization papers only if they clarify what
-  GEPA does differently.
-
-Expected discussion:
-
-- manual prompt engineering versus automated prompt search;
-- reflective prompt proposal from examples, trajectories, and feedback;
-- validation-based prompt selection;
-- risk of overfitting validation examples;
-- why prompt trajectories and intermediate prompts must be stored.
-
-Thesis contrast:
-
-The thesis does not propose a new general prompt optimizer. It studies whether
-perplexity, NLA, and auxiliary-judge feedback can make GEPA improve a
-G-EVAL-style judge prompt.
 
 ### Transition Bridge: Auxiliary Feedback Signals
 

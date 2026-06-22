@@ -62,8 +62,8 @@ method consumes and produces.
 
 Suggested subsections:
 
-- From Tokens To Internal States.
-- Output-Side And Prompt-Side Representations.
+- From Tokens to Internal States.
+- Output-Side and Prompt-Side Representations.
 
 ### 1.2 Latent-To-Text Inversion
 
@@ -84,7 +84,7 @@ Suggested subsections:
 
 - The General Recovery Question.
 - Main Inversion Targets.
-- Different Notions Of Success.
+- Different Notions of Success.
 
 ### 1.3 Semantic Fidelity
 
@@ -104,7 +104,7 @@ Suggested subsections:
 
 - Surface Similarity Is Not Meaning.
 - Logical Stress Cases.
-- Consequences For Evaluation.
+- Consequences for Evaluation.
 
 ### 1.4 Exact Hidden-State Recovery
 
@@ -123,8 +123,8 @@ and experimental chapters, where the reader has enough context.
 
 Suggested subsections:
 
-- Input Recovery As A Stronger Target.
-- Why It Matters For Semantic Fidelity.
+- Input Recovery as a Stronger Target.
+- Why It Matters for Semantic Fidelity.
 
 ### 1.5 Activation Verbalization
 
@@ -148,7 +148,7 @@ Suggested subsections:
 - Description Rather Than Reconstruction.
 - Faithfulness Caveats.
 
-### 1.6 Perplexity And Model Confidence
+### 1.6 Perplexity and Model Confidence
 
 Explain perplexity as a surprisal/confidence signal computed from the evaluated
 model. Keep it conceptual:
@@ -161,12 +161,18 @@ model. Keep it conceptual:
 Suggested subsections:
 
 - Definition.
-- Use As An Auxiliary Signal.
+- Use as an Auxiliary Signal.
 
-### 1.7 LLM-As-A-Judge Evaluation
+### 1.7 LLM-as-a-Judge Evaluation
 
 Introduce LLM-as-a-judge evaluation:
 
+- introduce the technique at a high level before rubric details: a language
+  model receives context, candidate output, and evaluation instructions, then
+  returns a score, label, preference, or explanation;
+- mention that the paradigm is used in general assistant evaluation,
+  rubric-guided NLG evaluation, open evaluator models, and domain-specific
+  medical/legal settings;
 - define a rubric as the written criteria used to evaluate an output;
 - separate the evaluation task from the method used to perform scoring;
 - explain that an LLM can be used as the scoring procedure for a rubric;
@@ -178,9 +184,9 @@ Dataset-specific dimensions and exact metrics belong to Chapter 4.
 
 Suggested subsections:
 
-- Rubrics And Scoring Tasks.
-- The LLM As The Scoring Procedure.
-- The Judge Prompt As Part Of The Measurement.
+- Rubrics and Scoring Tasks.
+- The LLM as the Scoring Procedure.
+- The Judge Prompt as Part of the Measurement.
 
 ### 1.8 Agreement Metrics
 
@@ -189,12 +195,18 @@ Define how agreement with human judgments is read at a high level:
 - correlation metrics measure whether model scores move with human scores;
 - higher correlation is better;
 - metric choice affects what kind of improvement can be claimed.
+- agreement with human annotations is not absolute truth;
+- recent judge-alignment work motivates looking beyond raw correlation when
+  case-level agreement or human-like judging behavior matters.
 
 The exact metric list, ranges, and paper-aligned comparisons belong to Chapter 4.
+Chapter 1 should include compact formulas and citations for Pearson, Spearman,
+and Kendall, while Chapter 4 explains the paper-aligned interpretation ranges
+and which metrics are used in each experiment.
 
 Suggested subsections:
 
-- Agreement Rather Than Absolute Truth.
+- Agreement Rather than Absolute Truth.
 - Correlation Metrics.
 - Interpreting Improvements.
 
@@ -216,8 +228,8 @@ belong to Chapter 3 and Chapter 4.
 
 Suggested subsections:
 
-- Prompts As Search Objects.
-- Optimization In Judge Tasks.
+- Prompts as Search Objects.
+- Optimization in Judge Tasks.
 
 ## Transition To Chapter 2
 

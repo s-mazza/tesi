@@ -58,12 +58,12 @@ setup checklist. The current plan maps those requirements as follows:
 |---|---|---|
 | Implementation details | Sections 4.3, 4.4, 4.6 | Add exact final container image, dependency versions, and launch command snippets for thesis-grade runs |
 | Libraries used | Sections 4.3, 4.4, 4.6 | Record exact versions for Python, PyTorch, vLLM, llama.cpp, transformers, DSPy/GEPA, NLA code, and flash-attention |
-| Models used | Section 4.2 | Confirm final checkpoints and local cache paths for every reported run |
+| Models used | Section 4.2 | Use normal model names in prose/tables; keep exact Hugging Face identifiers in footnotes or run manifests |
 | Why those models and not others | Sections 4.2, 4.7 | Write explicit justifications: Qwen2.5-7B for NLA compatibility, Qwen35B for stronger proposer/aux feedback, GPT-2 for clean SIPIT reproduction |
 | Optional snippets or pseudocode | Sections 4.4, 4.8 | Include only compact snippets if they clarify split semantics, scoring, or run configuration |
 | Datasets used and why | Section 4.1 | Add final source citations and exact dataset row counts for every dataset/dimension in the result tables |
 | Dataset structure | Section 4.1 | Include fields such as source/context, candidate output, reference/fact, human score, group id, and score scale |
-| Experiment environment | Section 4.3 | Re-check hardware/driver/CUDA snapshot for final runs |
+| Experiment environment | Section 4.3 | Report GPU type/count and memory-relevant constraints; avoid addresses and unnecessary machine details |
 | Metrics and boundaries | Section 4.5 | Ensure every metric table states range, direction, and interpretation |
 | Hyperparameters with tried values and final asterisk | Section 4.6 | Fill values from final run configs and mark final values with `*` in LaTeX |
 | Baselines and comparisons | Section 4.7 | Keep paper-aligned baselines separate from diagnostic/smoke controls |
@@ -94,7 +94,7 @@ training/probes.
 
 ## Proposed Section Structure
 
-### 4.1 Datasets And Splits
+### 4.1 Datasets and Splits
 
 Purpose: define all datasets before any result table appears.
 
@@ -157,7 +157,7 @@ Important wording:
 - Do not claim G-EVAL paper-level reproduction unless the dataset, dimensions,
   split policy, prompt setting, and metric set are all aligned with the paper.
 
-### 4.2 Model Roles And Checkpoints
+### 4.2 Model Roles and Checkpoints
 
 Purpose: avoid ambiguity around "base model", "judge", "proposer", and NLA.
 
@@ -167,14 +167,14 @@ Model-role table to add:
 |---|---|---|---|
 | Embedding encoder | Jina-v3 / Qwen3-Embedding diagnostic branches | Embedding-inversion inputs | No, unless branch is reported |
 | SIPIT target model | GPT-2 | Hidden-state inversion target | Yes for SIPIT results |
-| Standalone NLA base model | Qwen/Qwen2.5-7B-Instruct | Activation extraction | No direct final score |
+| Standalone NLA base model | Qwen2.5-7B-Instruct | Activation extraction | No direct final score |
 | NLA AV checkpoint | Qwen2.5-7B layer-20 AV checkpoint | Activation verbalization | Feedback/diagnostic |
-| GEPA base judge | Qwen/Qwen2.5-7B-Instruct | Scores G-EVAL examples | Yes |
-| Perplexity model | Same Qwen/Qwen2.5-7B-Instruct | Response-only PPL feedback | No, feedback-only |
+| GEPA base judge | Qwen2.5-7B-Instruct | Scores G-EVAL examples | Yes |
+| Perplexity model | Same Qwen2.5-7B-Instruct | Response-only PPL feedback | No, feedback-only |
 | Proposer | Qwen35B via llama.cpp | Proposes prompt edits | No |
 | Auxiliary judge | Qwen35B via llama.cpp | Produces extra proposer feedback when enabled | No |
-| Soft-prompt base model | Qwen/Qwen2.5-7B-Instruct | Frozen model whose prompt embeddings are tuned to create learned readout targets | Yes as sanity/task-learning evidence |
-| SIPIT readout target for soft prompts | Qwen/Qwen2.5-7B-Instruct embeddings/hidden states | Tests what SIPIT can invert from learned virtual tokens | No, primary diagnostic/readout object |
+| Soft-prompt base model | Qwen2.5-7B-Instruct | Frozen model whose prompt embeddings are tuned to create learned readout targets | Yes as sanity/task-learning evidence |
+| SIPIT readout target for soft prompts | Qwen2.5-7B-Instruct embeddings/hidden states | Tests what SIPIT can invert from learned virtual tokens | No, primary diagnostic/readout object |
 
 Required explanation:
 
@@ -190,37 +190,28 @@ Required explanation:
   prompt embeddings, so they answer a different question from GEPA prompt
   search.
 
-### 4.3 Hardware And Cluster Environment
+### 4.3 Hardware and Cluster Environment
 
 Purpose: document enough hardware and deployment detail to make runtimes and
 failures interpretable.
 
 Observed cluster snapshot: 2026-06-15.
 
-Primary Slurm nodes:
+The final thesis should follow the supervisor feedback and report only the
+hardware information needed to interpret the experiments. Addresses, internal
+machine identifiers, CPU model names, and RAM totals are not needed unless a
+specific result depends on them.
 
-| Node | Address | GPUs | GPU memory | CPU | RAM | Driver/CUDA observed | Notes |
-|---|---|---:|---:|---|---:|---|---|
-| `faretra` | `137.204.107.40` | 4 x NVIDIA GeForce RTX 3090 | 24 GiB each | AMD EPYC 7443, 24 cores / 48 threads | about 124 GB | 550.54.14 / CUDA 12.4 | Primary node for multi-GPU GEPA jobs |
-| `moro232` | `137.204.107.232` | 1 x NVIDIA GeForce RTX 3090 | 24 GiB | Intel i5-6400, 4 cores | about 31 GB | 555.42.02 / CUDA 12.5 | Single-GPU fallback node |
+Primary GPU resources:
 
-Cluster details observed from Slurm and host checks:
+| Resource role | GPUs | Why it matters |
+|---|---:|---|
+| Multi-GPU cluster node | 4 x NVIDIA RTX 3090, 24 GiB each | Enables two-GPU GEPA runs with vLLM judge and Qwen35B proposer/auxiliary sidecar |
+| Single-GPU cluster node | 1 x NVIDIA RTX 3090, 24 GiB | Runs soft-prompt, SIPIT-readout, and smaller diagnostic jobs |
 
-- Slurm version observed on `faretra`: 21.08.6.
-- `faretra` kernel: Linux 5.4.0-216 on Ubuntu; Slurm reports 48 logical CPUs
-  and 124000 MB real memory.
-- `moro232` kernel: Linux 5.15.0-177 on Ubuntu; Slurm reports 4 CPUs and 31989
-  MB real memory.
-- Exact driver/CUDA values should be re-recorded for the final thesis runs,
-  because they can change independently of the code.
-
-Additional visible nodes:
-
-| Node | GPUs | Role in current thesis runs |
-|---|---|---|
-| `deeplearn2` | 1 x Titan XP, 1 x RTX 3090 | Not a primary target for current vLLM/flash-attention GEPA setup |
-| `moro43` | 1 x RTX 5090 | Potential future node, but not part of the stable current setup |
-| `moro49`, `moro157` | CPU-only in Slurm view | Not used for GPU runs |
+Driver/CUDA/container versions should still be recorded in run manifests because
+they affect vLLM, FlashAttention, and PyTorch compatibility, but they should not
+be expanded into a hardware address table in the thesis unless needed.
 
 Software/deployment details to report:
 
@@ -241,12 +232,11 @@ Hardware table to add:
 | Hardware item | Value | Why it matters |
 |---|---|---|
 | GPU model and VRAM | RTX 3090, 24 GiB | Determines vLLM memory limits and batch settings |
-| Number of GPUs | 1 on `moro232`, 4 on `faretra` | Determines whether proposer sidecar can run |
-| CPU/RAM | Node-specific | Affects preprocessing and container startup |
+| Number of GPUs | single-GPU and four-GPU resource roles | Determines whether proposer sidecar can run |
 | CUDA/driver | Record per run | Affects vLLM and flash-attention compatibility |
 | Slurm job id/node | Saved in runtime manifest | Links artifacts to execution environment |
 
-### 4.4 Software, Versioning, And Artifacts
+### 4.4 Software, Versioning, and Artifacts
 
 Purpose: define what must be saved for scientific reproducibility.
 
@@ -339,7 +329,7 @@ G-EVAL score scales to state:
 | QAGS-CNN consistency | 1 to 5 |
 | QAGS-XSUM consistency | 1 to 5 |
 
-#### 4.5.1 Semantic-Fidelity And Embedding-Inversion Metrics
+#### 4.5.1 Semantic-Fidelity and Embedding-Inversion Metrics
 
 | Metric | Available now | Include? | Use |
 |---|---|---|---|
@@ -390,7 +380,7 @@ Important caveat:
 - Runtime is diagnostic because paper hardware differs from the available RTX
   3090 cluster.
 
-#### 4.5.3 Soft-Prompt And SIPIT-Readout Metrics
+#### 4.5.3 Soft-Prompt and SIPIT-Readout Metrics
 
 | Metric | Available now | Include? | Use |
 |---|---|---|---|
@@ -534,7 +524,7 @@ Auxiliary-judge feedback:
 | Non-empty feedback rate | Derivable | Should include | Detects silent failures |
 | Auxiliary response length | Not summarized | Optional | Detects truncation or verbosity |
 
-#### 4.5.7 Time And Efficiency Metrics
+#### 4.5.7 Time and Efficiency Metrics
 
 Metrics already available:
 
@@ -613,7 +603,7 @@ Soft-prompt table:
 
 | Hyperparameter | Values tried | Final/reporting value | Why |
 |---|---|---|---|
-| Base model | Qwen/Qwen2.5-7B-Instruct | Mark final | Same model family as GEPA base judge and NLA source |
+| Base model | Qwen2.5-7B-Instruct | Mark final | Same model family as GEPA base judge and NLA source |
 | Dataset/dimension | Topical-Chat engagingness | Mark final | Same task used in the main GEPA pilot |
 | Split groups | 40/10/10 | Mark final | Gives 240/60/60 row split |
 | Soft-prompt initialization | text, random | random for main; text as control | Avoids biasing nearest-token interpretation toward the seed prompt |
@@ -648,7 +638,7 @@ Infrastructure table:
 Use an asterisk in final thesis tables for the final selected values, following
 the reference thesis style.
 
-### 4.7 Baselines And Comparisons
+### 4.7 Baselines and Comparisons
 
 Purpose: make each comparison scientifically interpretable.
 
@@ -703,7 +693,7 @@ Smokes:
 - Smoke runs are not sufficient to make final scientific claims about GEPA
   convergence.
 
-### 4.8 Figures And Tables To Add
+### 4.8 Figures and Tables to Add
 
 Tables:
 

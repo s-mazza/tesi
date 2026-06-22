@@ -11,8 +11,9 @@ and numerical results.
 ## Goal
 
 Describe the thesis method for testing semantic fidelity in latent-to-text
-methods and for using internal model signals, especially perplexity and NLA
-verbalizations, as feedback in GEPA prompt optimization.
+methods and for defining `Latent-GEPA`: the GEPA-style prompt-optimization
+pipeline that uses internal model signals, especially perplexity and NLA
+verbalizations, as proposer feedback.
 
 Target length: enough to make the implementation reproducible at the conceptual
 level. Exact command lines, machine details, and long tables belong to Chapter
@@ -63,7 +64,7 @@ Track 1: evaluate latent-to-text methods under semantic stress.
 - NLA activation verbalization.
 
 Track 2: test whether internal signals from the base model can improve
-G-EVAL-style prompt optimization.
+G-EVAL-style prompt optimization through Latent-GEPA.
 
 - base judge predicts scores;
 - GEPA optimizes the judge prompt;
@@ -238,9 +239,11 @@ Value-adding example:
 - Reason: this is more useful than a prose-only description because later
   prediction artifacts are JSONL.
 
-### 3.7 GEPA Optimization Loop
+### 3.7 Latent-GEPA Optimization Loop
 
-Purpose: explain the prompt optimizer used in the GEPA branch.
+Purpose: explain the prompt optimizer used in the GEPA branch and name the
+proposed pipeline as Latent-GEPA when latent-derived feedback is part of the
+proposer context.
 
 GEPA workflow:
 
@@ -253,7 +256,7 @@ GEPA workflow:
 
 Model roles:
 
-- base judge: `Qwen/Qwen2.5-7B-Instruct`;
+- base judge: Qwen2.5-7B-Instruct;
 - proposer: Qwen35B through llama.cpp;
 - final metrics: computed from base-judge predictions versus human scores.
 
@@ -261,7 +264,8 @@ The proposer does not replace the base judge. It only proposes prompt edits.
 
 Value-adding example:
 
-- Best format: pseudocode.
+- Best format: pseudocode shown in the same `tcolorbox`-style figure
+  environment used for prompts, following the supervisor's formatting request.
 - Structure: `seed_prompt`, `trainset`, `valset`, feedback providers, proposer,
   prompt selection, final-test evaluation.
 - Reason: GEPA is an algorithmic loop. Pseudocode will be clearer than a
@@ -345,8 +349,8 @@ NLA. Here, verbalizations are weak proposer feedback, not final labels.
 Value-adding example:
 
 - Best format in the main method chapter: show the seed judge prompt as a
-  plain-text block copied from the saved artifact, then explain its method role
-  in prose.
+  plain-text block copied from the saved artifact inside a `tcolorbox` figure,
+  then explain its method role in prose.
 - The concrete PPL/NLA reflection example should be shown as a Python/JSON-like
   record with the same fields used by the code (`example`, `prediction`,
   `score`, `feedback`) plus the serialized `reflection_data` view sent to the
@@ -402,7 +406,7 @@ Suggested subsections:
 - `Interpretation Rule`: state that a useful continuous prompt is not
   automatically interpretable.
 
-In this branch the base judge model remains Qwen/Qwen2.5-7B-Instruct, but its
+In this branch the base judge model remains Qwen2.5-7B-Instruct, but its
 weights are frozen. The only trained parameters are PEFT prompt-tuning virtual
 tokens placed before the judge input. The task is the same Topical-Chat
 engagingness scoring task used in the GEPA branch, so any learned soft prompt
@@ -584,7 +588,7 @@ Recommended examples:
 - one NLA token/verbalization table plus a standalone NLA pipeline diagram in
   Section 3.5;
 - JSON-like G-EVAL example schema in Section 3.6;
-- GEPA pseudocode in Section 3.7;
+- GEPA pseudocode in Section 3.7, formatted as a `tcolorbox` figure;
 - feedback-variant ablation table in Section 3.8;
 - short PPL formula and toy row in Section 3.9;
 - Python/JSON-like concrete PPL/NLA proposer-feedback block in the NLA/GEPA

@@ -7,12 +7,24 @@ rules for this thesis.
 
 - Write the thesis in English.
 - Do not mention more open problems than the thesis actually addresses.
+- Prefer a small number of clear thesis-level research questions over a long
+  list of loosely related questions. If the work has two main axes, frame the
+  introduction around those axes.
+- Do not front-load defensive claims in the introduction, especially claims
+  about negative results. Negative or diagnostic outcomes should be discussed
+  where the evidence is reported, usually in Results or Conclusions.
 - Every figure used in the manuscript must be explicitly mentioned in the
   surrounding text.
-- Use DBLP as the primary BibTeX source. Use Google Scholar only when DBLP
-  does not provide a usable entry.
+- Use DBLP as the primary BibTeX source. When DBLP offers both a `CoRR` entry
+  and a conference/journal entry for the same work, prefer the conference or
+  journal entry. Use the `CoRR`/arXiv entry only when no peer-reviewed venue is
+  available or when citing a very recent technical report.
+- Use Google Scholar only when DBLP does not provide a usable entry.
 - Do not put raw URLs in bibliography entries when avoidable. Put web links in
   footnotes if they are useful for reproducibility or software references.
+- When citing models and datasets, use the normal readable name in prose and
+  tables. Put exact repository identifiers, such as Hugging Face paths, in
+  footnotes or run manifests when needed for reproducibility.
 - Prefer clear claims over broad claims. If an experiment is a pilot or smoke
   test, call it that explicitly.
 - Keep the previous thesis `tesi_t_simoneMazzacano/` as the main style and
@@ -45,6 +57,14 @@ rules for this thesis.
 - It should be an expanded version of the abstract, but without the final
   conclusions.
 - It must close with an outline of the thesis chapters.
+- Avoid introducing technique-specific names in the introduction unless they are
+  central to the thesis contribution. If a named method is kept there, cite it.
+- It is acceptable to name the proposed method in the introduction. For this
+  thesis, use `Latent-GEPA` when referring to the main proposed
+  GEPA-based pipeline with latent-derived feedback.
+- The introduction should separate task, method, and tool names. For example,
+  LLM-as-a-judge is an evaluation paradigm, G-EVAL is a specific method/protocol
+  in that paradigm, and GEPA is a prompt optimizer.
 
 ## Chapter Structure
 
@@ -64,6 +84,31 @@ rules for this thesis.
 - Chapter 6: conclusions and future work.
 - Final acknowledgments: thank Prof. Moro first.
 
+## Chapter-Specific Style Rules
+
+- Chapter 1 should explain concepts, not named related-work systems. Names such
+  as SIPIT, NLA, GEPA, and G-EVAL should appear only if unavoidable; otherwise,
+  explain the underlying concepts: hidden-state inversion, activation
+  verbalization, prompt optimization, and LLM-as-a-judge evaluation.
+- Chapter 2 should be a related-work chapter, not a systems or implementation
+  chapter. Do not create related-work sections for vLLM, Docker, Slurm,
+  llama.cpp, FlashAttention, or cluster engineering unless the thesis claim
+  changes into a systems contribution.
+- In Chapter 2, organize prompt optimization as its own research line. First
+  discuss latent/continuous methods such as soft prompting and prefix tuning;
+  then discuss hard/natural-language prompt optimization and GEPA.
+- In Chapter 2, NLA should be explained with enough technical context for a
+  reader with little background: Activation Verbalizer, Activation
+  Reconstructor, model/layer-specific checkpoints, and why the thesis uses only
+  the activation-to-text direction.
+- In Chapter 2, LLM-as-a-judge should begin with a general explanation and
+  examples from multiple domains before narrowing to G-EVAL.
+- Chapter 4 should report only hardware details that matter for interpreting
+  experiments. GPU type, GPU count, and VRAM are usually enough in the thesis
+  text. Avoid IP addresses and unnecessary internal machine details; keep exact
+  driver/CUDA/container information in run manifests unless it is needed in the
+  chapter.
+
 ## Experimental Writing Checklist
 
 - For each dataset, explain why it is used and how examples are structured.
@@ -75,8 +120,40 @@ rules for this thesis.
   value with an asterisk.
 - Make clear what each result is compared against.
 - Distinguish paper-aligned results from diagnostic/smoke runs.
+- Treat correlation metrics as measures of agreement with human annotations,
+  not as absolute truth. Chapter 1 can introduce Pearson, Spearman, and Kendall
+  with equations and citations; Chapter 4 should explain ranges, directionality,
+  and which metric each experiment reports.
+- When using LLM-as-a-judge, distinguish the evaluated judge, proposer model,
+  auxiliary judge, and feedback-only models. Do not imply that a stronger
+  proposer or auxiliary judge produced the final reported scores.
+
+## Formatting And LaTeX Conventions
+
+- Use clickable cross-reference helpers such as `\ChapterRef`, `\SectionRef`,
+  `\FigureRef`, `\TableRef`, and `\ListingRef` when referring to other parts of
+  the thesis.
+- Use title case consistently, but do not capitalize connector words such as
+  `and`, `as`, `of`, `for`, `in`, or `the` unless they are the first word.
+- Prompt-like text and pseudocode shown to the reader should use a boxed
+  `tcolorbox` figure environment with a caption and label.
+- JSON records, logs, terminal excerpts, and code-like data structures should
+  remain in listings, not prompt boxes.
+- When a displayed prompt, JSON record, or log excerpt is long, add a short
+  explanation of the important fields immediately after it so the reader knows
+  how to read it.
+- When reproducing or adapting a figure from a paper, cite the paper in the
+  caption but do not mention the original figure number. Use `Reproduced from`
+  only if the image is unchanged; use `Adapted from` if it is cropped, redrawn,
+  or reformatted.
+- Underfull `hbox`/`vbox` warnings are not automatically thesis problems.
+  Prioritize fixing them when they indicate visibly poor layout, unreadable
+  tables, or broken page flow.
 
 ## Keywords
 
-Keywords are the ones that will be submitted on Alma Tesi. Candidate keywords
-will be finalized after the thesis title and contribution are fixed.
+Keywords are the ones that will be submitted on Alma Tesi. Prefer broad,
+recognizable keywords over overly narrow internal terms. For the current thesis,
+`Natural Language Processing` and `Explainable AI` should be included unless the
+final title/contribution changes substantially. Candidate keywords will be
+finalized after the thesis title and contribution are fixed.

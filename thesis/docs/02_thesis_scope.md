@@ -7,10 +7,10 @@ logically difficult, negated, counterfactual, or contrary to commonsense.
 
 The thesis includes two connected tracks:
 
-- inversion/verbalization track: embedding inversion, SIPIT hidden-state
-  inversion, and NLA activation verbalization;
-- GEPA/G-Eval track: use perplexity, NLA verbalizations, and optional
-  auxiliary-judge feedback to improve G-Eval-style judge prompts.
+- analysis of embedding/activation inversion methods to identify their
+  potential and their semantic failure modes;
+- Latent-GEPA track: use latent-representation analysis, including perplexity
+  and activation verbalization signals, to improve G-Eval-style judge prompts.
 
 GEPA is the latest experimental branch, not the only thesis topic. It tests
 whether NLA-style activation information can become useful feedback for prompt
@@ -18,20 +18,12 @@ optimization.
 
 ## Core Research Questions
 
-1. Do embedding/activation inversion methods preserve logical semantic content,
-   or do they reconstruct more plausible but semantically altered text?
-2. Do standard reconstruction metrics capture errors such as lost negation,
-   inverted polarity, or commonsense normalization?
-3. Can SIPIT recover prompts on standard and logical stress-test settings, and
-   what happens when continuous random prefixes are introduced?
-4. Do NLA verbalizations preserve semantically important activation content, or
-   do they produce generic/completion-like descriptions?
-5. Can GEPA improve LLM-as-a-judge prompts on G-EVAL-style evaluation tasks?
-6. Does adding perplexity feedback help GEPA propose better prompts?
-7. Does raw NLA feedback help GEPA, or does it need to be transformed into a
-   more rubric-aligned signal?
-8. Can a stronger auxiliary judge/proposer help convert NLA feedback into
-   useful prompt-level feedback?
+1. What do inversion and verbalization methods reveal about semantic content in
+   latent representations, especially under negation, polarity changes, and
+   counterfactual inputs?
+2. Can latent-representation analysis be turned into useful guidance for
+   Latent-GEPA, the prompt-optimization pipeline proposed in this thesis for
+   improving G-EVAL-style judge prompts?
 
 ## Main Contribution Candidates
 

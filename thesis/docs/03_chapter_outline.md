@@ -9,9 +9,11 @@ No citations.
 
 Expanded motivation for semantic fidelity in embedding/activation inversion:
 surface similarity can hide lost negation, polarity flips, or normalization
-toward commonsense. Introduce GEPA/G-Eval as the later branch where activation
-verbalizations are tested as feedback for improving LLM-as-a-judge prompts.
-Close with the thesis outline.
+toward commonsense. Reduce the framing to two main topics: analysis of
+embedding/activation-inversion methods, and Latent-GEPA as the branch that uses
+latent-representation analysis to improve G-Eval-style judge prompts. Avoid
+introducing specific techniques such as SIPIT or NLA in the introduction unless
+strictly needed and cited. Close with the thesis outline.
 
 ## Chapter 1: Theoretical Framework
 
@@ -46,11 +48,11 @@ Planned sections:
 
 - Embedding inversion, including Jina-style conditional masked diffusion.
 - SIPIT and hidden-state inversion baselines.
-- Prompt waywardness and interpretable soft prompts.
+- Prompt optimization as a standalone section:
+  latent/continuous methods such as soft prompting and prefix tuning, followed
+  by hard/natural-language prompt optimization and GEPA.
 - NLA or activation verbalization work.
 - G-EVAL and LLM-as-a-judge evaluation.
-- GEPA and reflective prompt optimization.
-- Prior work on prompt optimization and prompt search.
 - Perplexity/confidence signals in evaluation or feedback.
 
 Each section must end by clarifying what this thesis does differently.
