@@ -1,6 +1,6 @@
 # GEPA / G-Eval Current Plan Status
 
-Last updated: 2026-06-18
+Last updated: 2026-06-25
 
 ## Objective
 
@@ -1173,3 +1173,46 @@ Still missing before writing the main experimental claim:
 - Decide whether to include QAGS-CNN and QAGS-XSUM smoke numbers; current `n=2` results are plumbing-only and should not be presented as scientific performance claims.
 - Collect final prompt examples for the thesis appendix: seed prompt, old PPL optimized prompt, old NLA optimized prompt, fixed-NLA final prompt, and at least one failed candidate-only prompt.
 - Fill a clean results table with confidence caveats: n, split, proposer, feedback variant, Pearson/Spearman/Kendall, agreement/MAE diagnostics, prompt changed yes/no, and artifact path.
+
+## 2026-06-25 Locked-GPU Execution Update
+
+The supervisor made two physical GPUs available on `faretra` and indicated that
+the containers can be launched with `--gpus device=0,2`. Because the pending
+Slurm jobs were still not starting despite those devices being physically free,
+the current operational plan is to run the highest-priority blocked GEPA/NLA
+jobs through a direct Docker queue on the locked GPUs.
+
+Detailed plan and queue order:
+
+- `gepa-experiments/status/locked_gpu_execution_plan_20260625.md`
+
+Execution helper:
+
+- `gepa-experiments/slurm/run_locked_gpu_queue.sh`
+
+The locked-GPU runner does not change the existing Slurm pipeline. It generates
+per-run config copies that source the original committed configs and override
+only operational fields such as output directory and ports. All direct-run
+artifacts are namespaced under `gepa-experiments/results/locked_gpu_<timestamp>/`
+to avoid overwriting or mixing with Slurm artifacts.
+
+Launch record:
+
+- run id: `20260625T194158Z`
+- remote root: `gepa-experiments/results/locked_gpu_20260625T194158Z`
+- remote pid: `784525`
+- current first job: `D1_aux_judge_fixed_smoke_ppl_nla`
+- GPU mapping: Qwen2.5-7B vLLM judge on GPU `0`, Qwen35B llama.cpp proposer /
+  aux judge on GPU `2`
+- duplicate stale Slurm jobs from the 2026-06-17 follow-up queue were cancelled
+  after the direct runner passed preflight and stayed alive.
+
+Priority order:
+
+1. aux-judge fixed PPL+NLA smoke;
+2. aux-judge fixed PPL+NLA long run;
+3. matched no-aux PPL+NLA smoke;
+4. aux-only smoke without NLA;
+5. candidate-content NLA wiring probe;
+6. full NLA token-position smoke sweep;
+7. matched no-aux fixed-NLA long run if time remains.
