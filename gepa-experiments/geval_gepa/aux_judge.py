@@ -51,6 +51,7 @@ class AuxJudgeFeedbackProvider:
         timeout_seconds: float = 120.0,
         max_tokens: int = 512,
         temperature: float = 0.0,
+        disable_thinking: bool = False,
     ) -> None:
         self.api_base = api_base.rstrip("/")
         self.model = model
@@ -58,6 +59,7 @@ class AuxJudgeFeedbackProvider:
         self.timeout_seconds = timeout_seconds
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.disable_thinking = disable_thinking
         self._records: dict[str, AuxJudgeRecord] = {}
         self._lock = threading.Lock()
 
@@ -149,6 +151,10 @@ class AuxJudgeFeedbackProvider:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
         }
+        if self.disable_thinking:
+            # llama.cpp/Qwen3 can otherwise spend the full budget in
+            # reasoning_content and return an empty visible message.
+            payload["chat_template_kwargs"] = {"enable_thinking": False}
         request = urllib.request.Request(
             f"{self.api_base}/chat/completions",
             data=json.dumps(payload).encode("utf-8"),

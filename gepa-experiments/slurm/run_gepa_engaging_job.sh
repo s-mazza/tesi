@@ -50,6 +50,7 @@ AUX_JUDGE_API_BASE="${AUX_JUDGE_API_BASE:-}"
 AUX_JUDGE_API_KEY="${AUX_JUDGE_API_KEY:-$PROPOSER_API_KEY}"
 AUX_JUDGE_MAX_TOKENS="${AUX_JUDGE_MAX_TOKENS:-512}"
 AUX_JUDGE_MIN_SUCCESS_RATE="${AUX_JUDGE_MIN_SUCCESS_RATE:-0.95}"
+AUX_JUDGE_DISABLE_THINKING="${AUX_JUDGE_DISABLE_THINKING:-0}"
 OUTPUT_DIR="${OUTPUT_DIR:-gepa-experiments/results/geval_gepa_engaging_qwen25}"
 LOG_DIR="${LOG_DIR:-${OUTPUT_DIR}/logs}"
 mkdir -p "$LOG_DIR" "$OUTPUT_DIR"
@@ -132,6 +133,7 @@ if [[ "$AUX_JUDGE_FEEDBACK" == "1" || "$AUX_JUDGE_FEEDBACK" == "true" ]]; then
   echo "  aux judge model: ${AUX_JUDGE_MODEL}"
   echo "  aux judge api: ${AUX_JUDGE_API_BASE:-${PROPOSER_API_BASE:-none}}"
   echo "  aux judge min success rate: ${AUX_JUDGE_MIN_SUCCESS_RATE}"
+  echo "  aux judge disable thinking: ${AUX_JUDGE_DISABLE_THINKING}"
 fi
 
 write_dependency_manifest
@@ -293,6 +295,9 @@ if [[ "$AUX_JUDGE_FEEDBACK" == "1" || "$AUX_JUDGE_FEEDBACK" == "true" ]]; then
   fi
   if [[ -n "$AUX_JUDGE_API_KEY" ]]; then
     AUX_JUDGE_ARGS+=(--aux-judge-api-key "$AUX_JUDGE_API_KEY")
+  fi
+  if [[ "$AUX_JUDGE_DISABLE_THINKING" == "1" || "$AUX_JUDGE_DISABLE_THINKING" == "true" ]]; then
+    AUX_JUDGE_ARGS+=(--aux-judge-disable-thinking)
   fi
 fi
 

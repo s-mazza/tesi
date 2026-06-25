@@ -440,6 +440,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aux-judge-timeout-seconds", type=float, default=120.0)
     parser.add_argument("--aux-judge-max-tokens", type=int, default=512)
     parser.add_argument("--aux-judge-min-success-rate", type=float, default=0.95)
+    parser.add_argument(
+        "--aux-judge-disable-thinking",
+        action="store_true",
+        help="Request no-thinking chat rendering for Qwen/llama.cpp auxiliary judge calls.",
+    )
 
     budget = parser.add_mutually_exclusive_group(required=True)
     budget.add_argument("--gepa-auto", choices=["light", "medium", "heavy"])
@@ -559,6 +564,7 @@ def main() -> None:
             timeout_seconds=args.aux_judge_timeout_seconds,
             max_tokens=args.aux_judge_max_tokens,
             temperature=0.0,
+            disable_thinking=args.aux_judge_disable_thinking,
         )
 
     seed_program = make_program(seed_prompt)
@@ -691,6 +697,7 @@ def main() -> None:
                 "aux_judge_api_base": (args.aux_judge_api_base or args.proposer_api_base) if args.aux_judge_feedback else "",
                 "aux_judge_max_tokens": args.aux_judge_max_tokens if args.aux_judge_feedback else 0,
                 "aux_judge_min_success_rate": args.aux_judge_min_success_rate if args.aux_judge_feedback else 0.0,
+                "aux_judge_disable_thinking": args.aux_judge_disable_thinking if args.aux_judge_feedback else False,
                 "max_tokens": args.max_tokens,
                 "proposer_model": args.proposer_model if args.proposer_api_base else args.judge_model,
                 "proposer_api_base": args.proposer_api_base if args.proposer_api_base else args.api_base,

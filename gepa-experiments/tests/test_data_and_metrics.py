@@ -786,6 +786,68 @@ class DataAndMetricsTest(unittest.TestCase):
         self.assertEqual(row["raw_response"], "")
         self.assertIn("reasoning_content", row["response_json"])
 
+    def test_aux_judge_can_disable_qwen_thinking_in_request_payload(self) -> None:
+        captured: dict[str, object] = {}
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "finish_reason": "stop",
+                                "message": {"content": "Close enough.\nPrefer continuity in the rubric."},
+                            }
+                        ]
+                    }
+                ).encode("utf-8")
+
+        def fake_urlopen(request, timeout):
+            captured["payload"] = json.loads(request.data.decode("utf-8"))
+            captured["timeout"] = timeout
+            return FakeResponse()
+
+        example = load_usr_examples_from_fixture()[0]
+        provider = AuxJudgeFeedbackProvider(
+            api_base="http://127.0.0.1:1/v1",
+            model="local-llamacpp",
+            api_key="EMPTY",
+            disable_thinking=True,
+        )
+        dspy_example = type(
+            "Example",
+            (),
+            {
+                "human_score": example.human_score("Engaging"),
+                "context": example.context,
+                "fact": example.fact,
+                "response": example.response,
+                "context_id": example.context_id,
+                "response_id": example.response_id,
+                "example_id": example.response_id,
+            },
+        )()
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            feedback = provider.feedback_for(
+                example=dspy_example,
+                pred=type("Pred", (), {"score": "2", "rationale": "It is acceptable."})(),
+                parsed=2,
+                target=example.human_score("Engaging"),
+                agreement=1.0,
+                dimension="Engaging",
+            )
+
+        self.assertIn("status=ok", feedback)
+        payload = captured["payload"]
+        self.assertEqual(payload["chat_template_kwargs"], {"enable_thinking": False})
+
     def test_aux_judge_success_validation_rejects_low_coverage(self) -> None:
         class FakeAuxJudgeProvider:
             def status_counts(self):

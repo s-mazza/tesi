@@ -1223,6 +1223,20 @@ The direct queue is monitored with `telegram_pid_monitor.py`, because the
 standard Telegram monitor follows Slurm job IDs and cannot observe a direct
 Docker queue.
 
+Failure/fix update:
+
+- first locked queue `20260625T194158Z` failed at D1 after 1388 seconds because
+  aux-judge feedback had only `25/36` visible responses, below the `0.95`
+  success-rate gate;
+- the failed rows were reasoning-only Qwen35B llama.cpp responses
+  (`content=""`, `finish_reason=length`, long `reasoning_content`);
+- fixed by adding request-local
+  `chat_template_kwargs={"enable_thinking": false}` for aux-judge calls only,
+  exposed through `AUX_JUDGE_DISABLE_THINKING=1`;
+- local GEPA tests passed after the fix: `49` tests;
+- relaunched locked queue as `20260625T201031Z`, PID `856633`, root
+  `gepa-experiments/results/locked_gpu_20260625T201031Z`.
+
 Priority order:
 
 1. aux-judge fixed PPL+NLA smoke;

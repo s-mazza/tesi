@@ -208,3 +208,54 @@ gepa-experiments/slurm/telegram_pid_monitor.py
 
 It watches the direct-run PID and logs because the standard Telegram monitor is
 Slurm-specific and cannot observe a direct Docker queue by job id.
+
+## 2026-06-25 D1 Failure And Fix
+
+The first locked-GPU queue `20260625T194158Z` stopped at the D1 smoke gate:
+
+```text
+status: failed
+elapsed_seconds: 1388
+aux_judge_ok: 25/36
+aux_judge_success_rate: 0.694
+threshold: 0.950
+failure: Aux judge feedback success rate is below threshold
+artifact: gepa-experiments/results/locked_gpu_20260625T194158Z/D1_aux_judge_fixed_smoke_ppl_nla/aux_judge_feedback_20260625T195512Z.jsonl
+```
+
+This was not a GPU, vLLM, GEPA, NLA, or perplexity failure. The failed aux-judge
+rows had `content=""`, `finish_reason="length"`, and thousands of characters in
+`reasoning_content`. The Qwen35B llama.cpp endpoint was spending the entire
+generation budget in hidden reasoning, so the prompt proposer would not receive
+visible feedback.
+
+The fix is request-local and keeps the proposer behavior comparable:
+
+- `AuxJudgeFeedbackProvider` now accepts `disable_thinking=True`;
+- aux-judge requests then send
+  `chat_template_kwargs={"enable_thinking": false}`;
+- aux-judge configs set `AUX_JUDGE_DISABLE_THINKING=1`;
+- `run_gepa_engaging_job.sh` passes `--aux-judge-disable-thinking` only for
+  configs that enable the flag;
+- the sidecar itself is not launched with server-wide `--reasoning off`, so the
+  proposer path is not globally changed.
+
+Validation before relaunch:
+
+- local GEPA unit suite passed: `49` tests;
+- direct llama.cpp endpoint test showed that `/no_think` alone still produced
+  empty content, while `chat_template_kwargs.enable_thinking=false` produced
+  visible content and no `reasoning_content`;
+- remote preflight confirmed the flag in all aux configs and free GPUs `0`/`2`.
+
+Relaunched locked-GPU queue:
+
+```text
+run_id: 20260625T201031Z
+remote_pid: 856633
+remote_root: gepa-experiments/results/locked_gpu_20260625T201031Z
+launch_log: gepa-experiments/results/locked_gpu_20260625T201031Z/locked_gpu_queue_20260625T201031Z.out
+telegram_monitor_pid: 858342
+```
+
+The new D1 log confirms `aux judge disable thinking: 1` inside the container.
