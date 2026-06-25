@@ -259,3 +259,30 @@ telegram_monitor_pid: 858342
 ```
 
 The new D1 log confirms `aux judge disable thinking: 1` inside the container.
+
+Follow-up check:
+
+```text
+D1 replacement status: success
+D1 elapsed_seconds: 1037
+D1 aux_judge rows: 30
+D1 aux_judge statuses: ok=30
+D1 empty_content_errors: 0
+D1 metrics artifact: gepa-experiments/results/locked_gpu_20260625T201031Z/D1_aux_judge_fixed_smoke_ppl_nla/metrics_20260625T202316Z.csv
+D1 aux artifact: gepa-experiments/results/locked_gpu_20260625T201031Z/D1_aux_judge_fixed_smoke_ppl_nla/aux_judge_feedback_20260625T202316Z.jsonl
+```
+
+D4 long started automatically after D1:
+
+```text
+D4 start: 2026-06-25T20:27:52Z
+D4 remote output: gepa-experiments/results/locked_gpu_20260625T201031Z/D4_aux_judge_fixed_long_ppl_nla
+D4 current phase at 2026-06-25 22:32 CEST: NLA precompute / verbalization
+D4 NLA manifest rows: 300
+D4 NLA activation rows: 1752
+```
+
+The D1 smoke result is not interpreted as a scientific improvement signal: the
+optimized prompt was worse on the 12-row smoke final test. Its purpose here was
+startup and feedback-path validation, which it satisfied after the no-thinking
+fix.

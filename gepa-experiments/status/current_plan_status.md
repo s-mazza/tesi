@@ -1236,6 +1236,10 @@ Failure/fix update:
 - local GEPA tests passed after the fix: `49` tests;
 - relaunched locked queue as `20260625T201031Z`, PID `856633`, root
   `gepa-experiments/results/locked_gpu_20260625T201031Z`.
+- replacement D1 passed in 1037 seconds with aux-judge feedback `30/30 ok` and
+  no empty-content errors;
+- D4 long started automatically at `2026-06-25T20:27:52Z` and entered NLA
+  precompute/verbalization with `300` manifest rows and `1752` activation rows.
 
 Priority order:
 
