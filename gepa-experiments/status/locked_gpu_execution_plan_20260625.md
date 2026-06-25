@@ -160,3 +160,51 @@ Startup observations:
   cache, and dependency preflight passed.
 - Duplicate stale Slurm jobs from the 2026-06-17 follow-up queue were cancelled
   after the direct runner was confirmed alive.
+
+## 2026-06-25 Runtime Readiness Audit
+
+Additional audit performed while D1 was running, to reduce the chance that later
+jobs fail only after reaching their turn:
+
+- local shell syntax check passed for the locked runner, Docker launcher, GEPA
+  entrypoint, experimental NLA entrypoint, and all relevant env configs;
+- local Python compile check passed for `export_nla_manifest.py`,
+  `build_nla_precomputed.py`, and `experimental_build_nla_precomputed.py`;
+- remote config existence check passed for all base configs used by the locked
+  queue;
+- remote strategy validation passed: all 12 queued token-position strategies are
+  present in `experimental_build_nla_precomputed.py`;
+- future ports are free before use:
+  `19020/19021`, `19030/19031`, `19040/19041`, `19050/19051`,
+  `19080/19081`, and `19200` through `19223`;
+- required remote assets are present: `geval_gepa:latest`,
+  `llama.cpp:localcuda`, Qwen2.5-7B cache, NLA AV cache, Qwen35B GGUF, and
+  `tc_usr_data.json`;
+- the stale Slurm follow-up queue is empty after cancellation.
+
+D1 reached the scientifically important smoke milestones:
+
+```text
+NLA manifest rows: 36
+NLA activation rows: 210
+NLA precomputed feedback rows: 210
+NLA coverage: 36/36 examples, useful_rows=210, coverage=1.000
+perplexity feedback cache: 36/36 train/validation rows
+vLLM judge readiness: passed
+llama.cpp proposer readiness: passed
+GEPA optimization: started, 72 metric calls / 2.00 full evals
+```
+
+This does not prove that every later experiment will finish, but it validates
+the shared startup path for the Monday queue: model caches, NLA extraction,
+NLA verbalization, perplexity feedback, proposer endpoint, vLLM endpoint, and
+GEPA compile entrypoint.
+
+Telegram monitoring for the direct queue is handled by:
+
+```text
+gepa-experiments/slurm/telegram_pid_monitor.py
+```
+
+It watches the direct-run PID and logs because the standard Telegram monitor is
+Slurm-specific and cannot observe a direct Docker queue by job id.

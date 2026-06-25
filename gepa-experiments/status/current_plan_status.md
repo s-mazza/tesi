@@ -1207,6 +1207,22 @@ Launch record:
 - duplicate stale Slurm jobs from the 2026-06-17 follow-up queue were cancelled
   after the direct runner passed preflight and stayed alive.
 
+Runtime readiness audit:
+
+- all base configs used by the direct Monday queue exist on `faretra`;
+- all 12 NLA token-position strategies in the queued sweep are supported by the
+  experimental NLA precompute script;
+- future ports for D4/D2/D3/A1/B-sweep/D5 are free;
+- required Docker images, Qwen2.5-7B cache, NLA AV cache, Qwen35B GGUF, and
+  Topical-Chat USR JSON are present;
+- D1 reached GEPA optimization after completing NLA precompute with
+  `36/36` example coverage, `210/210` useful NLA rows, and `36/36` perplexity
+  feedback rows.
+
+The direct queue is monitored with `telegram_pid_monitor.py`, because the
+standard Telegram monitor follows Slurm job IDs and cannot observe a direct
+Docker queue.
+
 Priority order:
 
 1. aux-judge fixed PPL+NLA smoke;
