@@ -324,6 +324,10 @@ Pipeline mitigation for later jobs:
   explicitly;
 - future jobs still use the same model, context size, proposer temperature, and
   feedback settings, but with a more conservative llama.cpp batch size.
+- because the D4 recovery sidecar was started manually outside the original
+  `run_docker.sh` cleanup scope, a remote watcher now waits for the D4 main
+  container to exit and then stops the recovery sidecar. This prevents GPU `2`
+  from staying occupied and blocking the next queued job.
 
 Telegram monitor mitigation:
 

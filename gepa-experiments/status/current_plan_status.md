@@ -1278,6 +1278,9 @@ Actions taken:
 - restarted the monitor on per-job logs only, with two-hour duplicate cooldown
   and one log alert per poll, to avoid duplicate alerts from the queue `tee`
   output and the job log containing the same traceback.
+- added a remote watcher for the manually recovered D4 sidecar: it waits for the
+  D4 main container to exit and then stops the recovery llama.cpp container, so
+  GPU `2` is released before the next queue item starts.
 
 Current interpretation: D4 remains usable if it finishes, but its final report
 should mention that a transient proposer outage occurred near the end of the
