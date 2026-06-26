@@ -1,8 +1,12 @@
 # Method Rewrite Fix Plan - 2026-06-26
 
 Purpose: track the supervisor comments in `thesis/fixes.txt` and turn them
-into a concrete implementation plan. This file is a plan only: do not edit the
-LaTeX content until the open questions are answered.
+into a concrete implementation plan.
+
+Status: implemented locally on 2026-06-26. The matching LaTeX changes are in
+`thesis/latex/main.tex`; reviewer-comment replies are saved in
+`thesis/docs/17_advisor_comment_replies_2026_06_26.md`; recomputed corpus
+statistics are saved in `thesis/docs/16_corpus_stats_2026_06_26.md`.
 
 ## Source Comments Covered
 
@@ -38,7 +42,8 @@ for a clearer method narrative:
 
 ## Proposed Chapter 3 Target Structure
 
-This is the proposed replacement narrative for Chapter 3.
+This was the target replacement narrative for Chapter 3 and has now been
+implemented in `thesis/latex/main.tex`.
 
 ### 3.1 Method Overview
 
@@ -355,6 +360,8 @@ Planned action:
 
 ### Step 1 - Create Comment Tracker And Replies
 
+Status: completed.
+
 Files:
 
 - this plan file;
@@ -369,6 +376,13 @@ Actions:
 
 ### Step 2 - Recompute Dataset Stats
 
+Status: completed. Values used in LaTeX:
+
+- total rows: 2080;
+- block rows: A 40, B 720, C 1320;
+- split rows: train 962, validation 290, test 828;
+- overall mean whitespace-token length: 13.17.
+
 Actions:
 
 - locate canonical dataset artifact;
@@ -378,6 +392,8 @@ Actions:
 - use these values in the rewritten dataset section.
 
 ### Step 3 - Rewrite Chapter 3 Intro And Overview
+
+Status: completed.
 
 Actions:
 
@@ -391,6 +407,8 @@ Commit:
 
 ### Step 4 - Expand Semantic-Fidelity Corpus Section
 
+Status: completed.
+
 Actions:
 
 - rename section;
@@ -402,6 +420,8 @@ Commit:
 - `Expand semantic fidelity corpus method`
 
 ### Step 5 - Restructure Method Around Latent-GEPA
+
+Status: completed.
 
 Actions:
 
@@ -416,6 +436,8 @@ Commit:
 
 ### Step 6 - Move Or Reduce SIPIT/NLA/Embedding Details
 
+Status: completed.
+
 Actions:
 
 - remove standalone SIPIT method section unless answer says otherwise;
@@ -429,6 +451,8 @@ Commit:
 
 ### Step 7 - Soft-Prompt Diagnostic Section
 
+Status: completed.
+
 Actions:
 
 - keep a concise section if approved;
@@ -440,6 +464,8 @@ Commit:
 - `Add soft prompt readout method`
 
 ### Step 8 - Remove Code References And Captions Issues
+
+Status: completed for the searched patterns in final prose.
 
 Actions:
 
@@ -453,6 +479,14 @@ Commit:
 
 ### Step 9 - Documentation Sync
 
+Status: completed for the currently affected docs:
+
+- `thesis/docs/00_writing_guidelines.md`;
+- `thesis/docs/05_method_spec.md`;
+- `thesis/docs/07_results_inventory.md`;
+- `thesis/docs/12_chapter_6_conclusions_future_work.md`;
+- `thesis/docs/17_advisor_comment_replies_2026_06_26.md`.
+
 Actions:
 
 - update `05_method_spec.md`;
@@ -465,6 +499,10 @@ Commit:
 - `Sync thesis docs with method rewrite`
 
 ### Step 10 - Full Check
+
+Status: completed. `latexmk -g -pdf -interaction=nonstopmode -halt-on-error
+main.tex` succeeds from `thesis/latex`. Remaining messages are underfull
+layout warnings, mostly from narrow tables.
 
 Actions:
 
