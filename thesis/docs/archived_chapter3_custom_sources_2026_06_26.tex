@@ -1,0 +1,425 @@
+% Archived custom LaTeX/TikZ sources removed from Chapter 3 on 2026-06-26.
+% They are not included by main.tex. Keep this file as recoverable source material.
+% Source revision before removal: aa56e5c (after framing cleanup, before Chapter 3 rewrite).
+% Current removal commit: 5be32f5.
+
+%==============================================================================
+% Embedding inversion TikZ figure
+% Original label: fig:method-embedding-inversion-example
+%==============================================================================
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.98\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\scriptsize,
+        >=Latex,
+        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
+        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=center, text width=25mm, minimum height=16mm, inner sep=3.2pt},
+        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
+            minimum size=8.2mm, inner sep=0pt},
+        lane tag/.style={draw=#1!65!black, fill=#1!12, very thick,
+            rounded corners=4pt, align=center, text width=20mm,
+            minimum height=12mm, inner sep=3pt, font=\scriptsize\bfseries},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
+        turn/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black,
+            rounded corners=7pt},
+        optional/.style={draw=#1!65!black, densely dashed},
+        pics/document/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
+        }},
+        pics/scale/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (0,-0.22) -- (0,0.18);
+            \draw[draw=black!65, line width=0.55pt] (-0.20,0.08) -- (0.20,0.08);
+            \draw[draw=black!65, line width=0.45pt] (-0.15,0.08) -- (-0.23,-0.07) -- (-0.07,-0.07) -- cycle;
+            \draw[draw=black!65, line width=0.45pt] (0.15,0.08) -- (0.07,-0.07) -- (0.23,-0.07) -- cycle;
+            \draw[draw=black!65, line width=0.55pt] (-0.10,-0.22) -- (0.10,-0.22);
+        }},
+        pics/feedback/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.08) rectangle (0.10,0.15);
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.06,-0.17) rectangle (0.24,0.06);
+            \draw[draw=black!55, line width=0.35pt] (-0.16,0.06) -- (0.04,0.06);
+            \draw[draw=black!55, line width=0.35pt] (0.00,-0.03) -- (0.18,-0.03);
+            \fill[darkyellow!80!black] (0.19,0.14) circle (0.035);
+        }},
+        pics/prompt/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.20,-0.17) rectangle (0.18,0.17);
+            \draw[draw=black!55, line width=0.35pt] (-0.13,0.08) -- (0.11,0.08);
+            \draw[draw=black!55, line width=0.35pt] (-0.13,0.00) -- (0.08,0.00);
+            \draw[draw=orange!80!black, line width=0.75pt] (-0.06,-0.10) -- (0.16,0.12);
+            \filldraw[fill=orange!45, draw=orange!80!black] (0.16,0.12) circle (0.025);
+        }},
+        pics/lens/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
+            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
+            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
+        }},
+        pics/archive/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.15) rectangle (0.22,0.16);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,0.07) -- (0.14,0.07);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,-0.01) -- (0.10,-0.01);
+            \draw[draw=darkgreen!70!black, line width=0.65pt] (-0.10,-0.09) -- (-0.03,-0.16) -- (0.14,0.01);
+        }}
+    ]
+        \node[lane=orange, minimum width=16.4cm, minimum height=2.0cm, anchor=west] at (0,0) {};
+        \node[lane=green, minimum width=16.4cm, minimum height=2.0cm, anchor=west] at (0,-2.35) {};
+
+        \node[lane tag=orange, text=orange!70!black] at (1.15,0) {Validation\\feedback};
+        \node[lane tag=green, text=green!45!black] at (1.15,-2.35) {Prompt\\selection};
+
+        \node[card=orange] (example) at (3.50,0) {\textbf{Evaluation example}\\dialogue, response\\human score};
+        \node[card=orange] (judge) at (6.40,0) {\textbf{Base judge}\\Qwen2.5-7B\\predicted score};
+        \node[card=orange] (reflection) at (9.30,0) {\textbf{Reflection data}\\metric error\\optional PPL/NLA};
+        \node[card=orange, optional=orange] (aux) at (12.20,0) {\textbf{Aux judge}\\optional\\feedback compression};
+        \node[card=orange] (proposer) at (15.10,0) {\textbf{Proposer}\\Qwen35B\\candidate edit};
+
+        \node[card=green] (candidate) at (15.10,-2.35) {\textbf{Candidate prompt}\\new judge\\instructions};
+        \node[card=green] (validation) at (11.60,-2.35) {\textbf{Validation}\\score candidate\\on held-out val};
+        \node[card=green] (archive) at (8.10,-2.35) {\textbf{Prompt pool}\\keep if useful\\or discard};
+        \node[card=green] (final) at (4.60,-2.35) {\textbf{Final test}\\run once after\\selection};
+
+        \node[badge=orange] at ([yshift=2.1mm]example.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]example.north) {document};
+        \node[badge=orange] at ([yshift=2.1mm]judge.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]judge.north) {scale};
+        \node[badge=orange] at ([yshift=2.1mm]reflection.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]reflection.north) {feedback};
+        \node[badge=orange] at ([yshift=2.1mm]aux.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]aux.north) {lens};
+        \node[badge=orange] at ([yshift=2.1mm]proposer.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]proposer.north) {prompt};
+
+        \node[badge=green] at ([yshift=2.1mm]candidate.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]candidate.north) {prompt};
+        \node[badge=green] at ([yshift=2.1mm]validation.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]validation.north) {scale};
+        \node[badge=green] at ([yshift=2.1mm]archive.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]archive.north) {archive};
+        \node[badge=green] at ([yshift=2.1mm]final.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]final.north) {lens};
+
+        \draw[line=orange] (example.east) -- (judge.west);
+        \draw[line=orange] (judge.east) -- (reflection.west);
+        \draw[line=orange] (reflection.east) -- (aux.west);
+        \draw[line=orange] (aux.east) -- (proposer.west);
+        \draw[turn=orange] (proposer.south) -- ++(0,-0.18) -| ([xshift=7mm]candidate.north);
+        \draw[line=green] (candidate.west) -- (validation.east);
+        \draw[line=green] (validation.west) -- (archive.east);
+        \draw[line=green] (archive.west) -- (final.east);
+    \end{tikzpicture}}
+    \caption{Detailed GEPA feedback flow used in the prompt-optimization track.
+    Reflection data are produced on validation examples, optionally enriched with
+    perplexity, NLA verbalizations, or an auxiliary judge, and then given to the
+    proposer to generate candidate prompts. Final metrics are computed only after
+    prompt selection; test examples do not drive proposal or validation-time
+    selection.}
+    \label{fig:method-gepa-feedback-flow}
+\end{figure}
+
+\FloatBarrier
+
+\section{Canonical Semantic-Fidelity Dataset}
+\label{sec:method-canonical-dataset}
+
+The thesis uses a canonical semantic-fidelity dataset to stress latent-to-text
+methods. The dataset is not intended to be a large benchmark by itself. Its role
+is to provide controlled examples where a reconstruction can look plausible
+while changing the logical meaning of the input.
+
+Each row is represented with stable metadata. At minimum, a row contains a
+stable identifier, a source block, a phenomenon label, an input sentence, an
+optional paired sentence, and split metadata:
+
+\begin{itemize}
+    \item the stable identifier makes outputs from different branches joinable;
+    \item the source block records whether the row is a standard control,
+    negation/polarity item, or commonsense/counterfactual item;
+    \item the input sentence is the text given to latent-to-text methods;
+    \item the paired sentence is used when the phenomenon is defined by a
+    contrast, such as a negated sentence and its non-negated counterpart;
+    \item the split metadata prevents train/validation/test leakage in later
+    experiments.
+\end{itemize}
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{p{0.10\linewidth} p{0.18\linewidth} p{0.29\linewidth} p{0.29\linewidth} p{0.18\linewidth}}
+        \toprule
+        \textbf{Block} & \textbf{Phenomenon} & \textbf{Input text} & \textbf{Paired text} & \textbf{Expected issue} \\
+        \midrule
+        A & Standard control &
+        A simple factual or descriptive sentence. &
+        Not required. &
+        Checks whether a method works on ordinary inputs. \\
+        B & Negation and polarity &
+        The treatment did not improve the patient's condition. &
+        The treatment improved the patient's condition. &
+        Small lexical changes reverse the truth condition. \\
+        C & Commonsense or counterfactual content &
+        A fragile glass fell onto concrete and did not break. &
+        A fragile glass fell onto concrete and broke. &
+        Plausible reconstructions may normalize the sentence toward commonsense. \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Canonical semantic-fidelity dataset structure. The examples are
+    illustrative; the final dataset rows are specified in the experimental
+    setup.}
+    \label{tab:canonical-dataset-blocks}
+\end{table}
+
+\TableRef{tab:canonical-dataset-blocks} shows the logic of the dataset. Block A
+acts as a control: a method should not be judged only on adversarial or unusual
+sentences. Block B focuses on negation and polarity, where a single word can
+change the truth value of the statement. Block C focuses on examples that are
+counterfactual or contrary to common expectations. These examples are useful
+because language models tend to prefer plausible continuations. A latent-to-text
+method that silently normalizes an unusual sentence can therefore produce text
+that is fluent and semantically close in a loose sense, but wrong with respect
+to the property under investigation.
+
+The dataset is used as a common reference object across branches. In the SIPIT
+branch, rows can be tokenized into fixed prompt windows. In the NLA branch, the
+same rows define which activation positions should be verbalized. In the
+embedding-inversion branch, they provide diagnostic inputs for observing whether
+reconstructions preserve logical content.
+
+\section{Embedding-Inversion Diagnostic Branch}
+\label{sec:method-embedding-inversion}
+
+\subsection{Task Setting}
+\label{subsec:method-embedding-task}
+
+The first latent-to-text branch concerns embedding inversion. In this setting,
+the input to the inversion method is a fixed-size text embedding, and the output
+is a textual reconstruction. The thesis uses this branch as a diagnostic track:
+it investigates how embedding-inversion systems behave on semantically fragile
+inputs, but it does not rely on this branch alone for the final claim.
+\FigureRef{fig:method-embedding-inversion-example} shows the practical
+operation of the script-level pipeline on one local qualitative artifact: the
+system first encodes the sentence, then decodes from the embedding alone, and
+finally exposes whether the recovered text still expresses the intended
+predicate and negation.
+
+\begin{figure}[!htbp]
+    \centering
+    \resizebox{0.98\linewidth}{!}{%
+    \begin{tikzpicture}[
+        font=\scriptsize,
+        >=Latex,
+        stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=center, text width=22mm, minimum height=22mm, inner sep=3.0pt},
+        wide stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=left, text width=95mm, minimum height=18mm, inner sep=4pt},
+        note/.style={draw=#1!65!black, fill=#1!8, very thick, rounded corners=4pt,
+            align=left, text width=105mm, minimum height=16mm, inner sep=4pt},
+        lane/.style={draw=#1!55!black, fill=#1!5, very thick, rounded corners=6pt},
+        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
+            minimum size=8.5mm, inner sep=0pt},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black,
+            shorten >=0.8mm, shorten <=0.8mm},
+        small label/.style={font=\scriptsize\bfseries, text=#1!70!black},
+        pics/doc/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.17,-0.17) rectangle (0.18,0.20);
+            \draw[draw=black!55, line width=0.35pt] (-0.10,0.10) -- (0.11,0.10);
+            \draw[draw=black!55, line width=0.35pt] (-0.10,0.02) -- (0.14,0.02);
+            \draw[draw=black!55, line width=0.35pt] (-0.10,-0.06) -- (0.08,-0.06);
+        }},
+        pics/vector/.style={code={
+            \foreach \x/\h/\c in {-0.21/0.18/blue,-0.11/0.09/green,0.00/0.23/orange,0.11/0.13/lightviolet,0.22/0.05/darkyellow}
+                \draw[fill=\c!35, draw=\c!70!black, rounded corners=0.5pt] (\x,-0.18) rectangle ++(0.065,\h);
+            \draw[draw=black!45, line width=0.35pt] (-0.25,-0.18) -- (0.30,-0.18);
+        }},
+        pics/mask/.style={code={
+            \foreach \x in {-0.24,-0.12,0,0.12,0.24}
+                \draw[fill=black!10, draw=black!55, rounded corners=1pt] (\x-0.045,-0.06) rectangle (\x+0.045,0.06);
+            \node[font=\tiny] at (0,0) {?};
+        }},
+        pics/decoder/.style={code={
+            \draw[draw=black!60, line width=0.55pt] (-0.22,-0.14) rectangle (0.22,0.14);
+            \draw[draw=black!50, line width=0.4pt] (-0.14,-0.21) -- (-0.05,-0.14);
+            \draw[draw=black!50, line width=0.4pt] (0.14,-0.21) -- (0.05,-0.14);
+            \draw[draw=blue!70!black, line width=0.6pt] (-0.15,0.03) -- (-0.02,0.10) -- (0.14,-0.04);
+            \fill[orange!70!black] (0.15,-0.04) circle (0.03);
+        }},
+        pics/warn/.style={code={
+            \draw[fill=orange!20, draw=orange!75!black, line width=0.55pt] (0,0.22) -- (-0.22,-0.18) -- (0.22,-0.18) -- cycle;
+            \draw[draw=orange!80!black, line width=0.55pt] (0,0.08) -- (0,-0.06);
+            \fill[orange!80!black] (0,-0.12) circle (0.018);
+        }}
+    ]
+        \node[lane=blue, minimum width=11.7cm, minimum height=5.65cm, anchor=west] at (0,-1.62) {};
+
+        \node[stage=blue] (source) at (1.35,0.00) {\textbf{Input text}\\
+            \quotes{A man not playing guitar on stage.}};
+        \node[stage=green] (embed) at (4.25,0.00) {\textbf{Encoder}\\
+            Jina/Qwen3 demo\\embedding vector};
+        \node[stage=orange] (masked) at (7.15,0.00) {\textbf{Initial decoder state}\\
+            all text positions\\masked};
+        \node[stage=lightviolet] (decode) at (10.05,0.00) {\textbf{Conditional MDLM}\\
+            iterative\\unmasking};
+        \node[wide stage=darkgreen] (output) at (5.85,-1.95) {\textbf{Recovered text}\\
+            \textit{A man on a stage guitar playing a guitar on a flat bench.}\\
+            \textit{He is not a stage. A man is playing the role of a music player.}};
+
+        \node[badge=blue] at ([yshift=2.1mm]source.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]source.north) {doc};
+        \node[badge=green] at ([yshift=2.1mm]embed.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]embed.north) {vector};
+        \node[badge=orange] at ([yshift=2.1mm]masked.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]masked.north) {mask};
+        \node[badge=lightviolet] at ([yshift=2.1mm]decode.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]decode.north) {decoder};
+        \draw[line=blue] (source.east) -- (embed.west);
+        \draw[line=green] (embed.east) -- (masked.west);
+        \draw[line=orange] (masked.east) -- (decode.west);
+        \draw[line=lightviolet] (decode.south) -- ([xshift=39mm]output.north);
+
+        \node[note=orange] (check) at (5.85,-3.68) {\textbf{Semantic check}\\
+            The word \quotes{not} appears, but it attaches to a different
+            predicate (\quotes{not a stage}); the main event drifts back toward
+            \quotes{playing guitar}.};
+        \node[badge=orange] at ([xshift=-6.0mm]check.west) {};
+        \pic[scale=0.68] at ([xshift=-6.0mm]check.west) {warn};
+        \draw[line=orange] (output.south) -- (check.north);
+    \end{tikzpicture}}
+    \caption[Embedding-inversion script example.]{Concrete embedding-inversion example from the local
+    \texttt{eval\_metrics.py} artifact. The example was generated through the
+    public Jina demo encode/decode path and is used here only to show what the
+    script does in practice: from a sentence it obtains an embedding, decodes
+    from that embedding, and then exposes a semantic-fidelity issue.}
+    \label{fig:method-embedding-inversion-example}
+\end{figure}
+
+%==============================================================================
+% SIPIT terminal-style listing
+% Original label: lst:sipit-terminal-example
+%==============================================================================
+
+
+%==============================================================================
+% Standalone NLA TikZ figure
+% Original label: fig:method-nla-standalone
+%==============================================================================
+\begin{figure}[!htb]
+    \centering
+    \resizebox{0.98\linewidth}{!}{%
+    \begin{tikzpicture}[
+        font=\scriptsize,
+        >=Latex,
+        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
+        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
+            align=center, text width=25mm, minimum height=16mm, inner sep=3.2pt},
+        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
+            minimum size=8.2mm, inner sep=0pt},
+        lane title/.style={anchor=west, font=\small\bfseries, align=left},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
+        pics/document/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
+            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
+            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
+        }},
+        pics/network/.style={code={
+            \draw[draw=black!55, line width=0.45pt] (-0.18,0.13) -- (0.02,0.00) -- (0.20,0.13);
+            \draw[draw=black!55, line width=0.45pt] (-0.18,-0.13) -- (0.02,0.00) -- (0.20,-0.13);
+            \foreach \x/\y in {-0.18/0.13,-0.18/-0.13,0.02/0,0.20/0.13,0.20/-0.13}
+                \filldraw[fill=white, draw=black!65] (\x,\y) circle (0.045);
+        }},
+        pics/tokens/.style={code={
+            \foreach \x/\c in {-0.20/blue, -0.07/orange, 0.06/green, 0.19/lightviolet}
+                \filldraw[fill=\c!25, draw=\c!70!black] (\x,0) circle (0.055);
+            \draw[draw=black!45, line width=0.4pt] (-0.145,0) -- (-0.125,0);
+            \draw[draw=black!45, line width=0.4pt] (-0.015,0) -- (0.005,0);
+            \draw[draw=black!45, line width=0.4pt] (0.115,0) -- (0.135,0);
+        }},
+        pics/lens/.style={code={
+            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
+            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
+            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
+        }},
+        pics/archive/.style={code={
+            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.15) rectangle (0.22,0.16);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,0.07) -- (0.14,0.07);
+            \draw[draw=black!55, line width=0.35pt] (-0.14,-0.01) -- (0.10,-0.01);
+            \draw[draw=darkgreen!70!black, line width=0.65pt] (-0.10,-0.09) -- (-0.03,-0.16) -- (0.14,0.01);
+        }}
+    ]
+        \node[lane=blue, minimum width=9.25cm, minimum height=2.65cm, anchor=west] at (0,0) {};
+        \node[lane=green, minimum width=6.50cm, minimum height=2.65cm, anchor=west] at (9.60,0) {};
+        \node[lane title, text=blue!55!black] at (0.35,1.48) {Activation extraction};
+        \node[lane title, text=green!45!black] at (9.95,1.48) {Natural-language readout};
+
+        \node[card=blue] (input) at (1.90,-0.18) {\textbf{Input example}\\source text\\selected token};
+        \node[card=blue] (base) at (5.05,-0.18) {\textbf{Base LM}\\Qwen2.5-7B\\forward pass};
+        \node[card=blue] (activation) at (8.20,-0.18) {\textbf{Layer-20 vector}\\residual stream\\token position};
+        \node[card=green] (av) at (11.25,-0.18) {\textbf{NLA AV}\\checkpoint\\vector to text};
+        \node[card=green] (record) at (14.30,-0.18) {\textbf{Saved record}\\verbalization\\token/layer metadata};
+
+        \node[badge=blue] at ([yshift=2.1mm]input.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]input.north) {document};
+        \node[badge=blue] at ([yshift=2.1mm]base.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]base.north) {network};
+        \node[badge=blue] at ([yshift=2.1mm]activation.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]activation.north) {tokens};
+        \node[badge=green] at ([yshift=2.1mm]av.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]av.north) {lens};
+        \node[badge=green] at ([yshift=2.1mm]record.north) {};
+        \pic[scale=0.78] at ([yshift=2.1mm]record.north) {archive};
+
+        \draw[line=blue] (input.east) -- (base.west);
+        \draw[line=blue] (base.east) -- (activation.west);
+        \draw[line=green] (activation.east) -- (av.west);
+        \draw[line=green] (av.east) -- (record.west);
+    \end{tikzpicture}}
+    \caption{Standalone NLA extraction pipeline used before integrating
+    verbalizations into GEPA feedback. The left side extracts a residual-stream
+    vector from the base model at a selected token position; the right side turns
+    that vector into a natural-language record with token, layer, and source
+    metadata.}
+    \label{fig:method-nla-standalone}
+\end{figure}
+
+%==============================================================================
+% NLA verbalization example table
+% Original label: tab:nla-standalone-example
+%==============================================================================
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{p{0.22\linewidth} p{0.16\linewidth} p{0.15\linewidth} p{0.39\linewidth}}
+        \toprule
+        \textbf{Artifact field} & \textbf{Position} & \textbf{Token} & \textbf{Verbalization} \\
+        \midrule
+        \shortstack[l]{\texttt{context\_016}\\\texttt{response\_01}} &
+        candidate middle &
+        \texttt{warriors} &
+        \quotes{team} or \quotes{and basketball} or \quotes{but my favorite sports team} \\
+        \shortstack[l]{\texttt{context\_020}\\\texttt{response\_00}} &
+        candidate middle &
+        \texttt{made} &
+        or \quotes{a tiny amount of money,} completing the absurdity about box office failure \\
+        \shortstack[l]{\texttt{context\_011}\\\texttt{response\_03}} &
+        candidate middle &
+        \texttt{human} &
+        the parallel phrase about human diseases, continuing the specific disease-correlation example \\
+        \shortstack[l]{\texttt{context\_054}\\\texttt{response\_05}} &
+        candidate middle &
+        \texttt{need} &
+        or \quotes{a friend to fill my streaming void,} completing the informal request \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Example NLA verbalizations from saved Topical-Chat artifacts. Each
+    row reports one selected token from a candidate response and the corresponding
+    Layer-20 activation readout. The selected examples show sports-team semantics,
+    numerical box-office contradiction, factual biological relation, and
+    conversational intent.}
+    \label{tab:nla-standalone-example}
+\end{table}
