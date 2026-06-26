@@ -1,6 +1,6 @@
 # Prior Work Census
 
-Status date: 2026-06-18
+Status date: 2026-06-26
 
 This document is the inventory that prevents the thesis from becoming a
 GEPA-only writeup. The local repository and the cluster contain several earlier
@@ -16,10 +16,10 @@ inputs that are logically difficult, negated, counterfactual, or contrary to
 commonsense, instead of reconstructing a more plausible but semantically
 different text.
 
-GEPA/G-Eval is therefore not the whole thesis by itself. It is the latest
-experimental branch: use NLA-style activation verbalizations and other internal
-signals as feedback for GEPA while optimizing LLM-as-a-judge prompts. The
-earlier inversion work remains relevant because it motivates why activation
+GEPA/G-Eval is therefore not the whole thesis by itself. The current proposed
+component is Latent-GEPA: use NLA-style activation verbalizations and other
+internal signals as feedback for GEPA while optimizing LLM-as-a-judge prompts.
+The earlier inversion work remains relevant because it motivates why activation
 verbalizations might expose semantic failures that ordinary surface metrics do
 not capture.
 
@@ -35,7 +35,7 @@ The original inversion-oriented questions should stay visible:
    or normalized toward a plausible commonsense version?
 5. Does this bias differ across inversion families?
 
-The GEPA branch adds a second layer:
+Latent-GEPA adds a second layer:
 
 1. Can GEPA improve G-Eval-style judge prompts on paper-aligned datasets and
    metrics?
@@ -54,9 +54,9 @@ The GEPA branch adds a second layer:
 | `thesis-datasets/` | Canonical dataset pipeline for semantic/logical stress tests. | Builds 2080 rows across standard text, negation, commonsense/counterfactual pairs; validation currently passes. | Central dataset contribution for inversion and NLA experiments. |
 | `spit/SIPIT/` | SIPIT reproduction and extensions. | Contains Table 5 reproduction protocol, collision check, logical dataset export, and random-prefix diagnostics. | Main hidden-state inversion method and baseline for exact prompt recovery. |
 | `natural_language_autoencoders/` | Local NLA codebase and checkpoint integration. | Contains AV/AR repo, Qwen2.5-7B layer-20 checkpoint references, inference code, training docs, patches. | Related work plus implementation basis for activation verbalization. |
-| `nla-experiments/` | Standalone NLA SummEval pipeline. | Extracts Qwen2.5-7B layer-20 residual activations and verbalizes them with Qwen NLA AV. | Independent validation of NLA plumbing before GEPA integration. |
-| `nla-artifacts/` | Curated NLA artifact repo. | Stores SummEval manifests, sample activations, verbalizations, reports, and Slurm logs. | Artifact evidence for standalone NLA runs. |
-| `gepa-experiments/` | Current GEPA/G-Eval pipeline. | Contains multi-dataset runner, PPL, NLA, aux judge, Qwen35B proposer, matrix plan, diagnostics, results. | Main current experimental branch. |
+| `nla-experiments/` | NLA SummEval extraction pipeline. | Extracts Qwen2.5-7B layer-20 residual activations and verbalizes them with Qwen NLA AV. | Independent validation of NLA plumbing before GEPA integration. |
+| `nla-artifacts/` | Curated NLA artifact repo. | Stores SummEval manifests, sample activations, verbalizations, reports, and Slurm logs. | Artifact evidence for NLA extraction validation. |
+| `gepa-experiments/` | Current GEPA/G-Eval pipeline. | Contains multi-dataset runner, PPL, NLA, aux judge, Qwen35B proposer, matrix plan, diagnostics, results. | Main current Latent-GEPA implementation. |
 | `gepa-experiments/soft_prompting/` | Soft-prompt tuning and SIPIT readout on the G-EVAL-style judge task. | Contains random/text initialization support, nearest-token diagnostics, and SIPIT-style recovery scripts. | Creates learned continuous prompt targets to test what SIPIT can invert and whether the inversion has semantic value. |
 | `prompt-waywardness/` | Related prompt inversion / continuous prompt discretization work. | Upstream code and paper PDF. | Related work and conceptual support for continuous-to-discrete prompt mismatch. |
 | `towards_interpretable_softprompts/` | Related soft-prompt interpretability material. | Upstream notebook/code material. | Related work or appendix context if useful. |
@@ -84,9 +84,10 @@ Remote check at this census date:
 - GEPA result directories exist remotely for the historical Topical-Chat PPL
   runs, fixed/raw NLA runs, dataset smokes, candidate-only NLA smokes, and
   soft-prompt/SIPIT artifacts.
-- The current `~/tesi/spit/SIPIT/data/reproduce` tree on `faretra` did not show
-  copied SIPIT outputs in the quick snapshot, but older SIPIT notes record a
-  separate remote workspace: `faretra:~/sipit-reproduction-runs/run-20260520-impl`.
+- SIPIT evidence is now reflected in the thesis result chapter through the
+  recovered GPT-2 exact-recovery tables, logical20 recovery, and soft-prompt
+  readout/control summaries. Older remote snapshots may still contain partial
+  or duplicated copies and should not override the curated local artifacts.
 
 Remote check on `moro232` succeeded for the soft-prompt/SIPIT result
 directories. Lightweight artifacts have been synchronized locally for the
@@ -96,7 +97,7 @@ completed random-init soft-prompt runs, SIPIT readouts, and SIPIT controls.
 
 Path: `embedding-inversion-demo/`
 
-This branch reproduces and audits an embedding inversion method based on
+This study reproduces and audits an embedding inversion method based on
 conditional masked diffusion. The important thesis content is not only whether
 the paper was reproduced, but also which failure modes were found while trying
 to reproduce it.
@@ -138,7 +139,7 @@ Evidence already documented:
 
 Thesis interpretation:
 
-- This branch is diagnostic/negative with respect to exact Jina paper
+- This evidence is diagnostic/negative with respect to exact Jina paper
   reproduction.
 - It is still valuable because it motivates the thesis emphasis on faithful
   semantic reconstruction, careful metric choice, and artifact-level
@@ -311,13 +312,12 @@ Thesis interpretation:
 
 Open gaps:
 
-- The local tree currently contains the collision report and logical dataset,
-  but not the final Table 5 CSV/JSON result reports. If those still exist in the
-  older remote workspace, they should be copied locally before writing results.
-- If the final Table 5 outputs were never emitted, the thesis must label the
-  evidence as interim/log-derived.
+- The curated thesis results now include GPT-2 exact-recovery evidence,
+  logical20 recovery, and soft-prompt readout/control summaries. Older partial
+  remote copies should be treated as provenance history, not as the source of
+  the final tables.
 
-## Standalone NLA Work
+## NLA Extraction Work
 
 Paths: `natural_language_autoencoders/`, `nla-experiments/`, `nla-artifacts/`
 
@@ -366,7 +366,7 @@ Standalone runs:
 
 Thesis interpretation:
 
-- This branch proves that Qwen2.5-7B activations can be extracted and passed
+- This evidence proves that Qwen2.5-7B activations can be extracted and passed
   through the Qwen NLA AV checkpoint before the more complex GEPA integration.
 - It also motivates the later problem seen in GEPA: raw NLA verbalizations are
   not automatically rubric-aligned feedback.
@@ -383,7 +383,7 @@ Open gaps:
 
 Path: `gepa-experiments/`
 
-This is the current main engineering branch. It evaluates whether GEPA can
+This is the current main engineering component. It evaluates whether GEPA can
 improve G-Eval-style prompts, and whether perplexity/NLA/auxiliary-judge
 signals improve the proposer.
 
@@ -444,7 +444,7 @@ Main result status:
   duplicate-only hypothesis is not sufficient.
 - The first auxiliary-judge smoke exposed a reasoning-only / empty-feedback
   issue and is not valid evidence of auxiliary-judge benefit.
-- The next planned critical branch remains auxiliary-judge compression of NLA
+- The next planned critical condition remains auxiliary-judge compression of NLA
   into rubric-level feedback before it reaches the proposer, but only after a
   valid non-empty-feedback smoke.
 
@@ -465,7 +465,7 @@ Full matrix plan:
 
 Thesis interpretation:
 
-- GEPA is the branch where NLA is used not merely for interpretation, but as a
+- GEPA is the component where NLA is used not merely for interpretation, but as a
   candidate feedback source for an optimizer.
 - Current evidence does not yet prove that raw NLA improves the task. It does
   support a more nuanced thesis: raw activation verbalizations require
@@ -485,7 +485,7 @@ Open gaps:
 Path: `gepa-experiments/soft_prompting/` and
 `gepa-experiments/results/soft_prompt_*`
 
-This branch follows the advisor suggestion based on the soft-prompting
+This diagnostic follows the advisor suggestion based on the soft-prompting
 notebook: train only continuous virtual prompt tokens on the same
 G-EVAL-style task, then inspect what SIPIT and nearest-token projection recover
 from those vectors. The main purpose is not to introduce soft prompting as a
@@ -554,7 +554,7 @@ Thesis interpretation:
   SIPIT/nearest-token inversion of learned useful continuous tokens does not
   automatically produce faithful natural-language or semantically useful prompt
   content.
-- This branch supports the broader thesis theme that task usefulness,
+- This diagnostic supports the broader thesis theme that task usefulness,
   nearest-token readability, and exact latent-to-text recovery are distinct
   notions.
 
@@ -569,7 +569,7 @@ Open gaps:
 ## Related Repositories
 
 `prompt-waywardness/` and `towards_interpretable_softprompts/` are not current
-active experiment branches, but they should be scanned for related-work value:
+active thesis experiments, but they should be scanned for related-work value:
 
 - `prompt-waywardness/` is directly relevant to the danger of interpreting or
   discretizing continuous prompts as if they were ordinary natural-language
@@ -589,7 +589,7 @@ Chapter 1 should explain:
 - why lexical overlap can miss logical semantic errors;
 - SIPIT exact hidden-state inversion;
 - NLA AV as activation verbalization;
-- LLM-as-a-judge and GEPA as the later application branch.
+- LLM-as-a-judge and Latent-GEPA as the later application component.
 
 Chapter 2 should cover:
 
@@ -600,13 +600,12 @@ Chapter 2 should cover:
 - G-Eval and LLM-as-a-judge;
 - GEPA and prompt optimization.
 
-Chapter 3 should describe methods in chronological/logical order:
+Chapter 3 should describe the method in this order:
 
-- canonical semantic-fidelity dataset;
-- embedding inversion reproduction diagnostics;
-- SIPIT reproduction and logical/random-prefix extensions;
-- NLA activation extraction and verbalization;
-- GEPA/G-Eval optimization with PPL, NLA, and auxiliary feedback.
+- Semantic-Fidelity Corpus;
+- semantic-fidelity readout diagnostics;
+- G-EVAL-style judge task;
+- Latent-GEPA optimization with PPL, NLA, and auxiliary feedback;
 - soft-prompt tuning on the same judge task and SIPIT-style readout of learned
   virtual tokens.
 
@@ -623,7 +622,7 @@ Chapter 5 should include:
 - Jina/embedding inversion diagnostic results;
 - SIPIT reproduction/interim evidence and collision checks;
 - logical/random-prefix SIPIT findings if final outputs exist;
-- standalone NLA smoke evidence;
+- NLA extraction smoke evidence;
 - GEPA PPL, raw-NLA, fixed-NLA, candidate-only, and aux-judge results;
 - soft-prompt random-init results and SIPIT readout/control diagnostics;
 - runtime and failure-mode analysis.
@@ -647,12 +646,14 @@ Chapter 5 should include:
 
 ## Immediate Follow-Up Actions
 
-1. Recover or confirm absence of final SIPIT Table 5/logical/random-prefix
-   outputs from the older remote workspace.
-2. Build a concise result table for `embedding-inversion-demo/RESULTS.md`.
-3. Add a thesis dataset table from `thesis-datasets/reports/build_report.md`.
-4. Add a method diagram that links:
+1. Keep the curated SIPIT exact-recovery, logical20, and soft-prompt readout
+   results aligned between Chapter 5 and the artifact index.
+2. Keep the embedding-inversion diagnostic table synchronized with
+   `embedding-inversion-demo/RESULTS.md`.
+3. Keep the Semantic-Fidelity Corpus table synchronized with the validated
+   dataset reports.
+4. Maintain the method diagram that links:
    latent representation -> inversion/verbalization -> semantic-fidelity
-   evaluation -> GEPA feedback branch, plus the soft-prompt readout branch.
+   evaluation -> Latent-GEPA feedback, plus the soft-prompt readout diagnostic.
 5. Keep GEPA result docs as detailed appendices, but make Chapter 5 read as one
    coherent thesis progression instead of a disconnected set of cluster runs.

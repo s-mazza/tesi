@@ -28,10 +28,10 @@ GEPA matrix and auxiliary-judge work is available when writing starts.
 Include:
 
 - a compact restatement of the thesis problem;
-- a summary of the canonical semantic-fidelity dataset;
-- a summary of the embedding-inversion diagnostic branch;
+- a summary of the Semantic-Fidelity Corpus;
+- a summary of the embedding-inversion diagnostic evidence;
 - a summary of SIPIT evidence;
-- a summary of standalone NLA extraction/verbalization;
+- a summary of NLA extraction/verbalization;
 - a summary of GEPA/G-EVAL results;
 - a careful conclusion about NLA feedback;
 - future work directions grounded in the actual gaps.
@@ -84,10 +84,10 @@ Expected table or bullet list:
 
 | Contribution | Status | Evidence |
 |---|---|---|
-| Canonical semantic-fidelity dataset | Built and validated | Dataset reports |
+| Semantic-Fidelity Corpus | Built and validated | Dataset reports |
 | Embedding-inversion diagnostics | Completed as diagnostic/negative reproduction evidence | Jina/Qwen probes |
 | SIPIT reproduction and extensions | Partially supported | Collision check and interim GPT-2 recovery evidence |
-| Standalone NLA pipeline | Operational | Qwen2.5-7B layer-20 extraction and AV verbalization |
+| NLA extraction and verbalization | Operational | Qwen2.5-7B layer-20 extraction and AV verbalization |
 | GEPA/G-EVAL pipeline | Operational | Multi-dataset runner and artifacts |
 | Perplexity feedback | Positive observed evidence | First PPL long run |
 | Raw/fixed NLA feedback analysis | Mixed/diagnostic | Raw-NLA negative run, fixed-NLA weak-positive control |
@@ -102,14 +102,14 @@ Purpose: summarize results without repeating Chapter 5.
 
 Findings to include if still consistent with final artifacts:
 
-- The canonical dataset provides a structured way to stress latent-to-text
+- The Semantic-Fidelity Corpus provides a structured way to stress latent-to-text
   methods with standard, negation, and commonsense/counterfactual examples.
-- The embedding-inversion branch did not reach a clean paper-level reproduction
+- The embedding-inversion diagnostics did not reach a clean paper-level reproduction
   but produced useful failure-mode evidence.
 - SIPIT evidence supports the practical injectivity/recovery story in the GPT-2
   setting, but final CSV/JSON outputs must be recovered or the claim must remain
   interim/log-derived.
-- Standalone NLA extraction/verbalization is technically functional, but this
+- NLA extraction/verbalization is technically functional, but this
   alone does not prove semantic faithfulness.
 - GEPA with PPL feedback can improve the observed Topical-Chat engagingness
   judge prompt.
@@ -136,7 +136,7 @@ Supported claim candidates:
 
 - The semantic-fidelity framing is necessary because standard reconstruction or
   agreement metrics can miss logically important changes.
-- The canonical dataset and artifact pipeline make these questions more
+- The Semantic-Fidelity Corpus and artifact pipeline make these questions more
   testable.
 - Perplexity is a useful additional signal for GEPA in the observed setting.
 - Raw NLA verbalizations are informative artifacts, but not automatically useful
@@ -145,7 +145,7 @@ Supported claim candidates:
 Unsupported or not-yet-supported claims:
 
 - NLA robustly improves GEPA.
-- Standalone NLA preserves negation or counterfactual content on the canonical
+- NLA extraction/verbalization preserves negation or counterfactual content on the canonical
   dataset.
 - The thesis exactly reproduces all G-EVAL paper results.
 - The thesis exactly reproduces the Jina embedding-inversion paper.
@@ -160,9 +160,10 @@ Purpose: name limitations that materially affect interpretation.
 
 Limitations to include:
 
-- Some branches are diagnostic rather than completed paper reproductions.
-- SIPIT final CSV/JSON reports are currently missing locally unless recovered
-  before writing.
+- Some experiment families are diagnostic rather than completed paper
+  reproductions.
+- SIPIT exact-recovery evidence is available for the recovered GPT-2 setting
+  and the thesis logical20 prompts, but runtime remains hardware-dependent.
 - NLA semantic-fidelity scoring on the canonical logical dataset has not yet
   been completed.
 - GEPA evidence is strongest on Topical-Chat engagingness; full matrix coverage
@@ -225,7 +226,9 @@ Suggested message:
 
 ## Do Not Forget
 
-- The final acknowledgments are separate from Chapter 6.
+- The current LaTeX places acknowledgments as an unnumbered section after
+  Chapter 6. If the final template requires a separate front/backmatter
+  acknowledgments page, move it there without changing the content.
 - Thank Prof. Moro first in the acknowledgments, as required by the writing
   guidelines.
 - Do not introduce bibliography citations for the first time in the conclusion

@@ -10,7 +10,7 @@ No citations.
 Expanded motivation for semantic fidelity in embedding/activation inversion:
 surface similarity can hide lost negation, polarity flips, or normalization
 toward commonsense. Reduce the framing to two main topics: analysis of
-embedding/activation-inversion methods, and Latent-GEPA as the branch that uses
+embedding/activation-inversion methods, and Latent-GEPA as the component that uses
 latent-representation analysis to improve G-Eval-style judge prompts. Avoid
 introducing specific techniques such as SIPIT or NLA in the introduction unless
 strictly needed and cited. Close with the thesis outline.
@@ -62,22 +62,20 @@ Each section must end by clarifying what this thesis does differently.
 Planned sections:
 
 - Overall task definition: semantic fidelity of latent-to-text methods.
-- Canonical logical/semantic-stress dataset.
-- Embedding-inversion reproduction diagnostics.
-- SIPIT reproduction, logical dataset export, and random-prefix extension.
-- Standalone NLA extraction and verbalization.
+- Semantic-Fidelity Corpus.
+- Semantic-fidelity readout diagnostics.
 - G-Eval task definition and baseline judge prompt.
-- GEPA optimization loop.
+- Latent-GEPA optimization loop.
 - Perplexity feedback.
-- NLA feedback generation for GEPA.
+- NLA feedback generation for Latent-GEPA.
 - Auxiliary 35B judge feedback.
-- Prompt trajectory and artifact logging.
+- Soft-prompt training and SIPIT-style readout.
 
 Required original figure:
 
 - End-to-end thesis diagram showing dataset example -> latent representation
   extraction -> inversion/verbalization -> semantic-fidelity evaluation, plus
-  the GEPA branch: base judge -> metric feedback -> optional PPL/NLA/aux
+  the Latent-GEPA component: base judge -> metric feedback -> optional PPL/NLA/aux
   feedback -> proposer -> validation selection -> final-test evaluation.
 
 ## Chapter 4: Experimental Setup
@@ -103,7 +101,7 @@ Planned sections:
 - Embedding-inversion diagnostics and failure-mode summary.
 - SIPIT collision check, Table 5 interim/recovered results, logical dataset,
   and random-prefix results if available.
-- Standalone NLA activation-verbalization smokes.
+- NLA extraction and activation-verbalization validation.
 - PPL long-run result.
 - Raw-NLA negative long-run result.
 - Fixed-NLA smoke and long comparison.

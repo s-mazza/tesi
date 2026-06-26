@@ -79,8 +79,8 @@ For copied or lightly cropped figures:
 
 Preferred figures for the thesis:
 
-- Chapter 3 original method diagram showing the inversion/verbalization branch
-  and the GEPA feedback branch;
+- Chapter 3 original method diagram showing semantic readout diagnostics and
+  the Latent-GEPA feedback component;
 - Chapter 4 or Chapter 5 tables for datasets, metrics, models, and
   experimental variants;
 - Chapter 5 result plots produced from our artifacts.
@@ -118,7 +118,7 @@ Papers to cover:
 - generative embedding inversion attacks, such as GEIA;
 - zero-shot or training-free methods, such as ZSinvert and Zero2Text;
 - diffusion-style inversion, especially the Jina conditional masked diffusion
-  work used in the local reproduction branch;
+  work used in the local reproduction study;
 - Vec2Text or equivalent baselines when needed to explain the field.
 
 Expected discussion:
@@ -242,18 +242,6 @@ Expected discussion:
 - risk of overfitting validation examples;
 - why prompt trajectories and intermediate prompts must be stored.
 
-#### 2.4.3 Why GEPA Fits This Thesis
-
-Purpose: make clear that GEPA is not the whole prompt-optimization field, but
-the natural hard-prompt optimizer for this thesis because it can consume textual
-feedback.
-
-Thesis contrast:
-
-The thesis does not propose a new general prompt optimizer. It studies whether
-perplexity, NLA, and auxiliary-judge feedback can make GEPA improve a
-G-EVAL-style judge prompt.
-
 ### 2.5 Natural Language Activations
 
 Purpose: introduce NLA as the main prior work for converting activations into
@@ -282,7 +270,7 @@ not merely whether they are readable in isolation.
 
 ### 2.6 LLM-as-a-Judge and G-EVAL
 
-Purpose: introduce the evaluation setting used by the GEPA branch and define
+Purpose: introduce the evaluation setting used by Latent-GEPA and define
 why agreement with human judgments is the relevant target.
 
 Papers to cover:

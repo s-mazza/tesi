@@ -23,15 +23,13 @@ level. Exact command lines, machine details, and long tables belong to Chapter
 
 Include:
 
-- the canonical semantic-fidelity dataset design;
-- the latent-to-text evaluation pipeline;
-- embedding-inversion diagnostic branch;
-- SIPIT reproduction and thesis-specific extensions;
-- standalone NLA extraction and verbalization;
+- the Semantic-Fidelity Corpus design;
+- a concise readout-diagnostic framing for embedding inversion, hidden-state
+  recovery, activation verbalization, and soft-prompt readout;
 - G-EVAL-style judge task definition;
-- GEPA optimization loop;
+- the Latent-GEPA optimization loop;
 - perplexity feedback;
-- NLA feedback generation for GEPA;
+- NLA feedback generation for Latent-GEPA;
 - auxiliary Qwen35B judge feedback;
 - soft-prompt training on the same judge task as a way to create learned
   continuous targets for SIPIT-style readout;
@@ -55,16 +53,19 @@ should define the method independently of one specific run.
 
 ### 3.1 Method Overview
 
-Purpose: present the thesis as two connected tracks.
+Purpose: present the thesis as a coherent method centered on two objectives:
+semantic-fidelity diagnostics and Latent-GEPA prompt optimization.
 
-Track 1: evaluate latent-to-text methods under semantic stress.
+Diagnostic objective:
 
-- embedding inversion diagnostics;
-- SIPIT hidden-state inversion;
-- NLA activation verbalization.
+- define controlled semantic-fidelity inputs;
+- apply latent-to-text readouts introduced in related work;
+- inspect whether the readout preserves fragile meaning.
 
-Track 2: test whether internal signals from the base model can improve
-G-EVAL-style prompt optimization through Latent-GEPA.
+Latent-GEPA objective:
+
+- test whether internal signals from the base model can improve G-EVAL-style
+  prompt optimization.
 
 - base judge predicts scores;
 - GEPA optimizes the judge prompt;
@@ -74,10 +75,10 @@ G-EVAL-style prompt optimization through Latent-GEPA.
   nearest-token and SIPIT-style readouts, checking whether the inversion
   contains semantic or rubric-level information useful for the thesis.
 
-The section should explain that GEPA is the application branch where NLA-derived
-feedback is tested, not the only thesis topic.
+The section should explain that Latent-GEPA is the main proposed pipeline, while
+diagnostic readouts provide the semantic and interpretability context.
 
-### 3.2 Canonical Semantic-Fidelity Dataset
+### 3.2 Semantic-Fidelity Corpus
 
 Purpose: define the dataset used to stress latent-to-text methods.
 
@@ -106,110 +107,28 @@ Value-adding example:
   while logical meaning changes. Avoid a long dataset dump in the method
   chapter.
 
-### 3.3 Embedding-Inversion Diagnostic Branch
+### 3.3 Semantic-Fidelity Readout Diagnostics
 
-Purpose: describe the early embedding-inversion reproduction and diagnostic
-work without overclaiming it as a clean paper-level reproduction unless the
-remaining gaps are resolved.
-
-Suggested subsections:
-
-- `Task Setting`: define embedding inversion as fixed-size embedding to text,
-  explain why semantic-fidelity stress examples are relevant, and include a
-  concrete TikZ example from the local qualitative inversion artifact showing
-  how an input sentence is encoded, decoded from the embedding alone, and then
-  checked for semantic drift.
-- `Reproduction Boundary`: state exactly what was reproduced and what was not
-  reproducible from the public material.
-- `Diagnostic Design`: describe the diagnostic variants and controls without
-  reporting final metric values.
+Purpose: connect the corpus to latent-to-text analyses without re-explaining
+SIPIT, NLA, or embedding inversion as new thesis methods.
 
 Expected discussion:
 
-- embedding inversion takes a fixed-size text embedding and tries to recover
-  text;
-- the Jina-style conditional masked diffusion branch was the main reproduction
-  target;
-- local diagnostics tested architecture, masking, loss, and checkpoint
-  behavior;
-- a tiny overfit control is part of the method as a sanity check, but its
-  numerical accuracy belongs to Chapter 5;
-- the branch contributes failure-mode evidence and context for the broader
-  semantic-fidelity framing.
+- embedding inversion reconstructs text from sentence embeddings;
+- hidden-state recovery reconstructs discrete token sequences from decoder
+  states;
+- activation verbalization describes selected residual-stream activations;
+- soft-prompt readout asks whether trained virtual tokens have readable
+  projections.
 
 Value-adding example:
 
-- Best format: a compact method table, not pseudocode.
-- Structure: `variant`, `changed component`, `intended diagnostic`, `claim
-  status`.
-- Reason: this branch involved several diagnostic attempts. A table prevents
-  the narrative from sounding like one clean final method if the evidence is
-  actually diagnostic.
+- Best format: a compact diagnostic table.
+- Structure: `diagnostic view`, `readout object`, `question answered`.
+- Reason: this keeps Chapter 3 conceptual and moves setup/results details to
+  later chapters.
 
-### 3.4 SIPIT Hidden-State Inversion
-
-Purpose: define how SIPIT is used and extended.
-
-SIPIT receives decoder-only LM hidden states and attempts to recover the
-original prompt tokens.
-
-In the standard SIPIT setting, the hidden states are produced by an ordinary
-sequence of discrete prompt tokens. The recovery target is therefore also a
-discrete token sequence. This is different from the thesis extensions where
-some input positions are continuous vectors supplied directly in embedding
-space.
-
-The thesis implementation includes:
-
-- paper reproduction support for GPT-2 Table 5 and related baselines;
-- collision checks;
-- a logical dataset built from canonical Blocks B and C;
-- a random-prefix extension with separate `full-sequence` and
-  `known-prefix-control` modes.
-
-Important distinction:
-
-- `standard recovery` asks SIPIT to recover a normal prompt from hidden states
-  generated by real vocabulary tokens;
-- `known-prefix-control` fixes the continuous random prefix and recovers only
-  the real prompt suffix;
-- `full-sequence` tries to discretize both the random continuous prefix vectors
-  and the real prompt suffix into vocabulary tokens.
-
-These settings answer different questions and must not be collapsed into one
-result.
-
-Value-adding example:
-
-- Best format: a two-row comparison table.
-- Structure: `condition`, `input to SIPIT`, `what is recovered`, `valid claim`.
-- Reason: this prevents confusion between exact prompt recovery with a fixed
-  continuous prefix and impossible/off-vocabulary recovery of the prefix itself.
-
-### 3.5 Standalone NLA Activation Verbalization
-
-Purpose: explain how NLA is used before it is integrated into GEPA.
-
-For Qwen2.5-7B-Instruct, activations are extracted from layer-20 residual stream
-positions and verbalized with the compatible Qwen layer-20 AV checkpoint.
-
-Expected discussion:
-
-- the base model provides the activation vectors;
-- the AV produces natural-language descriptions of selected vectors;
-- standalone runs validate extraction, checkpoint compatibility, and artifact
-  format;
-- standalone NLA is not yet a GEPA feedback method.
-
-Value-adding example:
-
-- Best format: a short boxed example with one token and one verbalization.
-- Structure: `source text`, `selected token`, `layer`, `AV verbalization`,
-  `interpretation caveat`.
-- Reason: a concrete example makes the AV concept intuitive, while the caveat
-  reminds the reader that readable text is not automatically faithful.
-
-### 3.6 G-EVAL-Style Judge Task
+### 3.4 G-EVAL-Style Judge Task
 
 Purpose: define the task optimized by GEPA.
 
@@ -239,20 +158,21 @@ Value-adding example:
 - Reason: this is more useful than a prose-only description because later
   prediction artifacts are JSONL.
 
-### 3.7 Latent-GEPA Optimization Loop
+### 3.5 Latent-GEPA Optimization Loop
 
-Purpose: explain the prompt optimizer used in the GEPA branch and name the
+Purpose: explain the prompt optimizer used in the Latent-GEPA component and name the
 proposed pipeline as Latent-GEPA when latent-derived feedback is part of the
 proposer context.
 
-GEPA workflow:
+Latent-GEPA workflow:
 
 1. start from a seed judge prompt;
-2. evaluate candidate prompts on train/validation examples;
-3. collect metric feedback and optional auxiliary feedback;
-4. ask the proposer model to generate revised prompts;
-5. keep candidates that improve validation behavior;
-6. evaluate the selected prompt on the held-out final-test split.
+2. sample minibatches of validation examples;
+3. evaluate candidate prompts and compute agreement with human scores;
+4. collect metric feedback and optional PPL/NLA/auxiliary feedback;
+5. ask the proposer model to mutate or merge selected prompts;
+6. update the candidate pool and Pareto-style frontier;
+7. evaluate the selected prompt on the held-out final-test split.
 
 Model roles:
 
@@ -271,7 +191,7 @@ Value-adding example:
 - Reason: GEPA is an algorithmic loop. Pseudocode will be clearer than a
   diagram alone and avoids binding the method to a specific Python file.
 
-### 3.8 Feedback Variants
+### 3.6 Feedback Variants
 
 Purpose: define the experimental method variants as ablations.
 
@@ -297,7 +217,7 @@ Value-adding example:
 - Reason: this table will be reused by Chapter 4 and makes the experimental
   matrix easier to read.
 
-### 3.9 Perplexity Feedback
+### 3.7 Perplexity Feedback
 
 Purpose: explain how response-only perplexity is used.
 
@@ -320,11 +240,11 @@ Value-adding example:
 - Reason: this is enough to explain the quantity without turning the chapter
   into a probability tutorial.
 
-### 3.10 NLA Feedback For GEPA
+### 3.8 NLA Feedback For Latent-GEPA
 
 Purpose: define how activation verbalizations become proposer feedback.
 
-In the GEPA branch, NLA verbalizes activation vectors for selected prompt/example
+In Latent-GEPA, NLA verbalizes activation vectors for selected prompt/example
 tokens under the base Qwen2.5-7B judge model.
 
 Token sources:
@@ -343,7 +263,7 @@ Expected discussion:
 - current evidence shows candidate-only selection reduces duplicates but does
   not automatically improve GEPA.
 
-This GEPA use of NLA is different from direct semantic-fidelity evaluation of
+This Latent-GEPA use of NLA is different from direct semantic-fidelity evaluation of
 NLA. Here, verbalizations are weak proposer feedback, not final labels.
 
 Value-adding example:
@@ -359,7 +279,7 @@ Value-adding example:
   hides the fact that GEPA receives multiline textual feedback through Python
   objects rather than a clean conceptual schema.
 
-### 3.11 Auxiliary Judge Feedback
+### 3.9 Auxiliary Judge Feedback
 
 Purpose: explain the Qwen35B auxiliary judge as a feedback compressor.
 
@@ -388,9 +308,9 @@ Value-adding example:
 - Reason: this makes clear that the auxiliary judge compresses feedback rather
   than becoming the evaluated judge.
 
-### 3.12 Soft-Prompt Training And SIPIT Readout
+### 3.10 Soft-Prompt Training And SIPIT Readout
 
-Purpose: explain the advisor-requested soft-prompt branch as an interpretability
+Purpose: explain the advisor-requested soft-prompt diagnostic as an interpretability
 probe for learned continuous prompts, not as a replacement for GEPA prompt
 optimization.
 
@@ -406,10 +326,10 @@ Suggested subsections:
 - `Interpretation Rule`: state that a useful continuous prompt is not
   automatically interpretable.
 
-In this branch the base judge model remains Qwen2.5-7B-Instruct, but its
+In this diagnostic the base judge model remains Qwen2.5-7B-Instruct, but its
 weights are frozen. The only trained parameters are PEFT prompt-tuning virtual
 tokens placed before the judge input. The task is the same Topical-Chat
-engagingness scoring task used in the GEPA branch, so any learned soft prompt
+engagingness scoring task used in Latent-GEPA, so any learned soft prompt
 is tied to the same rubric-like behavior that GEPA tries to improve.
 
 The main question is what SIPIT-style inversion recovers from those trained
@@ -433,7 +353,7 @@ Expected discussion:
 - Control conditions are required: random hard vocabulary tokens, the initial
   prompt-token embeddings, and random continuous vectors.
 
-The control modes used in this branch should be explained explicitly because
+The control modes used in this diagnostic should be explained explicitly because
 they are easy to confuse with standard SIPIT:
 
 - `soft_prompt` loads the trained PEFT virtual-token embeddings and asks what
@@ -496,11 +416,11 @@ crossing arrows.
 
 Structure:
 
-1. latent-to-text track:
+1. semantic readout diagnostics:
    - canonical semantic-fidelity corpus;
-   - embedding inversion, SIPIT, standalone NLA;
+   - embedding inversion, SIPIT-style recovery, NLA verbalization;
    - semantic-fidelity analysis.
-2. prompt-optimization track:
+2. prompt-optimization component:
    - G-EVAL-style judge examples;
    - Qwen2.5-7B base judge;
    - metric/PPL/NLA/auxiliary feedback;
@@ -520,31 +440,31 @@ Figure-selection audit:
   contain at least one original figure.
 - Include Figure 3.2 as a companion GEPA-flow figure because Figure 3.1 is
   intentionally high-level and should not carry the full feedback/proposer loop.
-- Include the standalone NLA pipeline figure because it explains activation
-  extraction and verbalization without reusing an external paper figure.
+- Do not include a separate NLA pipeline figure in Chapter 3. NLA is explained
+  as prior work in Chapter 2, configured in Chapter 4, and validated in
+  Chapter 5.
 - Do not add paper figures in Chapter 3 unless they explain a method detail
   that the original diagrams cannot cover. Paper figures belong primarily in
   related work, where the reader needs to understand prior work.
-- Use artifact-derived examples for SIPIT and NLA because they make the method
-  concrete without adding copyrighted figures or unrelated visual material.
+- Use artifact-derived examples for proposer feedback and prompts because those
+  objects are part of the Latent-GEPA method. Detailed SIPIT/NLA examples belong
+  in the results chapter unless they are needed to prevent a method ambiguity.
 
 External-figure candidate audit:
 
 - Embedding-inversion diffusion architecture: included in Chapter 2 as the
   related-work figure for the Jina-style conditional masked diffusion line, not
-  repeated in Chapter 3 because the method chapter discusses our diagnostic
-  branch rather than re-explaining the prior architecture.
+  repeated in Chapter 3 because the method chapter only frames readout
+  diagnostics rather than re-explaining the prior architecture.
 - SIPIT paper figure or algorithm schematic: not included as an external figure
-  in Chapter 3. The method chapter instead uses a concrete terminal-style
-  recovery example from our artifacts, because the reader needs to see what our
-  SIPIT run consumes and emits.
+  in Chapter 3. SIPIT is positioned in related work and appears in Chapter 3 only
+  as a SIPIT-style readout tool for soft prompts.
 - Prompt-waywardness / soft-prompt interpretability figure: included in Chapter
   2 to motivate why nearest-token interpretations can be misleading. Chapter 3
   uses our own table of soft-prompt/SIPIT readout conditions.
 - NLA autoencoder figure from the original NLA work: included in Chapter 2 to
-  explain the prior method. Chapter 3 uses an original, thesis-specific NLA
-  extraction figure that shows only the activation-verbalizer path used in our
-  pipeline.
+  explain the prior method. Chapter 3 does not include a separate NLA figure;
+  it explains only how NLA verbalizations enter Latent-GEPA feedback.
 - G-EVAL framework figure: included in Chapter 2 as related work. Chapter 3
   uses a JSON-like schema and the seed prompt because those are closer to the
   concrete judge task implemented in the thesis.
@@ -581,19 +501,14 @@ clarify a transformation or prevent a likely misunderstanding.
 Recommended examples:
 
 - dataset example table in Section 3.2;
-- SIPIT `full-sequence` versus `known-prefix-control` comparison table in
-  Section 3.4;
-- one concrete SIPIT exact-recovery example in Section 3.4, preferably as a
-  terminal-style excerpt derived from the saved artifacts;
-- one NLA token/verbalization table plus a standalone NLA pipeline diagram in
-  Section 3.5;
-- JSON-like G-EVAL example schema in Section 3.6;
-- GEPA pseudocode in Section 3.7, formatted as a `tcolorbox` figure;
-- feedback-variant ablation table in Section 3.8;
-- short PPL formula and toy row in Section 3.9;
+- semantic-readout diagnostic table in Section 3.3;
+- JSON-like G-EVAL example schema in Section 3.4;
+- Latent-GEPA pseudocode in Section 3.5, formatted as a `tcolorbox` figure;
+- feedback-variant ablation table in Section 3.6;
+- short PPL formula in Section 3.7;
 - Python/JSON-like concrete PPL/NLA proposer-feedback block in the NLA/GEPA
   feedback section, with both important keys and diagnostic values highlighted;
-- soft-prompt/SIPIT readout comparison table in Section 3.12.
+- soft-prompt/SIPIT-style readout comparison table in Section 3.10.
 
 Avoid large log dumps in Chapter 3. Full prompt text is acceptable there only
 for the seed prompt, because the prompt itself is the method object. Prompt

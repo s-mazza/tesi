@@ -33,7 +33,7 @@ Include:
 - model roles and checkpoint compatibility;
 - university cluster hardware, Slurm, Docker, vLLM, llama.cpp, and NLA
   dependencies;
-- exact metrics used for embedding inversion, SIPIT, standalone NLA, and
+- exact metrics used for embedding inversion, SIPIT, NLA extraction validation, and
   GEPA/G-EVAL;
 - time and efficiency metrics;
 - hyperparameters and values tried;
@@ -100,14 +100,14 @@ Purpose: define all datasets before any result table appears.
 
 Datasets to cover:
 
-| Experiment branch | Dataset | Current status | Include in Chapter 4 |
+| Experiment family | Dataset | Current status | Include in Chapter 4 |
 |---|---|---|---|
 | Semantic-fidelity dataset | Canonical thesis corpus with standard, negation, and commonsense/counterfactual blocks | Built and validated | Yes |
-| Embedding inversion | Jina/Qwen encoder cached datasets and probes | Diagnostic branch | Yes, compactly |
+| Embedding inversion | Jina/Qwen encoder cached datasets and probes | Diagnostic evidence | Yes, compactly |
 | SIPIT | Paper-style GPT-2 Table 5 dataset plus logical 20-token dataset | Reproduction and extension | Yes |
-| Standalone NLA | SummEval activation/verbalization samples | Plumbing validation | Yes, compactly |
-| GEPA/G-EVAL | Topical-Chat, SummEval, QAGS-CNN, QAGS-XSUM | Main current branch | Yes |
-| Soft-prompt tuning | Topical-Chat engagingness | Frozen-model prompt-tuning diagnostic | Yes, as GEPA-adjacent explainability branch |
+| NLA extraction validation | SummEval activation/verbalization samples | Plumbing validation | Yes, compactly |
+| GEPA/G-EVAL | Topical-Chat, SummEval, QAGS-CNN, QAGS-XSUM | Main current experiment family | Yes |
+| Soft-prompt tuning | Topical-Chat engagingness | Frozen-model prompt-tuning diagnostic | Yes, as GEPA-adjacent explainability diagnostic |
 
 Dataset table to add:
 
@@ -143,7 +143,7 @@ Required details:
     selection;
   - every thesis run must save the exact split manifest.
 - Soft-prompt Topical-Chat split:
-  - same Topical-Chat engagingness task family as the GEPA branch;
+  - same Topical-Chat engagingness task family as Latent-GEPA;
   - main random-init runs use 40 train groups, 10 validation groups, and 10
     final-test groups, corresponding to 240 / 60 / 60 rows;
   - the 2048-token context setting keeps all 240 training rows, while the
@@ -165,9 +165,9 @@ Model-role table to add:
 
 | Role | Model/checkpoint | Used for | Included in final metrics? |
 |---|---|---|---|
-| Embedding encoder | Jina-v3 / Qwen3-Embedding diagnostic branches | Embedding-inversion inputs | No, unless branch is reported |
+| Embedding encoder | Jina-v3 / Qwen3-Embedding diagnostic conditions | Embedding-inversion inputs | No, unless the diagnostic is reported |
 | SIPIT target model | GPT-2 | Hidden-state inversion target | Yes for SIPIT results |
-| Standalone NLA base model | Qwen2.5-7B-Instruct | Activation extraction | No direct final score |
+| NLA extraction base model | Qwen2.5-7B-Instruct | Activation extraction | No direct final score |
 | NLA AV checkpoint | Qwen2.5-7B layer-20 AV checkpoint | Activation verbalization | Feedback/diagnostic |
 | GEPA base judge | Qwen2.5-7B-Instruct | Scores G-EVAL examples | Yes |
 | Perplexity model | Same Qwen2.5-7B-Instruct | Response-only PPL feedback | No, feedback-only |
@@ -178,7 +178,7 @@ Model-role table to add:
 
 Required explanation:
 
-- The "trained" or optimized task model in the GEPA branch is the 7B base judge
+- The optimized task model in Latent-GEPA is the 7B base judge
   plus its prompt. We are not fine-tuning model weights.
 - The 35B model is not the final evaluated judge. It is used as proposer, and
   optionally as an auxiliary feedback model.
@@ -351,7 +351,7 @@ G-EVAL score scales to state:
 Chapter placement:
 
 - Put token accuracy, full-mask accuracy, validation loss, and ablation metrics
-  in the main text if the embedding-inversion branch is discussed as a result.
+  in the main text if the embedding-inversion diagnostic is discussed as a result.
 - Put ROUGE/BLEU/STS/BERTScore only as secondary metrics because they can miss
   logical flips.
 - Add negation/polarity/counterfactual metrics before making any strong
@@ -426,7 +426,7 @@ can still stop after a prefix. `soft_prompt` and `random_continuous` are
 continuous-target readouts, so exact SIPIT verification is not expected unless
 the vectors happen to lie very close to the discrete embedding manifold.
 
-#### 4.5.4 Standalone NLA Metrics
+#### 4.5.4 NLA Extraction Metrics
 
 | Metric | Available now | Include? | Use |
 |---|---|---|---|
@@ -434,15 +434,15 @@ the vectors happen to lie very close to the discrete embedding manifold.
 | Token positions verbalized | Yes | Yes | Shows what activation is being described |
 | Layer and checkpoint | Yes | Yes | Required for compatibility |
 | Parse status | Yes | Yes | NLA output health |
-| Injection check status | Yes in standalone artifacts | Yes | Verifies artifact integrity |
+| Injection check status | Yes in NLA artifacts | Yes | Verifies artifact integrity |
 | Verbalization count | Yes | Yes | Coverage/scale |
 | Verbalization examples | Yes | Maybe | Include a small qualitative table or appendix |
-| Semantic correctness of verbalizations | Not fully measured | Should add if standalone NLA is a result claim | Needed to claim semantic fidelity |
+| Semantic correctness of verbalizations | Not fully measured | Should add if NLA semantic fidelity is a result claim | Needed to claim semantic fidelity |
 | AR reconstruction score | Not used | No unless AR is introduced | Current thesis uses AV, not AR |
 
 Chapter placement:
 
-- Use standalone NLA primarily as a setup/plumbing validation unless a dedicated
+- Use NLA extraction primarily as a setup/plumbing validation unless a dedicated
   semantic-fidelity evaluation is run.
 - Do not claim that NLA preserves negation or counterfactuality from readability
   alone.
@@ -745,7 +745,7 @@ High priority:
 Medium priority:
 
 - Add BERTScore for text reconstruction outputs if the embedding-inversion
-  branch is kept in main results.
+  diagnostic is kept in main results.
 - Add calibration/error-bucket summaries for GEPA judge predictions:
   over-rating rate, under-rating rate, exact-score rate, and score distribution.
 - Add prompt-length and prompt-token-count trajectory metrics for GEPA.
@@ -764,6 +764,6 @@ and artifacts to report:
 
 - embedding-inversion reproduction diagnostics;
 - SIPIT reproduction and logical/random-prefix experiments;
-- standalone NLA validation;
+- NLA extraction validation;
 - GEPA/G-EVAL results across PPL, NLA, and auxiliary-judge feedback variants;
 - runtime and failure-mode analysis.

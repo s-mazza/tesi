@@ -13,6 +13,13 @@ rules for this thesis.
 - Do not front-load defensive claims in the introduction, especially claims
   about negative results. Negative or diagnostic outcomes should be discussed
   where the evidence is reported, usually in Results or Conclusions.
+- Avoid using `branch` as a thesis-level framing word in final prose. Prefer
+  more precise terms such as `component`, `diagnostic`, `experiment family`,
+  `setting`, or `condition`.
+- Do not refer to local Python files, script names, cache filenames, or internal
+  artifact paths in final prose unless a code/listing excerpt is itself the
+  object being explained. Put implementation provenance in planning docs,
+  manifests, or concise setup/results prose.
 - Every figure used in the manuscript must be explicitly mentioned in the
   surrounding text.
 - Use DBLP as the primary BibTeX source. When DBLP offers both a `CoRR` entry
@@ -108,6 +115,10 @@ rules for this thesis.
   text. Avoid IP addresses and unnecessary internal machine details; keep exact
   driver/CUDA/container information in run manifests unless it is needed in the
   chapter.
+- Chapter 3 should present `Latent-GEPA` as the main proposed method. SIPIT and
+  NLA can be recalled only as tools or readouts already introduced in related
+  work; detailed algorithm descriptions, checkpoint details, and validation
+  outcomes belong in Chapters 2, 4, or 5.
 
 ## Experimental Writing Checklist
 
@@ -149,6 +160,15 @@ rules for this thesis.
 - Underfull `hbox`/`vbox` warnings are not automatically thesis problems.
   Prioritize fixing them when they indicate visibly poor layout, unreadable
   tables, or broken page flow.
+
+## Advisor Comment Replies
+
+- Replies to resolved comments should be concise but specific. Prefer a short
+  sentence explaining what changed and why over a bare `fatto` when the
+  reasoning is not obvious from the LaTeX diff.
+- If a comment is intentionally not resolved literally, state the decision and
+  the reason. Example: `non l'ho rimosso del tutto, l'ho spostato nei risultati
+  perché lì serve per interpretare la tabella`.
 
 ## Keywords
 

@@ -38,7 +38,7 @@ Include:
 - embedding-inversion reproduction diagnostics;
 - SIPIT reproduction evidence, collision checks, logical-prompt recovery, and
   random-prefix/soft-prompt extensions when supported by outputs or logs;
-- standalone NLA activation extraction and verbalization evidence;
+- NLA activation extraction and verbalization evidence;
 - GEPA/G-EVAL prompt-optimization results;
 - PPL, NLA, candidate-only NLA, fixed-NLA, and auxiliary-judge ablations;
 - runtime and efficiency numbers;
@@ -94,11 +94,11 @@ This section should introduce an evidence-level table:
 | Canonical semantic-fidelity dataset | Complete validation | Thesis dataset contribution | `thesis-datasets/reports/` |
 | Embedding inversion | Diagnostic / negative reproduction | Useful failure-mode evidence, not paper-level reproduction | `embedding-inversion-demo/RESULTS.md` |
 | SIPIT | Completed reproduction + log-derived baseline evidence | GPT-2 Table-5-style SIPIT exact recovery is complete; logical20 SIPIT is complete; BruteForce remains a partial log-derived baseline | `spit/SIPIT/data/reproduce/reports/table5/`, `spit/SIPIT/data/reproduce/results/table5/`, `spit/SIPIT/data/reproduce/reports/logical20/` |
-| Standalone NLA | Plumbing validation | NLA extraction/verbalization works, not semantic-fidelity proof | `nla-artifacts/summeval/` |
+| NLA extraction validation | Plumbing validation | NLA extraction/verbalization works, not semantic-fidelity proof | `nla-artifacts/summeval/` |
 | GEPA + PPL | Positive long-run evidence | GEPA+PPL can improve Topical-Chat engagingness in observed run | GEPA result dirs |
 | GEPA + raw/fixed NLA | Mixed diagnostic evidence | Raw NLA is not reliably helpful; fixed-NLA is weak-positive but not a clean prompt-improvement win | GEPA diagnostics |
 | Soft-prompt tuning + SIPIT readout | Completed diagnostic evidence | Trained soft prompts provide meaningful continuous targets for SIPIT, but the recovered text is not yet semantically interpretable | `gepa-experiments/results/soft_prompt_topical_chat_engagingness_long_2048_random_init*` |
-| GEPA + auxiliary judge | Method branch, no thesis-grade result yet | Needed to test NLA semantic compression; current completed evidence is not sufficient for a performance claim | GEPA status docs |
+| GEPA + auxiliary judge | Method condition, no thesis-grade result yet | Needed to test NLA semantic compression; current completed evidence is not sufficient for a performance claim | GEPA status docs |
 
 The section should explicitly state that the thesis cannot currently claim
 "NLA robustly improves GEPA" unless later auxiliary-judge or replicated long
@@ -149,7 +149,7 @@ Purpose: report the early embedding-inversion work as diagnostic evidence.
 
 Planned subsections:
 
-- `Reproduction Scope`: state that this branch is a diagnostic reproduction
+- `Reproduction Scope`: state that this is a diagnostic reproduction
   study, not a clean paper-level reproduction.
 - `Public Encoder Versus Inverter`: clarify that the public Jina component is only
   the embedding encoder (`jinaai/jina-embeddings-v3`), not an inversion model;
@@ -160,17 +160,16 @@ Planned subsections:
 - `Task-Adapter Provenance Check`: define Jina task adapters as task-specific
   embedding modes that alter the generated vector space for uses such as
   retrieval, classification, clustering, or text matching; report the cache
-  provenance check. Define `data_jinav3` as our local training cache: raw
-  C4/mC4 text tokenized for the decoder and encoded locally with Jina-v3 into
-  `token_ids_*.npy` and `embeddings_*.npy` files, not as ready-made embeddings
-  downloaded from the paper authors.
+  provenance check. Define the local cache as raw C4/mC4 text tokenized for the
+  decoder and encoded locally with Jina-v3 into aligned token/embedding records,
+  not as ready-made embeddings downloaded from the paper authors.
 - `Diagnostic Outcomes`: report the main run/probe table.
 - `Interpretation`: explain why this is negative diagnostic evidence rather
   than a successful embedding-inversion reproduction.
 
 Expected table:
 
-| Run / branch | Architecture or change | Main metric | Outcome | Interpretation |
+| Run / diagnostic | Architecture or change | Main metric | Outcome | Interpretation |
 |---|---|---|---|---|
 
 Current quantitative anchors:
@@ -187,7 +186,7 @@ Current quantitative anchors:
 
 Interpretation:
 
-- This branch should be framed as a reproduction/diagnostic branch.
+- This study should be framed as reproduction/diagnostic evidence.
 - It supports the thesis theme that metric fidelity and artifact-level
   reproducibility matter.
 - Do not present it as a successful Jina paper reproduction unless a later
@@ -279,7 +278,7 @@ Completed random-init soft-prompt results on Topical-Chat engagingness:
 Main interpretation:
 
 - The random initialization fix changes the scientific reading of the
-  soft-prompt branch. The earlier text-init runs were biased toward the seed
+  soft-prompt diagnostic. The earlier text-init runs were biased toward the seed
   instruction and should be treated as controls, not as clean evidence about
   learned soft-token semantics.
 - The best random-init run improves both paper-primary Topical-Chat metrics on
@@ -363,7 +362,7 @@ Artifacts:
 - `gepa-experiments/results/soft_prompt_sipit_init_control/sipit_recovery.json`
 - `gepa-experiments/results/soft_prompt_sipit_random_continuous_control/sipit_recovery.json`
 
-### 5.5 Standalone NLA Validation
+### 5.5 NLA Extraction Validation
 
 Purpose: show that NLA activation extraction and AV verbalization work before
 the GEPA integration.
@@ -398,7 +397,7 @@ Artifacts:
 
 ### 5.6 GEPA/G-EVAL Prompt Optimization
 
-Purpose: report the main current experimental branch.
+Purpose: report the main current experimental condition.
 
 This section should be organized around comparisons, not chronology.
 
@@ -507,7 +506,7 @@ Current status from local docs:
   claim.
 - Replacement aux-judge jobs are tracked in the GEPA status docs, but they do
   not yet provide completed valid evidence for the thesis census.
-- This branch is thesis-critical if the final claim is about making NLA useful
+- This condition is thesis-critical if the final claim is about making NLA useful
   for GEPA, because raw/fixed NLA alone is not yet convincing.
 
 Artifacts:
@@ -585,13 +584,13 @@ Interpretation:
 
 ### 5.8 Failure Modes And Negative Evidence
 
-Purpose: explain why some branches were changed or deprioritized.
+Purpose: explain why some experiment families were changed or deprioritized.
 
 Failure/negative evidence to include:
 
 | Failure mode | Evidence | Consequence |
 |---|---|---|
-| Embedding-inversion full-data runs stayed far below paper-level behavior | Jina-v3 probes and ablations | Treat as diagnostic reproduction branch |
+| Embedding-inversion full-data runs stayed far below paper-level behavior | Jina-v3 probes and ablations | Treat as diagnostic reproduction evidence |
 | BruteForce Table-5-style baseline remains partial | BruteForce log snapshot, no completed compact report | Treat BruteForce as log-derived baseline evidence only |
 | Raw NLA worsened GEPA | First raw-NLA long run | Do not claim raw NLA helps |
 | Fixed-NLA weak-positive but no prompt change | Matched long comparison | Treat as weak diagnostic evidence |
@@ -620,11 +619,11 @@ Expected table:
 | SIPIT exactly recovers the thesis logical20 GPT-2 prompts | Yes | Logical20 SIPIT CSV/JSON exact-match accuracy 1.0000 | Dataset is a thesis extension, not the paper Table 5 |
 | Trained random-init soft prompts are meaningful SIPIT readout targets | Partially | Seed-42 16-token/2048 run changes/improves validation and final-test behavior | Seed sweep is mixed, so usefulness is not yet robust |
 | SIPIT can invert learned random-init soft prompts into semantically useful text | No in current evidence | Soft-prompt SIPIT readout and controls | Learned vectors are continuous/off-manifold; nearest text is not faithful semantic interpretation |
-| Standalone NLA plumbing works | Yes | NLA artifacts | Not semantic-fidelity proof |
+| NLA extraction/verbalization plumbing works | Yes | NLA artifacts | Not semantic-fidelity proof |
 | GEPA+PPL can improve Topical-Chat engagingness | Yes for observed long run | First PPL long run | Historical setup evolved |
 | Raw NLA robustly improves GEPA | No | Raw-NLA and candidate-only diagnostics | Needs semantic compression or better use |
 | Fixed-NLA improves GEPA | Weak / not yet conclusive | Matched long control | Prompt unchanged; small prediction movement |
-| Auxiliary judge makes NLA useful | Pending in current docs | Aux-judge branch | Needs valid smoke/long result |
+| Auxiliary judge makes NLA useful | Pending in current docs | Aux-judge condition | Needs valid smoke/long result |
 
 ## Tables And Figures To Add
 
@@ -635,7 +634,7 @@ Main tables:
 - Embedding-inversion diagnostic run table.
 - SIPIT collision, Table-5-style recovery, and logical20 recovery tables.
 - Soft-prompt random-init metric table and SIPIT readout/control table.
-- Standalone NLA validation table.
+- NLA extraction validation table.
 - GEPA long-run comparison table.
 - NLA ablation/failure-mode table.
 - Dataset/dimension matrix status table.
@@ -684,7 +683,7 @@ final Results chapter; it is the support map for writing it.
 | Artifact | Status | Planned use |
 |---|---|---|
 | `embedding-inversion-demo/RESULTS.md` | Available | Main curated result anchors |
-| `embedding-inversion-demo/EXPERIMENTS.md` | Available | Decision tree and branch status |
+| `embedding-inversion-demo/EXPERIMENTS.md` | Available | Decision tree and diagnostic status |
 | `embedding-inversion-demo/FAILURE_MODES.md` | Available | Failure-mode discussion |
 | `embedding-inversion-demo/PROVENANCE_LEDGER.md` | Available | Data/model provenance |
 
@@ -716,7 +715,7 @@ final Results chapter; it is the support map for writing it.
 | `spit/SIPIT/data/reproduce/logs/slurm-11873921.out` | Recovered locally, too large for commit | BruteForce partial log-derived baseline extraction only |
 | Final random-prefix result tables | Not currently available in this inventory | Recover/run if they are thesis-critical |
 
-### Standalone NLA Artifacts
+### NLA Extraction Artifacts
 
 | Artifact | Status | Planned use |
 |---|---|---|
@@ -724,7 +723,7 @@ final Results chapter; it is the support map for writing it.
 | `nla-artifacts/summeval/RUNS.md` | Available | Run history |
 | `nla-artifacts/summeval/activations_qwen25_7b_instruct_L20_sample12.parquet` | Available | Activation extraction evidence |
 | `nla-artifacts/summeval/verbalizations_qwen25_7b_L20_sample12_transformers_stream.jsonl` | Available | AV verbalization evidence |
-| `nla-artifacts/summeval/report_qwen25_7b_L20_sample12_transformers_stream.md` | Available | Standalone NLA summary |
+| `nla-artifacts/summeval/report_qwen25_7b_L20_sample12_transformers_stream.md` | Available | NLA extraction summary |
 | NLA semantic-fidelity evaluation on canonical logical dataset | Not currently available | Needed for standalone semantic-fidelity claim |
 
 ### GEPA Result Directories
@@ -781,7 +780,7 @@ Not planned for main text:
 Not currently available or incomplete:
 
 - final random-prefix result tables, unless recovered or rerun;
-- standalone NLA semantic-fidelity evaluation on the canonical logical dataset;
+- NLA semantic-fidelity evaluation on the canonical logical dataset;
 - final auxiliary-judge long result in the current local docs;
 - full paper-aligned GEPA matrix across all dimensions;
 - GEPA per-stage timing and peak GPU memory for final long runs.
@@ -797,7 +796,7 @@ The thesis can currently claim:
   (`100/100`, exact-match accuracy `1.0000`);
 - SIPIT exactly recovered the thesis logical20 GPT-2 dataset (`40/40`,
   exact-match accuracy `1.0000`);
-- standalone Qwen2.5-7B NLA extraction and verbalization are operational;
+- Qwen2.5-7B NLA extraction and verbalization are operational;
 - GEPA+PPL can improve the observed Topical-Chat engagingness task;
 - raw NLA feedback is not reliably helpful in the current GEPA setup;
 - fixed-NLA is technically healthier and weak-positive against a matched
@@ -808,7 +807,7 @@ The thesis can currently claim:
 The thesis cannot yet claim:
 
 - NLA robustly improves GEPA;
-- standalone NLA preserves negation or counterfactual meaning on the canonical
+- NLA extraction/verbalization preserves negation or counterfactual meaning on the canonical
   dataset;
 - QAGS or SummEval smoke numbers are final scientific performance results;
 - exact reproduction of all G-EVAL paper results, because the current

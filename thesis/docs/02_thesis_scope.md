@@ -5,14 +5,15 @@
 Study whether latent-to-text methods preserve semantic content when the input is
 logically difficult, negated, counterfactual, or contrary to commonsense.
 
-The thesis includes two connected tracks:
+The thesis includes two connected objectives:
 
 - analysis of embedding/activation inversion methods to identify their
   potential and their semantic failure modes;
-- Latent-GEPA track: use latent-representation analysis, including perplexity
+- Latent-GEPA: use latent-representation analysis, including perplexity
   and activation verbalization signals, to improve G-Eval-style judge prompts.
 
-GEPA is the latest experimental branch, not the only thesis topic. It tests
+Latent-GEPA is the main proposed prompt-optimization component, not the only
+thesis topic. It tests
 whether NLA-style activation information can become useful feedback for prompt
 optimization.
 
@@ -32,7 +33,7 @@ optimization.
 - A reproduction/diagnostic study of embedding inversion with Jina-style
   conditional masked diffusion.
 - A SIPIT reproduction path plus logical-dataset and random-prefix extensions.
-- A standalone NLA extraction/verbalization pipeline for Qwen2.5-7B layer-20
+- An NLA extraction/verbalization pipeline for Qwen2.5-7B layer-20
   activations.
 - A reproducible GEPA pipeline for G-EVAL-style prompt optimization.
 - A study of perplexity feedback as an additional signal for prompt proposal.
@@ -42,13 +43,12 @@ optimization.
 
 ## Current Evidence Position
 
-- The embedding-inversion branch has strong diagnostic evidence but not a clean
+- The embedding-inversion diagnostics have strong diagnostic evidence but not a clean
   paper-level Jina reproduction.
 - The canonical dataset build is reproducible and currently passes validation.
-- SIPIT has a completed collision check and strong log-derived interim GPT-2
-  Table 5 behavior, but final local CSV/JSON reports still need recovery or
-  explicit caveating.
-- Standalone NLA on SummEval has completed Qwen2.5-7B layer-20 extraction and
+- SIPIT has completed exact-recovery evidence in the recovered GPT-2 setting
+  and in the thesis logical20 setting; soft-prompt readout remains diagnostic.
+- NLA extraction on SummEval has completed Qwen2.5-7B layer-20 extraction and
   verbalization smokes.
 - PPL feedback produced a clearly positive early long run.
 - The first raw-NLA long run was negative and is best treated as a diagnostic
