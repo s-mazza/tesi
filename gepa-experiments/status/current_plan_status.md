@@ -1293,3 +1293,41 @@ should mention that a transient proposer outage occurred near the end of the
 optimization and caused skipped proposal steps. The follow-up jobs should be
 less likely to hit the same llama.cpp CUDA assertion because they now use the
 more conservative batch size.
+
+## 2026-06-26 D4 Completed
+
+The locked-GPU aux-judge long run completed successfully:
+
+- label: `D4_aux_judge_fixed_long_ppl_nla`
+- manifest status: `END:0:45992`
+- output directory:
+  `gepa-experiments/results/locked_gpu_20260625T201031Z/D4_aux_judge_fixed_long_ppl_nla`
+- metrics artifact: `metrics_20260625T220326Z.csv`
+- prompt artifact: `optimized_prompt_20260625T220326Z.txt`
+- trajectory artifact: `prompt_trajectory_20260625T220326Z.jsonl`
+- runtime artifact: `runtime_manifest_20260625T220326Z.json`
+- aux feedback artifact: `aux_judge_feedback_20260625T220326Z.jsonl`
+
+Final 60-row test metrics:
+
+```text
+baseline:  agreement=0.7583 pearson=0.7160 spearman=0.7184 kendall=0.6079 mae=0.4833
+optimized: agreement=0.7889 pearson=0.6622 spearman=0.6589 kendall=0.5681 mae=0.4222
+```
+
+Current interpretation:
+
+- positive signal: agreement improved by about `+0.0306` and MAE improved by
+  about `-0.0611`;
+- negative signal: Pearson, Spearman, and Kendall all decreased;
+- therefore this run is not clean evidence that aux-judge + NLA improves the
+  paper-aligned correlation objective, but it is a useful completed result for
+  the thesis because it shows that the auxiliary-judge branch changes behavior
+  and improves absolute-score closeness while hurting rank/correlation metrics;
+- caveat: the proposer sidecar crashed twice near the end, so several GEPA
+  reflective mutation attempts were skipped before the second recovery restored
+  proposer calls.
+
+The queue advanced to `D2_matched_no_aux_smoke_ppl_nla`. At the 2026-06-26
+11:19 CEST check, D2 was running normally in NLA verbalization with the safer
+llama.cpp settings (`LLAMACPP_BATCH_SIZE=64`, `LLAMACPP_FLASH_ATTN=off`).

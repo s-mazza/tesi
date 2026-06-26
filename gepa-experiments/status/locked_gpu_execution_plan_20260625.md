@@ -345,3 +345,37 @@ Telegram monitor mitigation:
 - after the first deduplicated restart still produced duplicate alerts from both
   the queue `tee` log and the per-job log, the monitor was restarted to watch
   only per-job logs, with a two-hour cooldown and at most one log alert per poll.
+
+## 2026-06-26 D4 Completion
+
+D4 completed successfully after the second sidecar recovery:
+
+```text
+label: D4_aux_judge_fixed_long_ppl_nla
+status: END:0
+elapsed_seconds: 45992
+output: gepa-experiments/results/locked_gpu_20260625T201031Z/D4_aux_judge_fixed_long_ppl_nla
+metrics: metrics_20260625T220326Z.csv
+optimized_prompt: optimized_prompt_20260625T220326Z.txt
+trajectory: prompt_trajectory_20260625T220326Z.jsonl
+runtime_manifest: runtime_manifest_20260625T220326Z.json
+aux_feedback: aux_judge_feedback_20260625T220326Z.jsonl
+```
+
+Final D4 metrics on the 60-row test split:
+
+```text
+baseline:  agreement=0.7583 pearson=0.7160 spearman=0.7184 kendall=0.6079 mae=0.4833
+optimized: agreement=0.7889 pearson=0.6622 spearman=0.6589 kendall=0.5681 mae=0.4222
+```
+
+Interpretation for later analysis: the optimized prompt improved exact agreement
+and MAE but worsened all correlation metrics. Because the proposer sidecar was
+unavailable for a short interval near the end and several mutation steps were
+skipped, the run should be treated as a completed but operationally caveated
+aux-judge long result.
+
+The queue then advanced to `D2_matched_no_aux_smoke_ppl_nla`. At the 2026-06-26
+11:19 CEST check, D2 was in NLA verbalization, its llama.cpp sidecar was running
+with `LLAMACPP_BATCH_SIZE=64` and `LLAMACPP_FLASH_ATTN=off`, and no new startup
+error was visible.
