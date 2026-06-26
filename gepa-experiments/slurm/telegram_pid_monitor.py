@@ -38,6 +38,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--monitor-pid-file", default=None)
     parser.add_argument("--replace", action="store_true")
     parser.add_argument("--log-glob", action="append", default=[])
+    parser.add_argument("--alert-cooldown-seconds", type=int, default=1800)
+    parser.add_argument("--max-alerts-per-poll", type=int, default=3)
     return parser.parse_args()
 
 
@@ -149,6 +151,29 @@ def read_new_lines(path: Path, offset: int) -> tuple[list[str], int]:
         return lines, handle.tell()
 
 
+def alert_signature(line: str) -> str:
+    lowered = line.lower()
+    if "connection refused" in lowered:
+        return "connection-refused"
+    if "internalservererror" in lowered:
+        return "litellm-internal-server-error"
+    if "apiconnectionerror" in lowered or "connection error" in lowered:
+        return "api-connection-error"
+    if "cuda out of memory" in lowered or "out of memory" in lowered:
+        return "cuda-out-of-memory"
+    if "ggml_assert" in lowered or "cudasuccess" in lowered:
+        return "llamacpp-cuda-assert"
+    if "too many requests" in lowered or "http error 429" in lowered:
+        return "rate-limit"
+    if "traceback" in lowered:
+        return "traceback"
+    if "critical job failed" in lowered:
+        return "critical-job-failed"
+    compact = re.sub(r"\s+", " ", lowered.strip())
+    compact = re.sub(r"\b\d+\b", "#", compact)
+    return compact[:160]
+
+
 def main() -> int:
     args = parse_args()
     state_dir = Path(args.state_dir)
@@ -164,6 +189,13 @@ def main() -> int:
     safe_send(token, chat_id, f"{args.label}: monitor started\npid_file={target_pid_file}\npid={target_pid}")
 
     offsets: dict[str, int] = {}
+    for path in expand_globs(args.log_glob):
+        try:
+            offsets[str(path)] = path.stat().st_size
+        except OSError:
+            pass
+
+    last_alert_at: dict[str, float] = {}
     last_alive: bool | None = None
     while True:
         target_pid = read_pid(target_pid_file)
@@ -174,10 +206,44 @@ def main() -> int:
 
         for path in expand_globs(args.log_glob):
             lines, offsets[str(path)] = read_new_lines(path, offsets.get(str(path), 0))
+            alerts: dict[str, tuple[str, int]] = {}
             for raw in lines:
                 clean = raw.strip()
                 if clean and ERROR_RE.search(clean):
-                    safe_send(token, chat_id, f"{args.label}: log alert\nlog={path.name}\n{clean[:2500]}")
+                    signature = f"{path.name}:{alert_signature(clean)}"
+                    if signature in alerts:
+                        first_line, count = alerts[signature]
+                        alerts[signature] = (first_line, count + 1)
+                    else:
+                        alerts[signature] = (clean, 1)
+
+            sent_this_poll = 0
+            now = time.time()
+            for signature, (first_line, count) in alerts.items():
+                previous = last_alert_at.get(signature, 0.0)
+                if now - previous < args.alert_cooldown_seconds:
+                    print(
+                        f"suppressed duplicate alert: signature={signature} count={count}",
+                        flush=True,
+                    )
+                    continue
+                if sent_this_poll >= args.max_alerts_per_poll:
+                    print(
+                        f"suppressed alert due to poll cap: signature={signature} count={count}",
+                        flush=True,
+                    )
+                    continue
+                safe_send(
+                    token,
+                    chat_id,
+                    f"{args.label}: log alert\n"
+                    f"log={path.name}\n"
+                    f"signature={signature}\n"
+                    f"matching_lines={count}\n"
+                    f"{first_line[:2200]}",
+                )
+                last_alert_at[signature] = now
+                sent_this_poll += 1
 
         if not alive:
             safe_send(token, chat_id, f"{args.label}: monitor exiting\npid={target_pid}\nalive={alive}")
