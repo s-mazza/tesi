@@ -1244,16 +1244,11 @@ controlled sequences where exact or approximate recovery can be interpreted.
 For activation verbalization it provides examples where a textual description of
 a model state can be inspected for negation, polarity, or commonsense content.
 
-
 \section{Semantic-Fidelity Readout Diagnostics}
 \label{sec:method-readout-diagnostics}
 
-The Semantic-Fidelity Corpus is also used to interpret latent-to-text readouts.
-This diagnostic layer uses the prior inversion and verbalization methods
-discussed in \ChapterRef{chapter:related-work} as measurement tools. Its
-methodological role is to apply those readouts to controlled inputs, preserve
-enough metadata to audit the output, and compare the recovered or verbalized
-text with the semantic property under stress.
+\TableRef{tab:semantic-readout-diagnostics} summarizes the diagnostic readout
+views used in the thesis and the question each view is meant to answer.
 
 \begin{table}[!htb]
     \centering
@@ -1283,13 +1278,6 @@ text with the semantic property under stress.
     \ChapterRef{chapter:experimental_setup} and \ChapterRef{chapter:results}.}
     \label{tab:semantic-readout-diagnostics}
 \end{table}
-
-This placement keeps the distinction between \textbf{method} and
-\textbf{evaluation} explicit. The method defines which representations are read
-out and which semantic properties must be checked. The setup chapter specifies
-models, checkpoints, token positions, prompts, and hyperparameters. The results
-chapter reports whether each readout succeeded, failed, or produced only partial
-semantic evidence.
 
 \section{G-EVAL-Style Judge Task}
 \label{sec:method-geval-task}
