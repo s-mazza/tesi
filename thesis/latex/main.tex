@@ -112,7 +112,7 @@ embedding and activation-inversion methods, with the goal of identifying both
 their potential and their semantic failure modes. This part asks whether latent
 representations can be mapped back to text while preserving fragile meaning. The
 second topic is the use of latent-representation analysis to optimize GEPA for
-LLM-as-a-judge evaluation. In this branch, internal signals are not treated as
+LLM-as-a-judge evaluation. In this setting, internal signals are not treated as
 final answers; they are converted into feedback that may help a prompt optimizer
 produce a better judge prompt.
 
@@ -153,7 +153,7 @@ Our thesis work is subdivided into the following structure:
     \item \textbf{\ChapterRef{chapter:method} - Method}: This chapter defines the semantic
     fidelity task and describes \textbf{Latent-GEPA}, the proposed pipeline
     that augments GEPA-style prompt optimization with latent-derived feedback.
-    It also defines the diagnostic inversion and verbalization branches used to
+    It also defines the diagnostic inversion and verbalization views used to
     interpret the latent signals.
 
     \item \textbf{\ChapterRef{chapter:experimental_setup} - Experimental Setup}: This chapter reports the
@@ -725,14 +725,11 @@ can look unrelated or even misleading.
     \label{fig:related-prompt-waywardness}
 \end{figure}
 
-This line of work is relevant to two parts of the thesis. In the SIPIT branch,
-continuous or random prefix experiments test whether inversion methods remain
-meaningful when the input representation is not a simple natural-language
-prompt. In the later soft-prompt branch, the same concern motivates training
-task-specific soft prompts and then asking whether inversion or verbalization
-methods can explain the learned soft embeddings. The thesis therefore treats
-soft prompts as an interpretability stress case: useful internal vectors may be
-hard to verbalize faithfully.
+This line of work is relevant to the thesis because the soft-prompt diagnostic
+trains task-specific continuous prompts and then asks whether inversion or
+verbalization methods can explain the learned soft embeddings. The thesis
+therefore treats soft prompts as an interpretability stress case: useful
+internal vectors may be hard to verbalize faithfully.
 
 \subsection{Hard and Natural-Language Prompt Optimization}
 \label{sec:related-hard-prompt-optimization}
@@ -748,11 +745,10 @@ GEPA is the hard-prompt optimizer used in this thesis. It performs reflective
 prompt evolution: candidate prompts are evaluated, failures are summarized in
 natural language, and a proposer model generates prompt revisions that are
 tested on subsets and validation examples
-\cite{DBLP:journals/corr/abs-2507-19457}. GEPA is particularly appropriate for
-this work because its optimization loop is itself language mediated. It can
-incorporate textual feedback, not only scalar rewards. That makes it a natural
-place to test perplexity summaries, activation verbalizations, and
-auxiliary-judge comments as additional proposer context.
+\cite{DBLP:journals/corr/abs-2507-19457}. For this reason, GEPA provides the
+prompt-optimization backbone for \textbf{Latent-GEPA}, the method introduced in
+\ChapterRef{chapter:method}, where the proposer receives task feedback enriched
+with perplexity, activation verbalizations, and auxiliary-judge summaries.
 
 \FigureRef{fig:related-gepa-overview} makes explicit the part of GEPA that is
 most relevant for the thesis: prompts are kept in a candidate pool, evaluated on
@@ -766,21 +762,6 @@ proposer using textual feedback.
     Agrawal et al. \cite{DBLP:journals/corr/abs-2507-19457}.}
     \label{fig:related-gepa-overview}
 \end{figure}
-
-\subsection{Why GEPA Fits This Thesis}
-\label{sec:related-gepa}
-
-The thesis differs from the GEPA paper in the role assigned to the optimizer.
-The goal is not to benchmark GEPA broadly against reinforcement learning or
-other prompt optimizers. Instead, GEPA is used as an experimental mechanism for
-asking whether latent-derived feedback helps a prompt proposer discover better
-LLM-as-a-judge prompts. The prompt trajectory is therefore as important as the
-final score: intermediate prompts can reveal whether feedback changes the
-optimizer's reasoning or only adds noise. \ChapterRef{chapter:theory}
-introduced perplexity as a model surprisal signal, while this chapter introduces
-activation verbalization as a way to turn internal states into text. The method
-chapter combines these signals with GEPA, treating them as \textbf{proposal
-aids} rather than as final evaluation metrics.
 
 \section{Natural Language Activations}
 \label{sec:related-nla}
@@ -853,7 +834,7 @@ expensive, while an LLM judge can score many examples consistently under a
 fixed prompt. The risk is methodological: the judge prompt, the model family,
 and the output parsing procedure become part of the measurement instrument.
 
-G-EVAL is the main reference for the evaluation branch of this thesis. It uses
+G-EVAL is the main reference for the evaluation setting of this thesis. It uses
 GPT-4 as an evaluator for natural language generation tasks and reports stronger
 alignment with human judgments than several previous automatic metrics
 \cite{DBLP:conf/emnlp/LiuIXWXZ23}. Its setup is especially relevant because it defines
