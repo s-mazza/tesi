@@ -1331,3 +1331,42 @@ Current interpretation:
 The queue advanced to `D2_matched_no_aux_smoke_ppl_nla`. At the 2026-06-26
 11:19 CEST check, D2 was running normally in NLA verbalization with the safer
 llama.cpp settings (`LLAMACPP_BATCH_SIZE=64`, `LLAMACPP_FLASH_ATTN=off`).
+
+## 2026-06-26 Follow-Up Queue For Locked GPU Saturation
+
+The current direct locked-GPU queue is useful but probably not long enough to
+keep the reserved GPUs busy until Monday 2026-06-29 midday. To avoid idle GPU
+time, a follow-up queue was prepared as a separate script:
+
+```text
+gepa-experiments/slurm/run_locked_gpu_followup_queue.sh
+```
+
+This script is meant to run only after the current queue PID exits. It preserves
+the current pipeline and uses the same safer llama.cpp settings:
+
+```text
+LLAMACPP_BATCH_SIZE=64
+LLAMACPP_FLASH_ATTN=off
+GPU_DEVICE=0,2
+```
+
+Planned follow-up jobs, in priority order:
+
+1. clean aux-judge + PPL + NLA long rerun with seed 42;
+2. same aux-judge + PPL + NLA long branch with seed 43;
+3. Summeval/Consistency real-NLA smoke;
+4. QAGS-CNN/Consistency real-NLA smoke;
+5. QAGS-XSum/Consistency real-NLA smoke;
+6. candidate-content NLA token-selection probe;
+7. hybrid/deduplicated NLA token-selection probe;
+8. clean PPL-only long control as lowest-priority filler.
+
+Scientific intent:
+
+- F1/F2 test whether the aux-judge/NLA branch is stable once the proposer
+  sidecar is no longer crashing;
+- F3-F5 add coverage for the broader G-Eval dataset matrix;
+- F6/F7 add evidence about token positions/verbalization strategy for NLA;
+- F8 is only a filler/control job because the PPL-only branch already has a
+  historical baseline result.

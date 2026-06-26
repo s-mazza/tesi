@@ -379,3 +379,50 @@ The queue then advanced to `D2_matched_no_aux_smoke_ppl_nla`. At the 2026-06-26
 11:19 CEST check, D2 was in NLA verbalization, its llama.cpp sidecar was running
 with `LLAMACPP_BATCH_SIZE=64` and `LLAMACPP_FLASH_ATTN=off`, and no new startup
 error was visible.
+
+## 2026-06-26 Follow-Up Queue To Avoid Idle Locked GPUs
+
+The current locked-GPU queue is not expected to keep the reserved GPUs busy
+until Monday 2026-06-29 midday by itself. It still contains useful work
+(`D2`, `D3`, `A1`, the NLA token-position sweep, and `D5`), but this is likely
+shorter than the available reservation window.
+
+A second direct queue has therefore been prepared in
+`gepa-experiments/slurm/run_locked_gpu_followup_queue.sh`. It does not alter or
+interrupt the running queue. It is intended to be launched as a waiting wrapper:
+it waits for the current queue PID to exit, then starts the follow-up jobs on
+the same locked GPU devices.
+
+Follow-up priority order:
+
+1. `F1_clean_aux_long_ppl_nla_seed42`: clean rerun of the aux-judge + PPL + NLA
+   long branch after the llama.cpp sidecar hardening. This removes the D4 caveat
+   caused by endpoint outages near the end of optimization.
+2. `F2_clean_aux_long_ppl_nla_seed43`: same branch with a different seed, to
+   give a robustness point for the thesis while keeping the setting unchanged.
+3. `F3_summeval_consistency_real_nla_smoke`: Summeval/Consistency smoke for the
+   G-Eval matrix extension.
+4. `F4_qags_cnn_consistency_real_nla_smoke`: QAGS-CNN/Consistency smoke.
+5. `F5_qags_xsum_consistency_real_nla_smoke`: QAGS-XSum/Consistency smoke.
+6. `F6_candidate_content_10_strategy_probe`: NLA token-selection probe for the
+   candidate-content extraction strategy.
+7. `F7_hybrid_context_dedup_6_strategy_probe`: NLA token-selection probe for a
+   hybrid/deduplicated extraction strategy.
+8. `F8_clean_ppl_only_control_long`: lower-priority PPL-only long control if
+   time remains.
+
+All follow-up llama.cpp jobs inherit the safer settings now used by the current
+queue:
+
+```text
+LLAMACPP_BATCH_SIZE=64
+LLAMACPP_FLASH_ATTN=off
+GPU_DEVICE=0,2
+```
+
+Rationale: F1/F2 are the most useful thesis jobs because they directly address
+whether the aux-judge/NLA branch has a stable effect once the proposer sidecar
+is not failing. F3-F5 reduce the risk that the dataset-matrix extension remains
+untested. F6/F7 preserve the NLA-token-selection diagnostic thread. F8 is last
+because a PPL-only control already exists historically, so it is useful but not
+as urgent as the NLA/aux-judge branches.
