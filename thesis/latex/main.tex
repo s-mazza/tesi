@@ -1923,7 +1923,7 @@ performance. The canonical semantic-fidelity corpus is structured as follows:
     embedding-inversion, SIPIT, and NLA analyses on the same semantic examples.
 \end{itemize}
 
-For the G-EVAL-style branch, the split policy is designed to avoid leakage:
+For the G-EVAL-style experiments, the split policy is designed to avoid leakage:
 \begin{itemize}
     \item Several candidate responses can share the same context, source, or
     conversation, so the runner splits by a stable group id rather than by
@@ -1948,13 +1948,13 @@ Some early experiments used only Topical-Chat engagingness because it was the
 first fully working pipeline. Later matrix runs extend the same protocol to the
 remaining dimensions.
 
-The soft-prompt branch is reported separately from GEPA because it trains
+The soft-prompt diagnostic is reported separately from GEPA because it trains
 continuous virtual prompt tokens rather than optimizing a readable
 natural-language prompt. Its main setup is:
 \begin{itemize}
     \item \textbf{Task:} Topical-Chat / USR engagingness.
     \item \textbf{Base model family:} the same Qwen2.5-7B judge family used in
-    the GEPA branch.
+    the Latent-GEPA runs.
     \item \textbf{Main split:} 40 training groups, 10 validation groups, and 10
     final-test groups, corresponding to 240, 60, and 60 rows respectively.
 \end{itemize}
@@ -1982,14 +1982,14 @@ identifier used in the GEPA and soft-prompt runs:
         \textbf{Role} & \textbf{Model or checkpoint} & \textbf{Used for} & \textbf{Final metric source} \\
         \midrule
         Embedding encoder &
-        Jina-v3 / Qwen embedding branches &
+        Jina-v3 / Qwen embedding conditions &
         Producing embeddings for inversion diagnostics. &
-        Branch-dependent. \\
+        Diagnostic-specific. \\
         SIPIT target model &
         GPT-2 for reproduction-style runs &
         Hidden-state inversion and exact prompt recovery. &
         Yes, for SIPIT. \\
-        Standalone NLA base model &
+        NLA extraction base model &
         Qwen2.5-7B-Instruct &
         Activation extraction from selected token positions. &
         No. \\
@@ -2027,7 +2027,7 @@ identifier used in the GEPA and soft-prompt runs:
 
 The most important role distinctions are:
 \begin{itemize}
-    \item The evaluated model in the GEPA branch is the 7B base judge plus its
+    \item The evaluated model in Latent-GEPA is the 7B base judge plus its
     prompt. GEPA changes the prompt, not the judge weights.
     \item Qwen35B is used for prompt proposal and, when enabled, auxiliary
     feedback compression. It does not produce the final reported GEPA scores.
@@ -2266,7 +2266,7 @@ The thesis uses both task metrics and diagnostic metrics.
 \end{table}
 
 \TableRef{tab:geval-metrics} lists the paper-aligned metrics for the
-G-EVAL-style branch. The runner also stores MAE, normalized agreement, parsed
+G-EVAL-style experiments. The runner also stores MAE, normalized agreement, parsed
 count, total count, and coverage as diagnostics; these values help explain
 failures but are not substitutes for the paper-aligned metrics.
 
@@ -2386,7 +2386,7 @@ judging, so their metrics are reported separately in
 \section{Hyperparameters}
 \label{sec:setup-hyperparameters}
 
-Hyperparameters are reported by experiment family because the branches answer
+Hyperparameters are reported by experiment family because the experiment families answer
 different questions. Values marked with an asterisk are the current reporting
 defaults or final values for the completed runs. Values without an asterisk were
 tried or remain run-dependent.
@@ -2537,7 +2537,7 @@ minutes.
 \section{Runtime and Efficiency Measurements}
 \label{sec:setup-runtime}
 
-Runtime is part of the setup because several branches are computationally
+Runtime is part of the setup because several experiment families are computationally
 expensive. Every thesis-grade run should save:
 \begin{itemize}
     \item start time, end time, elapsed seconds, Slurm job id, node list, and
@@ -2556,15 +2556,15 @@ operational duration, while GPU memory pressure can affect whether a job starts
 at all. Scientific runtime comparisons should therefore use artifact timestamps
 and runtime manifests, not only scheduler summaries.
 
-\section{Chapter Summary}
+\section{Setup Audit Checklist}
 \label{sec:setup-summary}
 
-This chapter fixed the experimental surface used by the result chapter:
-datasets, splits, model roles, hardware, software, metrics, hyperparameters,
-baselines, and artifact requirements. The following result chapter uses this
-setup to report which latent-to-text methods preserve semantic content, which
-GEPA feedback variants improve or fail to improve the judge prompt, and which
-diagnostics explain the observed failures.
+The experimental setup is considered auditable when a result can be traced to
+four elements: the dataset split, the model roles, the metric definition, and
+the saved runtime artifacts. The following result chapter uses this setup to
+report which latent-to-text readouts preserve semantic content, which
+Latent-GEPA feedback variants improve or fail to improve the judge prompt, and
+which diagnostics explain the observed failures.
 
 \chapter{Results}
 \label{chapter:results}
@@ -2572,7 +2572,7 @@ diagnostics explain the observed failures.
 This chapter reports the experimental evidence used in the thesis. The goal is
 not to present every log file, but to separate \textbf{completed results},
 \textbf{diagnostic evidence}, and \textbf{failure analyses}. This distinction is
-important because some branches support direct claims, while others are included
+important because some experiments support direct claims, while others are included
 only because they explain why a hypothesis was rejected.
 
 The main reading rules for this chapter are:
@@ -2591,7 +2591,7 @@ The main reading rules for this chapter are:
 
 \TableRef{tab:results-evidence-overview} summarizes the evidence level of each
 result family. It is intentionally placed before the detailed sections so that
-the reader can distinguish robust evidence from diagnostic branches.
+the reader can distinguish robust evidence from diagnostic analyses.
 
 \begin{table}[!htb]
     \centering
@@ -2611,9 +2611,9 @@ the reader can distinguish robust evidence from diagnostic branches.
         Completed and log-derived evidence &
         GPT-2 Table-5-style SIPIT reached exact recovery; thesis logical prompts were also exactly recovered. \\
         Soft-prompt tuning and SIPIT readout &
-        Completed diagnostic branch &
+        Completed diagnostic evidence &
         Soft prompts can affect the judge, but SIPIT-style readout does not recover faithful natural-language prompts. \\
-        Standalone NLA &
+        NLA extraction validation &
         Plumbing validation &
         Qwen layer-20 activation extraction and AV verbalization work technically. \\
         GEPA with PPL &
@@ -2639,7 +2639,7 @@ not provide a robust improvement signal for GEPA in the completed experiments.
 
 The first result is the construction and validation of the canonical
 semantic-fidelity corpus. This is not only preprocessing: it defines the
-stress-test surface used by the inversion and verbalization branches. The
+stress-test surface used by the inversion and verbalization diagnostics. The
 validation report contains no warnings and no errors.
 
 \begin{table}[!htb]
@@ -2692,8 +2692,8 @@ validation report contains no warnings and no errors.
 
 The main result is that the corpus gives the thesis a controlled way to test
 semantic drift. In the result sections below, this corpus is used as the
-reference point for deciding whether an inversion or verbalization branch
-preserves the intended semantic phenomenon.
+reference point for deciding whether a readout preserves the intended semantic
+phenomenon.
 
 \section{Embedding-Inversion Diagnostics}
 \label{sec:results-embedding-inversion}
@@ -2701,7 +2701,7 @@ preserves the intended semantic phenomenon.
 \subsection{Reproduction Scope}
 \label{subsec:results-embedding-scope}
 
-The embedding-inversion branch was useful mainly as a diagnostic reproduction
+The embedding-inversion study was useful mainly as a diagnostic reproduction
 study. It did not produce a clean paper-level reproduction, but it identified
 conditions under which the implementation can overfit and conditions under
 which full-mask recovery remains weak.
@@ -2729,11 +2729,11 @@ Therefore, using the public encoder alone would not remove the need to train or
 reproduce the conditional masked-diffusion \textbf{inverter}; it would only
 provide the input embedding that the inverter must learn to decode.
 
-There are three different sources involved in this diagnostic branch. The
+There are three different sources involved in this diagnostic. The
 embedding-inversion paper provides the method and public code/artifact trail for
 the inversion model. Jina provides the released Jina-v3 encoder checkpoint. This
-thesis produced the local reproduction runs and the local \texttt{data\_jinav3}
-training cache. The provenance check below is
+thesis produced the local reproduction runs and the corresponding local
+embedding cache. The provenance check below is
 therefore one of our diagnostic experiments, not a metric reported by the
 embedding-inversion paper.
 
@@ -2741,24 +2741,23 @@ embedding-inversion paper.
 \label{subsec:results-embedding-provenance}
 
 The provenance question was narrower than the reproduction problem as a whole:
-were the vectors in our local \texttt{data\_jinav3} cache generated with the
+were the vectors in the local Jina-v3 embedding cache generated with the
 same Jina-v3 encoder call used by the released repository/demo path, or did our
 local data preparation accidentally train the inverter against a different
 embedding function?
 
 No private Jina path was used in this thesis. The comparison is between our
 locally generated cache and several public ways of calling the released Jina-v3
-encoder: direct \texttt{AutoModel(...)} forward passes, \texttt{encode(...)}
-calls, and optional task-adapter calls.
+encoder: direct model-forward calls, high-level encoder calls, and optional
+task-adapter calls.
 
-The \texttt{data\_jinav3} cache is the dataset consumed by the local inverter
-training loop. It was produced by our reproduction pipeline: Stage 1 collected
-raw C4/mC4 text, and Stage 2 tokenized each text for the decoder and encoded the
-same text with Jina-v3. For each example, the cache stores two aligned objects:
-decoder token ids in files named like \texttt{token\_ids\_*.npy}, and the
-corresponding Jina-v3 embedding vectors in files named like
-\texttt{embeddings\_*.npy}. These vectors were therefore generated locally, not
-downloaded as ready-made embeddings from the paper authors.
+The local cache is the dataset consumed by the reproduced inverter training
+loop. It was produced in two stages: first, raw C4/mC4 text was collected from
+the released data-preparation path; second, each text was tokenized for the
+decoder and encoded with Jina-v3. For each example, the cache stores the decoder
+tokens and the corresponding Jina-v3 embedding vector as aligned records. These
+vectors were therefore generated locally, not downloaded as ready-made
+embeddings from the paper authors.
 
 In this context, a \textbf{Jina task adapter} is a task-specific embedding mode
 exposed by Jina-v3. The same text can be embedded through the default encoder
@@ -2769,13 +2768,12 @@ The relevant consequence for this thesis is practical: if the local cache was
 generated with one adapter and the reproduction assumes another, the inverter is
 trained against a different vector space.
 
-To test this, sampled rows from \texttt{data\_jinav3} were decoded back to text,
+To test this, sampled rows from the local cache were decoded back to text,
 re-encoded with several Jina-v3 calls, and compared against the stored vectors by
 cosine similarity. The local cache matched the no-task/no-adapter call exactly.
-Both the raw
-\texttt{AutoModel(...)} forward path without adapter and \texttt{encode(...)}
+Both the direct forward path without adapter and the high-level encoder path
 without an explicit task produced mean cosine similarity 1.000000 against the
-stored \texttt{data\_jinav3} embeddings.
+stored embeddings.
 
 Explicit Jina task adapters produced visibly different vectors. The tested
 adapter modes were:
@@ -2798,7 +2796,7 @@ public artifacts available locally.
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{p{0.23\linewidth} p{0.22\linewidth} p{0.18\linewidth} p{0.29\linewidth}}
         \toprule
-        \textbf{Run or branch} & \textbf{Main condition} & \textbf{Observed signal} & \textbf{Interpretation} \\
+        \textbf{Run or diagnostic} & \textbf{Main condition} & \textbf{Observed signal} & \textbf{Interpretation} \\
         \midrule
         Long Jina-v3 run &
         Full-mask reconstruction probe &
@@ -2830,7 +2828,7 @@ public artifacts available locally.
 \subsection{Interpretation}
 \label{subsec:results-embedding-interpretation}
 
-This branch supports the broader thesis motivation: standard reconstruction
+This diagnostic supports the broader thesis motivation: standard reconstruction
 signals can hide important differences between a small positive control and a
 realistic inversion setting. The results should therefore be discussed as
 diagnostic evidence rather than as a successful reproduction of the original
@@ -2850,7 +2848,7 @@ ordinary token sequence.
 \label{subsec:results-sipit-gpt2}
 
 The standard SIPIT setting was evaluated before the continuous-prompt extension.
-This branch uses hidden states generated by real token sequences and asks
+This setting uses hidden states generated by real token sequences and asks
 whether the original tokens can be recovered. The collision check found no exact
 hidden-state collisions on the sampled GPT-2 prompts.
 
@@ -2932,7 +2930,7 @@ sequences.
 \subsection{Soft-Prompt Tuning}
 \label{subsec:results-soft-prompt}
 
-The soft-prompt branch asks whether a continuous prompt trained on the same
+The soft-prompt diagnostic asks whether a continuous prompt trained on the same
 G-EVAL-style task can later be interpreted by SIPIT-style recovery. Task metrics
 are reported first only as a sanity check: if the soft prompt does not affect
 the judge, there is little reason to interpret its learned vectors.
@@ -3044,7 +3042,7 @@ current bounded recovery setup.
     \label{tab:soft-prompt-sipit-controls}
 \end{table}
 
-The control table resolves the main ambiguity of this branch. Ordinary SIPIT
+The control table resolves the main ambiguity of this diagnostic. Ordinary SIPIT
 starts from hidden states generated by a real token sequence and tries to
 recover that sequence. The soft-prompt readout instead starts from learned
 continuous vectors. The random-hard-token control confirms that the recovery
@@ -3054,7 +3052,7 @@ text. Therefore, the current result is negative for semantic interpretability:
 soft prompts can improve task behavior, but their SIPIT-style nearest text is
 not a faithful natural-language explanation.
 
-\section{Standalone NLA Validation}
+\section{NLA Extraction Validation}
 \label{sec:results-standalone-nla}
 
 Before using NLA inside GEPA, the standalone pipeline was tested on SummEval
@@ -3087,7 +3085,7 @@ extraction and activation verbalization, not semantic usefulness.
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Standalone NLA validation results.}
+    \caption{NLA extraction and verbalization validation results.}
     \label{tab:standalone-nla-validation}
 \end{table}
 
@@ -3099,7 +3097,7 @@ held-out task labels or controlled semantic phenomena.
 \section{GEPA and G-EVAL Prompt Optimization}
 \label{sec:results-gepa}
 
-The GEPA branch tests whether additional feedback helps optimize an
+The Latent-GEPA experiments test whether additional feedback helps optimize an
 LLM-as-a-judge prompt. All result tables in this section report held-out
 evaluation rows, not the validation rows used during prompt search.
 
@@ -3510,7 +3508,7 @@ hypotheses were ruled out.
         \midrule
         Embedding-inversion full-data probes stayed weak &
         Jina-v3 probes did not recover strong full-mask behavior. &
-        Treat branch as diagnostic, not as a successful paper reproduction. \\
+        Treat the evidence as diagnostic, not as a successful paper reproduction. \\
         Raw NLA worsened GEPA &
         Raw-NLA long run dropped correlations and increased MAE. &
         Do not claim raw NLA helps. \\
@@ -3565,7 +3563,7 @@ claim to the evidence currently available.
         No &
         Readout and controls show off-manifold continuous vectors. &
         Current readout is not semantically faithful. \\
-        Standalone NLA plumbing works. &
+        NLA extraction and verbalization works. &
         Yes &
         Qwen layer-20 extraction and AV verbalization completed. &
         Operational claim only. \\
@@ -3588,19 +3586,87 @@ claim to the evidence currently available.
     \label{tab:final-claim-matrix}
 \end{table}
 
-\section{Chapter Summary}
-\label{sec:results-summary}
+\chapter{Conclusions and Future Work}
+\label{chapter:conclusions}
 
-The strongest completed evidence is the validated semantic-fidelity dataset, the
-recovered SIPIT exact-recovery results, the operational standalone NLA pipeline,
-the positive historical GEPA+PPL long run, and the completed
-soft-prompt/readout diagnostics. The main negative result is that raw NLA
-feedback does not improve GEPA in a reliable way in the completed experiments.
-Fixed NLA improves artifact health and gives a small matched long-run metric
-gain, but it does not change the optimized prompt and therefore cannot support a
-strong ``NLA improves GEPA'' claim by itself. These results motivate treating
-NLA as a diagnostic signal rather than as a ready-to-use GEPA feedback source in
-the current implementation.
+\section{Conclusions}
+\label{sec:conclusions-main}
+
+This thesis investigated whether latent representations and their textual
+readouts can be used to study semantic fidelity and to improve LLM-as-a-judge
+prompt optimization. The work produced three main findings.
+
+First, the Semantic-Fidelity Corpus provides a controlled surface for testing
+cases where lexical similarity and semantic correctness can diverge. The corpus
+is validated, split into stable train/validation/test partitions, and organized
+around controls, negation/polarity examples, and commonsense-sensitive pairs.
+This makes it suitable for analyzing whether inversion or verbalization outputs
+preserve the property that matters, rather than only producing fluent text.
+
+Second, the inversion diagnostics confirm that the type of latent
+representation strongly affects interpretability. SIPIT-style exact recovery
+works in the recovered discrete-token settings, including the thesis logical
+prompt set, but this does not automatically extend to learned continuous
+prompts. Random-initialized soft prompts can change judge behavior, yet their
+nearest-token and bounded-recovery readouts remain far from faithful natural
+language explanations. This supports the distinction between operationally
+useful vectors and semantically transparent vectors.
+
+Third, Latent-GEPA shows that additional model-internal evidence must be tested
+carefully. Perplexity feedback produced the clearest positive GEPA result in the
+historical Topical-Chat / USR engagingness run. Raw NLA feedback, instead, did
+not provide a robust improvement signal in the completed experiments. The fixed
+NLA condition improved artifact quality and produced a small matched metric
+gain, but it selected the unchanged seed prompt; therefore it is best
+interpreted as diagnostic evidence rather than as a conclusive prompt
+optimization improvement.
+
+\section{Limitations}
+\label{sec:conclusions-limitations}
+
+The main limitation is that not every experiment reaches the same level of
+evidence. Some components support direct claims, such as the validated dataset,
+SIPIT exact-recovery checks, and the matched GEPA long runs. Other components
+are diagnostic and explain why a stronger claim is not yet justified, such as
+the embedding-inversion reproduction gap and the raw-NLA feedback failures.
+
+The comparison with G-EVAL is also constrained by model choice. The thesis
+focuses on the proposed optimization and feedback pipeline rather than on
+replicating the original G-EVAL model setting exactly. Final metrics are still
+computed against human annotations on G-EVAL-style datasets, but the reported
+values should be interpreted as results for the implemented Qwen-based judge
+pipeline, not as a direct model-for-model reproduction of the original paper.
+
+\section{Future Work}
+\label{sec:conclusions-future-work}
+
+Future work should first improve the interface between NLA and the GEPA
+proposer. The completed diagnostics suggest that token position, layer choice,
+deduplication, and feedback compression are critical. A stronger version of
+Latent-GEPA should therefore compare multiple token-selection policies and use
+an auxiliary judge to convert raw activation verbalizations into shorter
+rubric-level lessons before passing them to the proposer.
+
+A second direction is to extend the GEPA matrix across all G-EVAL-style
+datasets and dimensions with matched budgets. This would make it possible to
+separate effects that are specific to Topical-Chat engagingness from effects
+that hold across summarization and factual-consistency tasks.
+
+A third direction is to deepen the continuous-prompt analysis. The current
+soft-prompt experiments show that learned vectors can affect task behavior
+without yielding faithful text under the tested readout. Additional controls,
+longer optimization, and alternative inversion objectives could clarify whether
+this is a limitation of the readout procedure or an intrinsic property of the
+learned prompt vectors.
+
+\section*{Acknowledgements}
+\addcontentsline{toc}{section}{Acknowledgements}
+\label{sec:acknowledgements}
+
+I would like to thank Professor Andrea Moro first for the supervision, technical
+guidance, and continuous feedback throughout the thesis work. I also thank the
+research group and collaborators who helped clarify the experimental direction,
+the cluster setup, and the interpretation of the negative results.
 
 \backmatter
 \addcontentsline{toc}{chapter}{Bibliography}
