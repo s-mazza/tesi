@@ -78,98 +78,68 @@ information can be made useful for downstream evaluation.
 \chapter*{Introduction}
 \markboth{Introduction}{Introduction}
 
-Large Language Models (LLMs) are usually observed through the text they
-generate, but their behavior is mediated by internal numerical representations.
-Embeddings, hidden states, logits, residual streams, and soft prompts encode
-information that can be reused for retrieval, analysis, generation, or
-evaluation. As a result, a growing line of work studies whether these latent
-representations can be inverted or verbalized: given a vector or an internal
-state, can we recover what the model was representing?
+Large Language Models (LLMs) are usually observed through the text they generate,
+but their behavior is mediated by latent numerical representations: embeddings,
+hidden states, logits, residual streams, and soft prompts. These representations
+are increasingly used for retrieval, interpretability, inversion, and automatic
+evaluation. This raises a central question for the thesis: when a latent
+representation is mapped back to natural language, does the output preserve the
+meaning of the original input, or does it merely produce fluent and plausible
+text?
 
-This question is often evaluated as a reconstruction problem. If the recovered
-text overlaps with the input, has high embedding similarity, or receives a high
-semantic-similarity score, the method appears successful. However, this view can
-hide a more delicate failure mode. A reconstruction may look close while
-removing a negation, flipping a causal relation, or replacing a counterfactual
-statement with a more plausible commonsense sentence. For example, the sentence
-\quotes{The ice does not melt under the sun} and the sentence \quotes{The ice
-melts under the sun} are lexically close, but their meanings are incompatible.
-Surface-level metrics can treat them as similar even though the logical content
-has changed.
+The distinction matters because common reconstruction metrics can hide
+meaning-changing errors. A recovered sentence may share most of its words with
+the input while losing a negation, reversing a causal relation, or normalizing a
+counterfactual statement toward commonsense. For instance,
+\quotes{The ice does not melt under the sun} and \quotes{The ice melts under
+the sun} are lexically close, but logically incompatible. Surface similarity is
+therefore not enough to evaluate whether an inversion or verbalization method
+preserves semantic fidelity.
 
-The goal of this thesis is to study this mismatch between surface-form
-reconstruction and semantic fidelity. The focus is not only whether a latent
-representation can be decoded into fluent text, but whether the recovered text
-preserves meaning in cases where meaning is fragile: negation, polarity,
-contradiction, counterfactuality, and commonsense violations. These phenomena
-are important because language models are strongly biased toward plausible
-continuations. If an inversion method normalizes an unusual input into a more
-likely sentence, it may look successful by standard metrics while failing the
-semantic property that matters.
+This thesis studies that mismatch through two connected lines of work. The
+first analyzes embedding- and activation-inversion methods on examples where
+meaning is fragile, especially under negation, polarity changes, and
+commonsense-sensitive statements. The second uses latent-representation
+analysis as feedback for LLM-as-a-judge prompt optimization. In this setting, a
+model scores generated text according to a rubric, and quality is measured by
+agreement with human judgments. The proposed pipeline, \textbf{Latent-GEPA},
+keeps the evaluated judge fixed while using prompt optimization enriched with
+signals such as perplexity, activation verbalizations, and optional
+auxiliary-judge feedback.
 
-The work is organized around two connected topics. The first is the analysis of
-embedding and activation-inversion methods, with the goal of identifying both
-their potential and their semantic failure modes. This part asks whether latent
-representations can be mapped back to text while preserving fragile meaning. The
-second topic is the use of latent-representation analysis to optimize GEPA for
-LLM-as-a-judge evaluation. In this setting, internal signals are not treated as
-final answers; they are converted into feedback that may help a prompt optimizer
-produce a better judge prompt.
+The thesis is guided by two research questions. First, what do latent-to-text
+methods reveal about the semantic content preserved in internal
+representations, especially for logically fragile inputs? Second, can such
+latent evidence be transformed into useful guidance for improving
+G-EVAL-style judge prompts through Latent-GEPA?
 
-The second track uses G-EVAL-style LLM-as-a-judge tasks as a downstream testbed.
-In this setting, a language model scores generated text according to a rubric,
-and the quality of the judge is measured by agreement with human annotations.
-The thesis uses GEPA, a prompt optimization method, to improve judge prompts and
-then studies whether additional signals can help the optimization process.
-Perplexity is used as a model-confidence signal computed from the base model.
-Activation verbalizations are tested as activation-derived feedback. An optional
-auxiliary judge can also be used to compress raw feedback into a form that is
-closer to the evaluation rubric.
-
-This framing leads to two main research questions. First, what do inversion and
-verbalization methods reveal about the semantic content preserved in latent
-representations, especially under negation, polarity changes, and
-counterfactual inputs? Second, can the same kind of latent analysis be turned
-into useful guidance for \textbf{Latent-GEPA}, the prompt-optimization pipeline
-proposed in this thesis for improving G-EVAL-style judge prompts?
-
-Our thesis work is subdivided into the following structure:
+The remainder of the thesis is organized as follows:
 
 \vspace{4mm}
 
 \begin{itemize}
-    \item \textbf{\ChapterRef{chapter:theory} - Theoretical Framework}: This chapter introduces
-    the concepts required to understand the rest of the thesis: neural text
-    representations, latent-to-text inversion, semantic fidelity, exact
-    hidden-state recovery, activation verbalization, perplexity,
+    \item \textbf{\ChapterRef{chapter:theory} - Theoretical Framework}: introduces neural
+    representations, latent-to-text inversion, semantic fidelity,
     LLM-as-a-judge evaluation, prompt optimization, and agreement metrics.
 
-    \item \textbf{\ChapterRef{chapter:related-work} - Related Work}: This chapter reviews the research
-    lines most closely related to the thesis, including embedding inversion,
-    hidden-state inversion, interpretable soft prompts, activation
-    verbalization, G-EVAL, and prompt optimization. Each section clarifies how
-    this thesis differs from previous work.
+    \item \textbf{\ChapterRef{chapter:related-work} - Related Work}: reviews prior work on
+    embedding inversion, hidden-state recovery, interpretable prompts,
+    activation verbalization, G-EVAL-style evaluation, and prompt optimization.
 
-    \item \textbf{\ChapterRef{chapter:method} - Method}: This chapter defines the semantic
-    fidelity task and describes \textbf{Latent-GEPA}, the proposed pipeline
-    that augments GEPA-style prompt optimization with latent-derived feedback.
-    It also defines the diagnostic inversion and verbalization views used to
-    interpret the latent signals.
+    \item \textbf{\ChapterRef{chapter:method} - Method}: defines the semantic-fidelity task and
+    presents \textbf{Latent-GEPA}, including the feedback variants used to test
+    latent-derived guidance.
 
-    \item \textbf{\ChapterRef{chapter:experimental_setup} - Experimental Setup}: This chapter reports the
-    datasets, model roles, metrics, baselines, hyperparameters, cluster
-    environment, implementation details, and reproducibility constraints used in
-    the experiments.
+    \item \textbf{\ChapterRef{chapter:experimental_setup} - Experimental Setup}: specifies
+    datasets, models, metrics, baselines, hyperparameters, hardware, software,
+    and reproducibility artifacts.
 
-    \item \textbf{\ChapterRef{chapter:results} - Results}: This chapter presents the experimental
-    outcomes: inversion diagnostics, hidden-state recovery checks, activation
-    verbalization diagnostics, GEPA long runs, perplexity and
-    activation-feedback ablations, and efficiency measurements.
+    \item \textbf{\ChapterRef{chapter:results} - Results}: reports inversion diagnostics,
+    soft-prompt and activation-readout analyses, GEPA ablations, runtime
+    measurements, and the resulting claim boundaries.
 
-    \item \textbf{Conclusions and Future Directions}: This final chapter summarizes
-    what can be claimed from the experiments, discusses limitations, and
-    outlines future directions on stronger NLA transformations and broader
-    paper-aligned evaluation.
+    \item \textbf{Conclusions and Future Directions}: summarizes the thesis claims,
+    limitations, and future extensions.
 \end{itemize}
 
 \newpage
