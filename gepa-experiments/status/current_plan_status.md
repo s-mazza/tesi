@@ -1370,3 +1370,29 @@ Scientific intent:
 - F6/F7 add evidence about token positions/verbalization strategy for NLA;
 - F8 is only a filler/control job because the PPL-only branch already has a
   historical baseline result.
+
+Launched follow-up details:
+
+```text
+follow-up run id: 20260626Tfollowup02
+follow-up root: gepa-experiments/results/locked_gpu_followup_20260626Tfollowup02
+current queue pid watched by follow-up: 856633
+follow-up waiter pid: 3028011
+follow-up Telegram monitor pid: 3033550
+```
+
+Operational check after launch:
+
+```text
+D2_matched_no_aux_smoke_ppl_nla: END:0:1891
+D3_aux_judge_only_smoke_ppl_aux_no_nla: END:0:1053
+A1_nla_strategy_wiring_probe: running at 2026-06-26 12:04 CEST
+current queue monitor: alive
+follow-up waiter: alive
+follow-up Telegram monitor: alive
+```
+
+The follow-up monitor originally failed because the launcher used an obsolete
+script path and `--name` instead of the supported `--label` argument. This was
+fixed in `gepa-experiments/slurm/launch_locked_gpu_followup_waiter.sh`, synced
+to faretra, and verified with a successful Telegram startup notification.

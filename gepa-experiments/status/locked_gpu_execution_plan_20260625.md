@@ -426,3 +426,30 @@ is not failing. F3-F5 reduce the risk that the dataset-matrix extension remains
 untested. F6/F7 preserve the NLA-token-selection diagnostic thread. F8 is last
 because a PPL-only control already exists historically, so it is useful but not
 as urgent as the NLA/aux-judge branches.
+
+Launch status:
+
+```text
+follow-up run id: 20260626Tfollowup02
+follow-up root: gepa-experiments/results/locked_gpu_followup_20260626Tfollowup02
+waiter pid: 3028011
+telegram monitor pid: 3033550
+wait condition: current locked queue pid 856633 exits
+```
+
+The follow-up waiter and Telegram PID/log monitor were verified alive at
+2026-06-26 12:04 CEST. The monitor uses the same conservative settings as the
+current queue monitor: 300-second polling, two-hour duplicate-signature
+cooldown, and at most one log alert per poll.
+
+Current queue progress after follow-up launch:
+
+```text
+D2_matched_no_aux_smoke_ppl_nla: END:0:1891
+D3_aux_judge_only_smoke_ppl_aux_no_nla: END:0:1053
+A1_nla_strategy_wiring_probe: START at 2026-06-26T10:03:28Z
+```
+
+D3 initially looked slow because its main log stayed on `Waiting for vLLM
+readiness`, but the wrapper completed normally and advanced to A1. No manual
+intervention was needed.
