@@ -453,3 +453,67 @@ A1_nla_strategy_wiring_probe: START at 2026-06-26T10:03:28Z
 D3 initially looked slow because its main log stayed on `Waiting for vLLM
 readiness`, but the wrapper completed normally and advanced to A1. No manual
 intervention was needed.
+
+## 2026-06-26 Node Interruption And Resume Queue
+
+At about 2026-06-26 15:10 CEST, the host recovered from an external node
+interruption. The bash/PID state from the previous direct queue was no longer
+valid:
+
+```text
+old current queue pid: 856633, not alive
+old current monitor pid: 2830998, not alive
+old follow-up waiter pid: 3028011, not alive
+old follow-up monitor pid: 3033550, not alive
+running GEPA/llama.cpp containers: none
+last incomplete job: B_sweep_candidate_fml_3
+last container state: Exited (255)
+```
+
+The original locked queue had completed all jobs through:
+
+```text
+D1_aux_judge_fixed_smoke_ppl_nla: END:0
+D4_aux_judge_fixed_long_ppl_nla: END:0
+D2_matched_no_aux_smoke_ppl_nla: END:0
+D3_aux_judge_only_smoke_ppl_aux_no_nla: END:0
+A1_nla_strategy_wiring_probe: END:0
+B_sweep_candidate_first_1: END:0
+B_sweep_candidate_middle_1: END:0
+B_sweep_candidate_last_1: END:0
+```
+
+To avoid rerunning completed work, `run_locked_gpu_queue.sh` now supports
+resume mode through:
+
+```text
+LOCKED_GPU_START_AT=<job_label>
+```
+
+The resumed queue was launched in a new clean output root:
+
+```text
+resume run id: 20260626Tresume1510Z
+resume root: gepa-experiments/results/locked_gpu_resume_20260626Tresume1510Z
+resume start label: B_sweep_candidate_fml_3
+resume pid: 86941
+resume Telegram monitor pid: 93547
+```
+
+The resume preflight passed Docker GPU exposure checks on GPUs `0,2`, skipped
+completed labels, and started `B_sweep_candidate_fml_3` again. At verification
+time, the llama.cpp sidecar for the resumed job was ready on port `19207`.
+
+A new follow-up waiter was also launched, attached to the new resume PID:
+
+```text
+follow-up run id: 20260626Tfollowup_after_resume02
+follow-up root: gepa-experiments/results/locked_gpu_followup_20260626Tfollowup_after_resume02
+follow-up waiter pid: 93586
+follow-up Telegram monitor pid: 93682
+wait condition: resume queue pid 86941 exits
+```
+
+Operational note: the first attempted relaunch had a shell-quoting issue in the
+follow-up launcher redirection and did not produce a usable follow-up. The
+working relaunch uses explicit paths and the verified resume PID above.

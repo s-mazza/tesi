@@ -1396,3 +1396,49 @@ The follow-up monitor originally failed because the launcher used an obsolete
 script path and `--name` instead of the supported `--label` argument. This was
 fixed in `gepa-experiments/slurm/launch_locked_gpu_followup_waiter.sh`, synced
 to faretra, and verified with a successful Telegram startup notification.
+
+## 2026-06-26 Direct Queue Resume After Host Interruption
+
+The node interruption around 2026-06-26 15:10 CEST killed the direct queue,
+monitors, and running containers. The bash state was no longer actionable even
+though some shell processes/logs still existed. The last incomplete job was:
+
+```text
+B_sweep_candidate_fml_3
+container state: Exited (255)
+```
+
+Completed before the interruption:
+
+```text
+D1, D4, D2, D3, A1,
+B_sweep_candidate_first_1,
+B_sweep_candidate_middle_1,
+B_sweep_candidate_last_1
+```
+
+Action taken:
+
+- added `LOCKED_GPU_START_AT` support to
+  `gepa-experiments/slurm/run_locked_gpu_queue.sh`;
+- relaunched the queue from `B_sweep_candidate_fml_3` in a clean root;
+- launched a new Telegram monitor for the resume queue;
+- launched a new follow-up waiter and Telegram monitor attached to the resume
+  PID.
+
+Current resumed execution:
+
+```text
+resume run id: 20260626Tresume1510Z
+resume root: gepa-experiments/results/locked_gpu_resume_20260626Tresume1510Z
+resume pid: 86941
+resume monitor pid: 93547
+resume start label: B_sweep_candidate_fml_3
+follow-up run id: 20260626Tfollowup_after_resume02
+follow-up waiter pid: 93586
+follow-up monitor pid: 93682
+```
+
+The resume preflight passed, skipped already-completed jobs, and restarted
+`B_sweep_candidate_fml_3`; the follow-up queue will start automatically after
+the resume queue exits.

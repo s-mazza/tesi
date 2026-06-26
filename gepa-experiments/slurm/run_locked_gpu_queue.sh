@@ -16,6 +16,8 @@ CONFIG_ROOT="${DIRECT_OUTPUT_ROOT}/configs"
 LOG_ROOT="${DIRECT_OUTPUT_ROOT}/logs"
 MANIFEST="${DIRECT_OUTPUT_ROOT}/manifest.tsv"
 CONTINUE_AFTER_NONCRITICAL_FAILURE="${CONTINUE_AFTER_NONCRITICAL_FAILURE:-1}"
+LOCKED_GPU_START_AT="${LOCKED_GPU_START_AT:-}"
+START_GATE_OPEN=0
 
 mkdir -p "$CONFIG_ROOT" "$LOG_ROOT"
 
@@ -148,6 +150,23 @@ execute_config_job() {
   fi
 }
 
+should_run_label() {
+  local label="$1"
+  if [[ -z "$LOCKED_GPU_START_AT" ]]; then
+    return 0
+  fi
+  if [[ "$START_GATE_OPEN" == "1" ]]; then
+    return 0
+  fi
+  if [[ "$label" == "$LOCKED_GPU_START_AT" ]]; then
+    START_GATE_OPEN=1
+    log "Resume start reached: ${label}"
+    return 0
+  fi
+  log "SKIP before resume start: ${label}"
+  return 1
+}
+
 run_gepa_job() {
   local label="$1"
   local base_config="$2"
@@ -157,6 +176,11 @@ run_gepa_job() {
   local critical="$6"
   local output_dir="${DIRECT_OUTPUT_ROOT}/${label}"
   local config_path
+
+  if ! should_run_label "$label"; then
+    return 0
+  fi
+
   config_path="$(write_config "$label" "$base_config" "$server_port" "$proposer_port" "$output_dir")"
 
   execute_config_job "$label" "$config_path" "$command" "$critical"
@@ -171,6 +195,10 @@ run_strategy_job() {
   local output_dir="${DIRECT_OUTPUT_ROOT}/${label}"
   local base_config="gepa-experiments/config/experimental_nla_position_sweep_topical_chat_smoke.env"
   local config_path="${CONFIG_ROOT}/${label}.env"
+
+  if ! should_run_label "$label"; then
+    return 0
+  fi
 
   require_file "$base_config"
   cat >"$config_path" <<EOF
@@ -193,15 +221,22 @@ EOF
 
 main() {
   preflight
+  if [[ -n "$LOCKED_GPU_START_AT" ]]; then
+    log "Resume mode enabled: LOCKED_GPU_START_AT=${LOCKED_GPU_START_AT}"
+  fi
 
   if [[ "${LOCKED_GPU_PREFLIGHT_ONLY:-0}" == "1" ]]; then
     log "Preflight-only mode completed."
     return 0
   fi
 
-  {
-    printf 'timestamp\tevent\tlabel\tconfig\toutput_dir\tlog\n'
-  } >"$MANIFEST"
+  if [[ "${LOCKED_GPU_APPEND_MANIFEST:-0}" == "1" && -f "$MANIFEST" ]]; then
+    log "Appending to existing manifest: ${MANIFEST}"
+  else
+    {
+      printf 'timestamp\tevent\tlabel\tconfig\toutput_dir\tlog\n'
+    } >"$MANIFEST"
+  fi
 
   run_gepa_job \
     "D1_aux_judge_fixed_smoke_ppl_nla" \
