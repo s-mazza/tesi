@@ -2144,7 +2144,9 @@ The runtime environment has a few constraints that affect reproducibility:
         compute/.style={box, fill=blue!7},
         model/.style={box, fill=orange!12},
         artifact/.style={box, fill=green!10},
-        line/.style={->, thick}
+        line/.style={-{Latex[length=2.1mm]}, thick, shorten >=1pt, shorten <=1pt},
+        audit/.style={-{Latex[length=2.1mm]}, thick, dashed, draw=black!55,
+            shorten >=1pt, shorten <=1pt}
     ]
         \node[data] (split) {Dataset split\\manifest};
         \node[compute, right=of split] (slurm) {Slurm job\\Docker container};
@@ -2155,16 +2157,16 @@ The runtime environment has a few constraints that affect reproducibility:
         \node[artifact, below=of gepa] (artifacts) {Saved artifacts\\metrics, prompts,\\predictions, logs};
         \node[artifact, right=of gepa] (finaltest) {Held-out\\final-test\\evaluation};
 
-        \draw[line] (split) -- (slurm);
-        \draw[line] (slurm) -- (judge);
-        \draw[line] (judge) -- (proposer);
-        \draw[line] (proposer) -- (gepa);
-        \draw[line] (gepa) -- (finaltest);
-        \draw[line] (judge) -- (signals);
-        \draw[line] (signals) -| (proposer);
-        \draw[line] (gepa) -- (artifacts);
-        \draw[line] (finaltest) |- (artifacts);
-        \draw[line] (split.south) .. controls +(down:18mm) and +(left:18mm) .. (artifacts.west);
+        \draw[line] (split.east) -- (slurm.west);
+        \draw[line] (slurm.east) -- (judge.west);
+        \draw[line] (judge.east) -- (proposer.west);
+        \draw[line] (proposer.east) -- (gepa.west);
+        \draw[line] (gepa.east) -- (finaltest.west);
+        \draw[line] (judge.south) -- (signals.north);
+        \draw[line] (signals.east) -- ++(7mm,0) |- (proposer.south);
+        \draw[line] (gepa.south) -- (artifacts.north);
+        \draw[line] (finaltest.south) -- ++(0,-8mm) -| (artifacts.east);
+        \draw[audit] (split.south) -- ++(0,-34mm) -| (artifacts.south west);
     \end{tikzpicture}}
     \caption{Deployment-level setup used for thesis-grade GEPA runs. Unlike the
     method diagram in \ChapterRef{chapter:method}, this figure focuses on the
