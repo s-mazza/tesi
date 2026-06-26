@@ -978,7 +978,7 @@ components while keeping the same semantic-fidelity motivation across them.
         \node[track label=orange, text=orange!70!black] at (1.25,-2.45) {Prompt\\optimization\\track};
         \node[track label=green, text=green!45!black] at (1.25,-4.90) {Soft-prompt\\diagnostic};
 
-        \node[card=blue] (corpus) at (4.10,0) {\textbf{Canonical corpus}\\semantic-fidelity probes};
+        \node[card=blue] (corpus) at (4.10,0) {\textbf{Semantic-Fidelity}\\Corpus probes};
         \node[card=blue] (latent_track) at (7.75,0) {\textbf{Latent readouts}\\inversion\\verbalization};
         \node[card=blue] (semantic) at (11.40,0) {\textbf{Semantic analysis}\\meaning-preservation checks};
 
@@ -1873,14 +1873,14 @@ Topical-Chat experiments.\footnote{\url{https://huggingface.co/datasets/Conversa
         \toprule
         \textbf{Dataset} & \textbf{Source} & \textbf{Task} & \textbf{Size used} & \textbf{Split policy} & \textbf{Thesis role} \\
         \midrule
-        Canonical semantic-fidelity corpus &
+        Semantic-Fidelity Corpus &
         Locally generated corpus &
         Test negation, polarity, and commonsense preservation &
         2080 rows &
         Stable train/validation/test split &
         Main diagnostic data for semantic-fidelity claims. \\
         SIPIT logical 20-token set &
-        Derived from the canonical corpus &
+        Derived from the Semantic-Fidelity Corpus &
         Hidden-state prompt recovery on logical categories &
         40 prompts &
         Balanced by category &
@@ -1912,7 +1912,7 @@ Topical-Chat experiments.\footnote{\url{https://huggingface.co/datasets/Conversa
 \end{table}
 
 \TableRef{tab:setup-datasets} reports the dataset role rather than final
-performance. The canonical semantic-fidelity corpus is structured as follows:
+performance. The Semantic-Fidelity Corpus is structured as follows:
 \begin{itemize}
     \item \textbf{Content blocks:} 40 standard control rows, 720 negation and
     polarity rows, and 1320 commonsense or counterfactual rows.
@@ -2600,7 +2600,7 @@ the reader can distinguish robust evidence from diagnostic analyses.
         \toprule
         \textbf{Result family} & \textbf{Evidence level} & \textbf{Main status} \\
         \midrule
-        Canonical semantic-fidelity dataset &
+        Semantic-Fidelity Corpus &
         Completed validation &
         Dataset contribution is reproducible and passes validation. \\
         Embedding inversion &
@@ -2633,11 +2633,11 @@ diagnostic pipelines are reproducible, GEPA with perplexity can improve a
 G-EVAL-style judge prompt in the observed setting, but raw NLA verbalizations do
 not provide a robust improvement signal for GEPA in the completed experiments.
 
-\section{Canonical Semantic-Fidelity Dataset}
+\section{Semantic-Fidelity Corpus Validation}
 \label{sec:results-canonical-dataset}
 
-The first result is the construction and validation of the canonical
-semantic-fidelity corpus. This is not only preprocessing: it defines the
+The first result is the construction and validation of the Semantic-Fidelity
+Corpus. This is not only preprocessing: it defines the
 stress-test surface used by the inversion and verbalization diagnostics. The
 validation report contains no warnings and no errors.
 
@@ -2669,7 +2669,7 @@ validation report contains no warnings and no errors.
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Validated composition of the canonical semantic-fidelity corpus.}
+    \caption{Validated composition of the Semantic-Fidelity Corpus.}
     \label{tab:canonical-corpus-counts}
 \end{table}
 
@@ -2685,7 +2685,7 @@ validation report contains no warnings and no errors.
         Test & 828 \\
         \bottomrule
     \end{tabular}
-    \caption{Stable split used for the canonical corpus.}
+    \caption{Stable split used for the Semantic-Fidelity Corpus.}
     \label{tab:canonical-corpus-splits}
 \end{table}
 
@@ -3542,7 +3542,7 @@ claim to the evidence currently available.
         \toprule
         \textbf{Claim} & \textbf{Supported?} & \textbf{Evidence} & \textbf{Caveat} \\
         \midrule
-        The canonical semantic-fidelity dataset was built and validated. &
+        The Semantic-Fidelity Corpus was built and validated. &
         Yes &
         Dataset reports and validation status PASS. &
         Dataset-level validation claim only. \\
