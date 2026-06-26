@@ -654,10 +654,10 @@ methodological anchor for the distinction introduced in
 The thesis uses SIPIT in two roles. First, it provides a concrete SOTA
 hidden-state inversion baseline for prompt recovery. Second, it motivates
 diagnostics where exact recovery is compared with semantic preservation under
-harder logical or continuous-prefix settings. The gap relative to SIPIT is that
-this work is not satisfied with exactness only on standard prompts. It asks
-whether the inversion behavior remains informative when the original input
-contains negation, contradiction, or other meaning-sensitive phenomena.
+harder logical or continuous-prefix settings. Relative to SIPIT, this thesis
+adds a semantic-fidelity perspective: it asks whether inversion behavior remains
+informative when the original input contains negation, contradiction, or other
+meaning-sensitive phenomena.
 
 \section{Semantic Stress Tests and Negation}
 \label{sec:related-semantic-stress-tests}
@@ -680,10 +680,9 @@ commonsense violations therefore act as \textbf{high-sensitivity probes}: they
 make meaning changes visible in a way that aggregate similarity scores may not.
 
 This thesis adapts that idea to latent-to-text analysis. The semantic-stress
-examples are not introduced as another general natural-language understanding
-benchmark. They are used to test whether latent representations and their
-verbalizations preserve the meaning components that are easiest to normalize
-away.
+examples serve as targeted probes for testing whether latent representations and
+their verbalizations preserve the meaning components that are easiest to
+normalize away.
 
 \section{Prompt Optimization}
 \label{sec:related-prompt-optimization}
@@ -820,10 +819,10 @@ At the same time, NLA introduces new experimental choices. The verbalized
 activation depends on the selected model, layer, token position, and token
 window. A verbalization can be semantically useful, but it can also be generic,
 too local, or focused on completion behavior rather than on the rubric used by
-the downstream task. This thesis therefore does not assume that raw NLA
-descriptions are automatically beneficial. It evaluates whether they become
-useful feedback, and when they do not, it treats the failure as evidence about
-the mismatch between activation-level descriptions and task-level guidance.
+the downstream task. The experiments therefore treat raw NLA descriptions as a
+feedback hypothesis to validate: when they help, they support Latent-GEPA; when
+they fail, they reveal a mismatch between activation-level descriptions and
+task-level guidance.
 
 \section{LLM-as-a-Judge Evaluation and G-EVAL}
 \label{sec:related-geval}
@@ -855,14 +854,12 @@ from the model's score distribution.
     \label{fig:related-geval-framework}
 \end{figure}
 
-This thesis does not treat G-EVAL as synonymous with LLM-as-a-judge evaluation.
-G-EVAL is a particular method and experimental protocol within the broader
-LLM-as-a-judge family. The thesis adopts G-EVAL-style datasets, dimensions, and
-agreement metrics as the benchmark surface, while using a different local model
-and a prompt-optimization pipeline. This distinction is important for
-interpretation: improvements in this thesis evaluate whether the optimized
-judge prompt aligns better with human scores in a G-EVAL-style setting, not
-whether the original GPT-4 G-EVAL system has been exactly reproduced.
+The distinction used in this thesis is that G-EVAL is a particular method and
+experimental protocol within the broader LLM-as-a-judge family. The thesis
+adopts G-EVAL-style datasets, dimensions, and agreement metrics as the
+benchmark surface, while using a different local model and a prompt-optimization
+pipeline. Improvements therefore measure whether the optimized judge prompt
+aligns better with human scores in a G-EVAL-style setting.
 
 \section{Summary of the Research Gap}
 \label{sec:related-summary-gap}
@@ -1252,11 +1249,11 @@ a model state can be inspected for negation, polarity, or commonsense content.
 \label{sec:method-readout-diagnostics}
 
 The Semantic-Fidelity Corpus is also used to interpret latent-to-text readouts.
-These diagnostics do not introduce new inversion algorithms; the underlying
-methods are prior work discussed in \ChapterRef{chapter:related-work}. The
-methodological role in this thesis is narrower: apply the readout to controlled
-inputs, preserve enough metadata to audit the output, and compare the recovered
-or verbalized text with the semantic property under stress.
+This diagnostic layer uses the prior inversion and verbalization methods
+discussed in \ChapterRef{chapter:related-work} as measurement tools. Its
+methodological role is to apply those readouts to controlled inputs, preserve
+enough metadata to audit the output, and compare the recovered or verbalized
+text with the semantic property under stress.
 
 \begin{table}[!htb]
     \centering
@@ -1341,9 +1338,9 @@ evaluated judge fixed and optimizes only the natural-language judge prompt. The
 pipeline starts from a seed rubric prompt, evaluates candidate prompts on small
 sets of examples, collects reflection data from the observed failures, and asks
 a separate proposer model to generate revised prompts. The latent part of the
-method is not a replacement for GEPA's objective: perplexity, activation
-verbalizations, and auxiliary-judge summaries are additional proposer context,
-while candidate selection is still driven by agreement with human scores.
+method keeps GEPA's objective intact: perplexity, activation verbalizations,
+and auxiliary-judge summaries are additional proposer context, while candidate
+selection is still driven by agreement with human scores.
 
 \begin{figure}[!htb]
     \centering
@@ -1467,9 +1464,11 @@ judge model, proposer model, and optimization budget.
 \end{table}
 
 \TableRef{tab:feedback-variants} defines the method variants independently of
-their final results. The variants do not imply that every added signal is
-helpful. In fact, a negative result is meaningful if the artifacts show that the
-signal was present, parseable, and tested against a fair control.
+their final results. The table is an ablation map: each added signal is useful
+only if it improves a matched control with the same data, judge, proposer, and
+optimization budget. When a signal is present, parseable, and fairly tested, a
+negative result is still informative because it identifies which form of
+feedback fails to help the proposer.
 
 \section{Perplexity Feedback}
 \label{sec:method-perplexity-feedback}
@@ -1556,7 +1555,7 @@ important keys and diagnostic values are highlighted.
 
 \clearpage
 
-\begin{lstlisting}[basicstyle=\ttfamily\fontsize{6.6}{7.4}\selectfont, frame=lines, breaklines=true, columns=fullflexible, stringstyle=\color{black}, keywordstyle=\color{black}, commentstyle=\color{black}, identifierstyle=\color{black}, showstringspaces=false, escapeinside={(*@}{@*)}]
+\begin{lstlisting}[caption={Concrete PPL plus NLA reflection record stored by GEPA before proposer serialization.}, label={lst:method-ppl-nla-record}, basicstyle=\ttfamily\fontsize{6.6}{7.4}\selectfont, frame=lines, breaklines=true, columns=fullflexible, stringstyle=\color{black}, keywordstyle=\color{black}, commentstyle=\color{black}, identifierstyle=\color{black}, showstringspaces=false, escapeinside={(*@}{@*)}]
 {
   "candidate_id": "0.1",
   "parent": "0",
@@ -1638,7 +1637,7 @@ sanitized out of the final \texttt{Generic feedback} field to reduce overfitting
 to individual validation examples. The block below keeps the proposer-facing
 structure but highlights the fields that matter for reading the feedback.
 
-\begin{lstlisting}[basicstyle=\ttfamily\fontsize{6.6}{7.4}\selectfont, frame=lines, breaklines=true, columns=fullflexible, stringstyle=\color{black}, keywordstyle=\color{black}, commentstyle=\color{black}, identifierstyle=\color{black}, showstringspaces=false, escapeinside={(*@}{@*)}]
+\begin{lstlisting}[caption={Proposer-facing reflection item after sanitization and feedback aggregation.}, label={lst:method-proposer-reflection-item}, basicstyle=\ttfamily\fontsize{6.6}{7.4}\selectfont, frame=lines, breaklines=true, columns=fullflexible, stringstyle=\color{black}, keywordstyle=\color{black}, commentstyle=\color{black}, identifierstyle=\color{black}, showstringspaces=false, escapeinside={(*@}{@*)}]
 --- Reflection 1 ---
 (*@\textbf{Input summary}@*): source_text=redacted, fact=redacted, candidate_output=redacted
 (*@\textbf{Judge output summary}@*): score_parse=(*@\codehl{ok}@*); score_bucket=(*@\codehl{low}@*);
@@ -3550,7 +3549,7 @@ claim to the evidence currently available.
         Embedding inversion produced a clean paper-level reproduction. &
         No &
         Full-mask probes stayed weak; tiny overfit worked. &
-        Branch is diagnostic. \\
+        Diagnostic only, not a paper-level reproduction. \\
         SIPIT exact recovery works in the recovered GPT-2 and logical20 settings. &
         Yes &
         GPT-2 Table-5-style SIPIT accuracy 1.0000; logical20 SIPIT accuracy 1.0000. &
