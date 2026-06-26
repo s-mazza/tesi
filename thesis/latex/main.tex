@@ -1503,7 +1503,7 @@ are not assumed to be faithful by default. Their value is tested by whether they
 help GEPA produce better prompts under matched controls.
 
 The following block shows one concrete record from a saved PPL+NLA GEPA-viz
-artifact. It is intentionally close to the Python data structure instead of
+artifact. It is intentionally close to the runtime data record instead of
 being rewritten as prose: the metric function returns a scalar \texttt{score}
 and a multiline \texttt{feedback} string, and GEPA stores that inside a
 reflective minibatch item. The PPL-only condition has the same fields, but the
@@ -2084,8 +2084,7 @@ The runtime environment has a few constraints that affect reproducibility:
     OpenAI-compatible API, while llama.cpp serves the Qwen35B proposer and, when
     enabled, the auxiliary judge.
     \item \textbf{Model cache:} model files are loaded from the local cluster
-    cache when available, typically under \texttt{/llms}, to avoid unnecessary
-    downloads and startup variability.
+    cache when available, to avoid unnecessary downloads and startup variability.
     \item \textbf{Audit trail:} final thesis-grade runs must preserve the exact
     image, dependency manifest, runtime manifest, and Slurm/model-server logs.
 \end{itemize}
@@ -2514,16 +2513,6 @@ model-quality measures. Queue wait time and cluster contention can affect
 operational duration, while GPU memory pressure can affect whether a job starts
 at all. Scientific runtime comparisons should therefore use artifact timestamps
 and runtime manifests, not only scheduler summaries.
-
-\section{Setup Audit Checklist}
-\label{sec:setup-summary}
-
-The experimental setup is considered auditable when a result can be traced to
-four elements: the dataset split, the model roles, the metric definition, and
-the saved runtime artifacts. The following result chapter uses this setup to
-report which latent-to-text readouts preserve semantic content, which
-Latent-GEPA feedback variants improve or fail to improve the judge prompt, and
-which diagnostics explain the observed failures.
 
 \chapter{Results}
 \label{chapter:results}
