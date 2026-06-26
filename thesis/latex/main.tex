@@ -2711,80 +2711,9 @@ conditioning path, paper-equation loss variants, fixed-mask/sequential decoding
 checks, and multiple control probes.
 
 At the same time, the public material did not fully pin every condition needed
-for an exact paper-level baseline. The precise large-scale training setting,
-the task-adapter choice for Jina embeddings, and some data/provenance
-assumptions remained partially ambiguous. The evidence therefore points to an
-unresolved reproduction gap rather than to one confirmed local data-generation
-bug.
-
-\subsection{Public Encoder Versus Inverter}
-\label{subsec:results-embedding-public-encoder}
-
-The phrase \quotes{public Jina model} refers here only to the publicly released
-\textbf{embedding encoder}, Jina Embeddings v3
-\cite{DBLP:journals/corr/abs-2409-10173}. This encoder maps text to vectors. It
-is not an inversion model and it does not decode vectors back into text.
-Therefore, using the public encoder alone would not remove the need to train or
-reproduce the conditional masked-diffusion \textbf{inverter}; it would only
-provide the input embedding that the inverter must learn to decode.
-
-There are three different sources involved in this diagnostic. The
-embedding-inversion paper provides the method and public code/artifact trail for
-the inversion model. Jina provides the released Jina-v3 encoder checkpoint. This
-thesis produced the local reproduction runs and the corresponding local
-embedding cache. The provenance check below is
-therefore one of our diagnostic experiments, not a metric reported by the
-embedding-inversion paper.
-
-\subsection{Task-Adapter Provenance Check}
-\label{subsec:results-embedding-provenance}
-
-The provenance question was narrower than the reproduction problem as a whole:
-were the vectors in the local Jina-v3 embedding cache generated with the
-same Jina-v3 encoder call used by the released repository/demo path, or did our
-local data preparation accidentally train the inverter against a different
-embedding function?
-
-No private Jina path was used in this thesis. The comparison is between our
-locally generated cache and several public ways of calling the released Jina-v3
-encoder: direct model-forward calls, high-level encoder calls, and optional
-task-adapter calls.
-
-The local cache is the dataset consumed by the reproduced inverter training
-loop. It was produced in two stages: first, raw C4/mC4 text was collected from
-the released data-preparation path; second, each text was tokenized for the
-decoder and encoded with Jina-v3. For each example, the cache stores the decoder
-tokens and the corresponding Jina-v3 embedding vector as aligned records. These
-vectors were therefore generated locally, not downloaded as ready-made
-embeddings from the paper authors.
-
-In this context, a \textbf{Jina task adapter} is a task-specific embedding mode
-exposed by Jina-v3. The same text can be embedded through the default encoder
-path, or through an adapter intended for a downstream use case such as retrieval,
-classification, clustering, or text matching. These modes are still part of the
-embedding encoder; they are not separate text-generation or inversion models.
-The relevant consequence for this thesis is practical: if the local cache was
-generated with one adapter and the reproduction assumes another, the inverter is
-trained against a different vector space.
-
-To test this, sampled rows from the local cache were decoded back to text,
-re-encoded with several Jina-v3 calls, and compared against the stored vectors by
-cosine similarity. The local cache matched the no-task/no-adapter call exactly.
-Both the direct forward path without adapter and the high-level encoder path
-without an explicit task produced mean cosine similarity 1.000000 against the
-stored embeddings.
-
-Explicit Jina task adapters produced visibly different vectors. The tested
-adapter modes were:
-\begin{itemize}
-    \item \texttt{retrieval.query} and \texttt{retrieval.passage};
-    \item \texttt{separation}, \texttt{classification}, and \texttt{text-matching}.
-\end{itemize}
-Their cosine matches were lower, roughly between 0.69 and 0.92. This rules out
-a simple local-cache corruption or pooling-rule mismatch. The remaining
-ambiguity is whether the paper-level setup used a task-adapted or otherwise
-different embedding-generation condition that is not fully specified by the
-public artifacts available locally.
+for an exact paper-level baseline. Some paper-specific training and data
+conditions therefore remained ambiguous. The evidence points to an unresolved
+reproduction gap rather than to one confirmed local implementation bug.
 
 \subsection{Diagnostic Outcomes}
 \label{subsec:results-embedding-outcomes}
