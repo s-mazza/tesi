@@ -1,11 +1,13 @@
-# Chapter 6 Conclusions And Future Work Plan
+# Chapter 6 Conclusions And Future Directions Plan
 
 This document defines the intended structure of Chapter 6. The chapter should
 close the thesis by summarizing what was learned, what can be claimed, what
 remains uncertain, and which future directions naturally follow.
 
-The chapter should be concise. It should not introduce new experiments, new
-literature, or new technical details.
+The chapter should be concise, ideally only slightly longer than one page. The
+final LaTeX chapter should not use internal section/subsection headings; the
+outline sections below are planning notes only. It should not introduce new
+experiments, new literature, or new technical details.
 
 ## Goal
 
@@ -145,8 +147,8 @@ Supported claim candidates:
 Unsupported or not-yet-supported claims:
 
 - NLA robustly improves GEPA.
-- NLA extraction/verbalization preserves negation or counterfactual content on the canonical
-  dataset.
+- NLA extraction/verbalization preserves negation or counterfactual content on the
+  Semantic-Fidelity Corpus.
 - The thesis exactly reproduces all G-EVAL paper results.
 - The thesis exactly reproduces the Jina embedding-inversion paper.
 - Smoke-test numbers are final scientific performance evidence.
@@ -164,7 +166,7 @@ Limitations to include:
   reproductions.
 - SIPIT exact-recovery evidence is available for the recovered GPT-2 setting
   and the thesis logical20 prompts, but runtime remains hardware-dependent.
-- NLA semantic-fidelity scoring on the canonical logical dataset has not yet
+- NLA semantic-fidelity scoring on the Semantic-Fidelity Corpus has not yet
   been completed.
 - GEPA evidence is strongest on Topical-Chat engagingness; full matrix coverage
   is still incomplete unless later jobs finish.
@@ -176,13 +178,13 @@ Limitations to include:
 Avoid generic limitations such as "more data would be better" unless they are
 connected to a specific result.
 
-### 6.6 Future Work
+### 6.6 Future Directions
 
 Purpose: propose concrete next steps that follow from the evidence.
 
-Priority future work:
+Priority future directions:
 
-1. Run direct NLA semantic-fidelity evaluation on the canonical logical dataset.
+1. Run direct NLA semantic-fidelity evaluation on the Semantic-Fidelity Corpus.
 2. Complete or recover SIPIT final reports for Table 5, logical dataset, and
    random-prefix experiments.
 3. Test NLA transformation strategies before proposer feedback:
@@ -226,9 +228,9 @@ Suggested message:
 
 ## Do Not Forget
 
-- The current LaTeX places acknowledgments as an unnumbered section after
-  Chapter 6. If the final template requires a separate front/backmatter
-  acknowledgments page, move it there without changing the content.
+- The current LaTeX places acknowledgments in the backmatter as an unnumbered
+  chapter, so Chapter 6 remains a standalone conclusion without internal
+  sections.
 - Thank Prof. Moro first in the acknowledgments, as required by the writing
   guidelines.
 - Do not introduce bibliography citations for the first time in the conclusion

@@ -82,7 +82,7 @@ Required original figure:
 
 Planned sections:
 
-- Canonical semantic-fidelity dataset and logical splits.
+- Semantic-Fidelity Corpus and logical splits.
 - SIPIT datasets and prompt-window construction.
 - NLA activation extraction targets.
 - Datasets and dimensions.
@@ -110,11 +110,12 @@ Planned sections:
 - Auxiliary judge results once available.
 - Efficiency and runtime analysis.
 
-## Chapter 6: Conclusions and Future Work
+## Chapter 6: Conclusions and Future Directions
 
-Summarize what was learned, what can be claimed, and what remains open. Future
-work should include stronger NLA transformation strategies, direct NLA semantic
-fidelity scoring on the canonical logical dataset, larger GEPA matrix coverage,
+Summarize what was learned, what can be claimed, and what remains open in a
+compact final chapter, ideally only slightly longer than one page. Future
+directions should include stronger NLA transformation strategies, direct NLA semantic
+fidelity scoring on the Semantic-Fidelity Corpus, larger GEPA matrix coverage,
 and cleaner multi-dimension prompting if developed.
 
 ## Acknowledgments

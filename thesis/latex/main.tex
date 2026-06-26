@@ -166,9 +166,9 @@ Our thesis work is subdivided into the following structure:
     verbalization diagnostics, GEPA long runs, perplexity and
     activation-feedback ablations, and efficiency measurements.
 
-    \item \textbf{Conclusion and Future Work}: This final chapter summarizes
+    \item \textbf{Conclusions and Future Directions}: This final chapter summarizes
     what can be claimed from the experiments, discusses limitations, and
-    outlines future work on stronger NLA transformations and broader
+    outlines future directions on stronger NLA transformations and broader
     paper-aligned evaluation.
 \end{itemize}
 
@@ -3516,81 +3516,73 @@ claim to the evidence currently available.
     \label{tab:final-claim-matrix}
 \end{table}
 
-\chapter{Conclusions and Future Work}
+\chapter{Conclusions and Future Directions}
 \label{chapter:conclusions}
-
-\section{Conclusions}
-\label{sec:conclusions-main}
 
 This thesis investigated whether latent representations and their textual
 readouts can be used to study semantic fidelity and to improve LLM-as-a-judge
-prompt optimization. The work produced three main findings.
+prompt optimization. The work was organized around two connected goals. The
+first was to evaluate whether inversion and verbalization methods preserve
+meaning in cases where lexical similarity can be misleading. The second was to
+test whether latent-derived evidence can be turned into useful feedback for
+GEPA-style prompt optimization.
 
-First, the Semantic-Fidelity Corpus provides a controlled surface for testing
-cases where lexical similarity and semantic correctness can diverge. The corpus
-is validated, split into stable train/validation/test partitions, and organized
-around controls, negation/polarity examples, and commonsense-sensitive pairs.
-This makes it suitable for analyzing whether inversion or verbalization outputs
-preserve the property that matters, rather than only producing fluent text.
+The first contribution is the Semantic-Fidelity Corpus, a controlled collection
+of standard controls, negation and polarity examples, and
+commonsense-sensitive pairs. Its role is to make semantic drift visible: a
+reconstruction may be fluent and close in wording while still losing the
+meaning component that matters. This corpus provides a reusable basis for
+checking whether latent-to-text outputs preserve fragile semantic properties
+rather than only surface similarity.
 
-Second, the inversion diagnostics confirm that the type of latent
-representation strongly affects interpretability. SIPIT-style exact recovery
-works in the recovered discrete-token settings, including the thesis logical
-prompt set, but this does not automatically extend to learned continuous
-prompts. Random-initialized soft prompts can change judge behavior, yet their
-nearest-token and bounded-recovery readouts remain far from faithful natural
-language explanations. This supports the distinction between operationally
-useful vectors and semantically transparent vectors.
+The inversion experiments show that interpretability depends strongly on the
+kind of representation being decoded. SIPIT-style recovery works in the
+discrete-token settings considered in this thesis, including the logical prompt
+set built from the corpus. However, this result does not transfer directly to
+learned continuous prompts. Random-initialized soft prompts can affect judge
+behavior, but their nearest-token projections and bounded SIPIT-style readouts
+do not provide faithful natural-language explanations. This supports a central
+distinction of the thesis: a latent vector can be operationally useful without
+being semantically transparent.
 
-Third, Latent-GEPA shows that additional model-internal evidence must be tested
-carefully. Perplexity feedback produced the clearest positive GEPA result in the
-historical Topical-Chat / USR engagingness run. Raw NLA feedback, instead, did
-not provide a robust improvement signal in the completed experiments. The fixed
-NLA condition improved artifact quality and produced a small matched metric
-gain, but it selected the unchanged seed prompt; therefore it is best
-interpreted as diagnostic evidence rather than as a conclusive prompt
-optimization improvement.
+The Latent-GEPA experiments give a similarly cautious conclusion. Perplexity
+feedback produced the clearest positive GEPA result in the historical
+Topical-Chat / USR engagingness run, suggesting that model-confidence signals
+can help the proposer revise a judge prompt. Raw NLA feedback, instead, did not
+produce a robust improvement in the completed experiments. The fixed-NLA
+condition improved artifact quality and produced a small matched metric gain,
+but the selected final prompt remained unchanged. Therefore, the current
+evidence supports NLA as a useful diagnostic signal, not yet as a conclusive
+prompt-optimization improvement.
 
-\section{Limitations}
-\label{sec:conclusions-limitations}
+These conclusions are limited by the evidence level of each result family. The
+validated corpus, SIPIT exact-recovery checks, soft-prompt diagnostics, and
+matched GEPA long runs support direct discussion. Other results, such as the
+embedding-inversion reproduction gap and the raw-NLA failures, are better read
+as diagnostic evidence. Moreover, the G-EVAL comparison is implemented with a
+local Qwen-based judge pipeline, so the reported values should be interpreted
+as results for this setting rather than as a model-for-model reproduction of
+the original G-EVAL paper.
 
-The main limitation is that not every experiment reaches the same level of
-evidence. Some components support direct claims, such as the validated dataset,
-SIPIT exact-recovery checks, and the matched GEPA long runs. Other components
-are diagnostic and explain why a stronger claim is not yet justified, such as
-the embedding-inversion reproduction gap and the raw-NLA feedback failures.
-
-The comparison with G-EVAL is also constrained by model choice. The thesis
-focuses on the proposed optimization and feedback pipeline rather than on
-replicating the original G-EVAL model setting exactly. Final metrics are still
-computed against human annotations on G-EVAL-style datasets, but the reported
-values should be interpreted as results for the implemented Qwen-based judge
-pipeline, not as a direct model-for-model reproduction of the original paper.
-
-\section{Future Work}
-\label{sec:conclusions-future-work}
-
-Future work should first improve the interface between NLA and the GEPA
-proposer. The completed diagnostics suggest that token position, layer choice,
-deduplication, and feedback compression are critical. A stronger version of
-Latent-GEPA should therefore compare multiple token-selection policies and use
-an auxiliary judge to convert raw activation verbalizations into shorter
+The most important future direction is to improve the interface between NLA and
+the GEPA proposer. The completed diagnostics indicate that token position,
+layer choice, deduplication, and feedback compression are decisive. A stronger
+Latent-GEPA variant should compare several token-selection policies and use an
+auxiliary judge to turn raw activation verbalizations into shorter,
 rubric-level lessons before passing them to the proposer.
 
-A second direction is to extend the GEPA matrix across all G-EVAL-style
-datasets and dimensions with matched budgets. This would make it possible to
-separate effects that are specific to Topical-Chat engagingness from effects
-that hold across summarization and factual-consistency tasks.
+A second direction is to complete the G-EVAL-style matrix across datasets and
+dimensions with matched budgets. This would clarify whether the observed
+perplexity result is specific to Topical-Chat engagingness or generalizes to
+summarization and factual-consistency tasks. A third direction is to deepen the
+continuous-prompt analysis with stronger controls and alternative inversion
+objectives, so that the gap between task utility and semantic interpretability
+can be measured more precisely.
 
-A third direction is to deepen the continuous-prompt analysis. The current
-soft-prompt experiments show that learned vectors can affect task behavior
-without yielding faithful text under the tested readout. Additional controls,
-longer optimization, and alternative inversion objectives could clarify whether
-this is a limitation of the readout procedure or an intrinsic property of the
-learned prompt vectors.
+\backmatter
 
-\section*{Acknowledgements}
-\addcontentsline{toc}{section}{Acknowledgements}
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
 \label{sec:acknowledgements}
 
 I would like to sincerely thank my supervisor, Professor Gianluca Moro, and my
@@ -3601,7 +3593,6 @@ this thesis.
 I would also like to thank my parents, my family, and my closest friends for
 supporting me throughout these years.
 
-\backmatter
 \addcontentsline{toc}{chapter}{Bibliography}
 \bibliographystyle{unsrt}
 \bibliography{bibliografia}

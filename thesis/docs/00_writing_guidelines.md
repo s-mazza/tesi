@@ -88,7 +88,7 @@ rules for this thesis.
   hyperparameters, baselines, and prompts if useful.
 - Chapter 5: results. Include all obtained results in the clearest format:
   baseline comparisons, ablations, and efficiency numbers.
-- Chapter 6: conclusions and future work.
+- Chapter 6: Conclusions and Future Directions.
 - Final acknowledgments: thank Prof. Moro first.
 
 ## Chapter-Specific Style Rules
