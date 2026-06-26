@@ -888,29 +888,27 @@ experimental chapters that follow.
 \chapter{Method}
 \label{chapter:method}
 
-This chapter describes the method used in the thesis. It does not report final
-numerical results or cluster-level implementation details. Instead, the chapter
-defines the experimental objects, the information flow, and the method variants
-that are later instantiated in \ChapterRef{chapter:experimental_setup} and
-evaluated in \ChapterRef{chapter:results}.
+This chapter defines the methodology used in the thesis. The central proposed
+component is \textbf{Latent-GEPA}: a prompt-optimization pipeline for
+LLM-as-a-judge evaluation in which GEPA receives ordinary task feedback together
+with optional signals derived from the base model's latent behavior. The chapter
+also defines the semantic-fidelity corpus and the diagnostic readouts used to
+interpret latent representations throughout the experimental analysis.
 
-The method has two connected parts. The first part studies whether latent
-representations can be mapped back to text while preserving meaning. It includes
-embedding-inversion diagnostics, SIPIT-style hidden-state inversion, and Natural
-Language Activation verbalization. The second part uses a G-EVAL-style
-LLM-as-a-judge task as a downstream setting where activation-derived signals can
-be tested as feedback for prompt optimization. GEPA is therefore not the whole
-thesis method; it is the branch where latent-derived evidence is tested as a
-practical signal for improving judge prompts.
+The method is organized around two connected objectives. The first is to build a
+controlled setting for observing whether latent-to-text readouts preserve
+negation, polarity, and commonsense-sensitive meaning. The second is to test
+whether such evidence can become useful feedback for optimizing a judge prompt,
+rather than remaining only an interpretability artifact.
 
 \section{Method Overview}
 \label{sec:method-overview}
 
-The complete pipeline is organized around a single question: when a method
-turns a latent representation into text, does the resulting text preserve the
-semantic content that matters? This question is addressed directly in the
-inversion and verbalization track, and indirectly in the prompt-optimization
-track.
+The complete pipeline starts from a single methodological question: when a model
+state is translated into text or into feedback for another model, which parts of
+the original meaning are preserved? \FigureRef{fig:method-overview} separates
+the corpus construction, Latent-GEPA optimization, and soft-prompt diagnostic
+components while keeping the same semantic-fidelity motivation across them.
 
 \begin{figure}[!htb]
     \centering
@@ -979,18 +977,18 @@ track.
         \node[lane=orange, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,-2.45) {};
         \node[lane=green, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,-4.90) {};
 
-        \node[track label=blue, text=blue!55!black] at (1.25,0) {Latent-to-text\\track};
+        \node[track label=blue, text=blue!55!black] at (1.25,0) {Semantic\\readout\\diagnostics};
         \node[track label=orange, text=orange!70!black] at (1.25,-2.45) {Prompt\\optimization\\track};
-        \node[track label=green, text=green!45!black] at (1.25,-4.90) {Soft-prompt\\track};
+        \node[track label=green, text=green!45!black] at (1.25,-4.90) {Soft-prompt\\diagnostic};
 
         \node[card=blue] (corpus) at (4.10,0) {\textbf{Canonical corpus}\\semantic-fidelity probes};
-        \node[card=blue] (latent_track) at (7.75,0) {\textbf{Latent methods}\\embedding inversion\\SIPIT, NLA};
+        \node[card=blue] (latent_track) at (7.75,0) {\textbf{Latent readouts}\\inversion\\verbalization};
         \node[card=blue] (semantic) at (11.40,0) {\textbf{Semantic analysis}\\meaning-preservation checks};
 
         \node[card=orange] (geval) at (4.05,-2.45) {\textbf{Judge examples}\\G-EVAL-style data};
         \node[card=orange] (judge) at (7.15,-2.45) {\textbf{Base judge}\\Qwen2.5-7B};
         \node[card=orange] (gepa_feedback) at (10.25,-2.45) {\textbf{Feedback}\\metrics, PPL, NLA\\aux judge};
-        \node[card=orange] (gepa_result) at (13.35,-2.45) {\textbf{GEPA}\\prompt selection\\final-test metrics};
+        \node[card=orange] (gepa_result) at (13.35,-2.45) {\textbf{Latent-GEPA}\\prompt selection\\final-test metrics};
 
         \node[card=green] (judge_task) at (4.05,-4.90) {\textbf{Same judge task}\\Topical-Chat scoring};
         \node[card=green] (soft) at (7.15,-4.90) {\textbf{Soft tokens}\\frozen judge\\trained vectors};
@@ -1031,32 +1029,22 @@ track.
         \draw[line=green] (soft.east) -- (readout.west);
         \draw[line=green] (readout.east) -- (interp.west);
     \end{tikzpicture}}
-    \caption{Original high-level method diagram for the thesis. Pictograms mark
+    \caption{High-level method diagram for the thesis. Pictograms mark
     the object handled in each step: datasets, latent representations,
     semantic checks, judge scoring, feedback, prompt search, and soft-token
-    readout. The three rows keep the latent-to-text, GEPA, and soft-prompt
-    branches visually separate while preserving their shared semantic-fidelity
-    motivation.}
+    readout. The three rows show the diagnostic and optimization components
+    that are instantiated in the experimental setup.}
     \label{fig:method-overview}
 \end{figure}
 
-\FigureRef{fig:method-overview} summarizes the intended structure of the
-method. The semantic-fidelity track begins with examples that are deliberately
-easy to misread if one relies only on lexical similarity. These examples are
-converted into latent representations, recovered or verbalized, and then
-inspected for meaning-preserving behavior. The GEPA branch uses natural language
-generation evaluation data, where a base language model acts as a judge and
-produces scores. GEPA optimizes the prompt used by this judge. Perplexity,
-activation verbalizations, and auxiliary feedback are added only as optional
-signals to the prompt proposer. The detailed GEPA flow keeps validation-time
-reflection, prompt proposal, prompt selection, and held-out final-test evaluation
-as separate steps.
-
-This separation is important. In the inversion track, the output text is the
-object being evaluated. In the GEPA track, textual feedback is an intermediate
-object used to improve a prompt. A readable NLA verbalization is therefore not
-automatically a successful final result. It becomes useful only if it helps the
-optimizer produce a judge prompt that agrees better with human annotations.
+\FigureRef{fig:method-overview} summarizes the information flow. The
+semantic-fidelity corpus contains examples that are deliberately easy to
+misinterpret if only lexical similarity is considered. Diagnostic readouts are
+used to inspect how latent representations are rendered as text. Latent-GEPA
+then uses a separate LLM-as-a-judge task in which a fixed base model produces
+scores and GEPA optimizes only the judge prompt. Perplexity, activation
+verbalizations, and auxiliary-judge summaries are optional proposer-side
+signals; final evaluation remains based on agreement with human annotations.
 
 \begin{figure}[!htbp]
     \centering
@@ -1172,504 +1160,139 @@ optimizer produce a judge prompt that agrees better with human annotations.
 
 \FloatBarrier
 
-\section{Canonical Semantic-Fidelity Dataset}
+\section{Semantic-Fidelity Corpus}
 \label{sec:method-canonical-dataset}
 
-The thesis uses a canonical semantic-fidelity dataset to stress latent-to-text
-methods. The dataset is not intended to be a large benchmark by itself. Its role
-is to provide controlled examples where a reconstruction can look plausible
-while changing the logical meaning of the input.
+The thesis uses a \textbf{Semantic-Fidelity Corpus} to stress-test readouts of
+latent representations. The corpus is not designed as a large general benchmark.
+Its role is to isolate cases where a generated reconstruction can remain fluent
+and lexically similar while changing the logical meaning of the input.
 
-Each row is represented with stable metadata. At minimum, a row contains a
-stable identifier, a source block, a phenomenon label, an input sentence, an
-optional paired sentence, and split metadata:
+Each row contains stable metadata that makes outputs from different experiments
+joinable:
 
 \begin{itemize}
-    \item the stable identifier makes outputs from different branches joinable;
-    \item the source block records whether the row is a standard control,
-    negation/polarity item, or commonsense/counterfactual item;
-    \item the input sentence is the text given to latent-to-text methods;
-    \item the paired sentence is used when the phenomenon is defined by a
-    contrast, such as a negated sentence and its non-negated counterpart;
-    \item the split metadata prevents train/validation/test leakage in later
-    experiments.
+    \item a stable identifier for joining reconstructions, verbalizations, and
+    scores;
+    \item a source block and phenomenon label;
+    \item the input sentence given to a readout or inversion method;
+    \item an optional paired sentence, used when the phenomenon is defined by a
+    contrast;
+    \item split metadata for train, validation, and test separation.
 \end{itemize}
 
 \begin{table}[!htb]
     \centering
     \small
     \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.10\linewidth} p{0.18\linewidth} p{0.29\linewidth} p{0.29\linewidth} p{0.18\linewidth}}
+    \begin{tabular}{p{0.10\linewidth} p{0.23\linewidth} r r p{0.33\linewidth}}
         \toprule
-        \textbf{Block} & \textbf{Phenomenon} & \textbf{Input text} & \textbf{Paired text} & \textbf{Expected issue} \\
+        \textbf{Block} & \textbf{Phenomenon} & \textbf{Rows} & \textbf{Pairs} & \textbf{Purpose} \\
         \midrule
-        A & Standard control &
-        A simple factual or descriptive sentence. &
-        Not required. &
-        Checks whether a method works on ordinary inputs. \\
-        B & Negation and polarity &
-        The treatment did not improve the patient's condition. &
-        The treatment improved the patient's condition. &
-        Small lexical changes reverse the truth condition. \\
-        C & Commonsense or counterfactual content &
-        A fragile glass fell onto concrete and did not break. &
-        A fragile glass fell onto concrete and broke. &
-        Plausible reconstructions may normalize the sentence toward commonsense. \\
+        A & Standard controls & 40 & 40 &
+        Ordinary sentences used to verify that the pipeline also handles
+        non-adversarial inputs. \\
+        B & Negation and polarity & 720 & 360 &
+        Paired positive/negative sentences where small lexical changes modify
+        the truth conditions. \\
+        C & Commonsense-sensitive and counterfactual statements & 1320 & 660 &
+        Paired sentences where one version is plausible and the other stresses
+        commonsense expectations. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Canonical semantic-fidelity dataset structure. The examples are
-    illustrative; the final dataset rows are specified in the experimental
-    setup.}
+    \caption{Semantic-Fidelity Corpus composition. The processed corpus contains
+    2080 rows organized into 1060 examples or contrastive pairs.}
     \label{tab:canonical-dataset-blocks}
 \end{table}
 
-\TableRef{tab:canonical-dataset-blocks} shows the logic of the dataset. Block A
-acts as a control: a method should not be judged only on adversarial or unusual
-sentences. Block B focuses on negation and polarity, where a single word can
-change the truth value of the statement. Block C focuses on examples that are
-counterfactual or contrary to common expectations. These examples are useful
-because language models tend to prefer plausible continuations. A latent-to-text
-method that silently normalizes an unusual sentence can therefore produce text
-that is fluent and semantically close in a loose sense, but wrong with respect
-to the property under investigation.
-
-The dataset is used as a common reference object across branches. In the SIPIT
-branch, rows can be tokenized into fixed prompt windows. In the NLA branch, the
-same rows define which activation positions should be verbalized. In the
-embedding-inversion branch, they provide diagnostic inputs for observing whether
-reconstructions preserve logical content.
-
-\section{Embedding-Inversion Diagnostic Branch}
-\label{sec:method-embedding-inversion}
-
-\subsection{Task Setting}
-\label{subsec:method-embedding-task}
-
-The first latent-to-text branch concerns embedding inversion. In this setting,
-the input to the inversion method is a fixed-size text embedding, and the output
-is a textual reconstruction. The thesis uses this branch as a diagnostic track:
-it investigates how embedding-inversion systems behave on semantically fragile
-inputs, but it does not rely on this branch alone for the final claim.
-\FigureRef{fig:method-embedding-inversion-example} shows the practical
-operation of the script-level pipeline on one local qualitative artifact: the
-system first encodes the sentence, then decodes from the embedding alone, and
-finally exposes whether the recovered text still expresses the intended
-predicate and negation.
-
-\begin{figure}[!htbp]
-    \centering
-    \resizebox{0.98\linewidth}{!}{%
-    \begin{tikzpicture}[
-        font=\scriptsize,
-        >=Latex,
-        stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
-            align=center, text width=22mm, minimum height=22mm, inner sep=3.0pt},
-        wide stage/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
-            align=left, text width=95mm, minimum height=18mm, inner sep=4pt},
-        note/.style={draw=#1!65!black, fill=#1!8, very thick, rounded corners=4pt,
-            align=left, text width=105mm, minimum height=16mm, inner sep=4pt},
-        lane/.style={draw=#1!55!black, fill=#1!5, very thick, rounded corners=6pt},
-        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
-            minimum size=8.5mm, inner sep=0pt},
-        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black,
-            shorten >=0.8mm, shorten <=0.8mm},
-        small label/.style={font=\scriptsize\bfseries, text=#1!70!black},
-        pics/doc/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.17,-0.17) rectangle (0.18,0.20);
-            \draw[draw=black!55, line width=0.35pt] (-0.10,0.10) -- (0.11,0.10);
-            \draw[draw=black!55, line width=0.35pt] (-0.10,0.02) -- (0.14,0.02);
-            \draw[draw=black!55, line width=0.35pt] (-0.10,-0.06) -- (0.08,-0.06);
-        }},
-        pics/vector/.style={code={
-            \foreach \x/\h/\c in {-0.21/0.18/blue,-0.11/0.09/green,0.00/0.23/orange,0.11/0.13/lightviolet,0.22/0.05/darkyellow}
-                \draw[fill=\c!35, draw=\c!70!black, rounded corners=0.5pt] (\x,-0.18) rectangle ++(0.065,\h);
-            \draw[draw=black!45, line width=0.35pt] (-0.25,-0.18) -- (0.30,-0.18);
-        }},
-        pics/mask/.style={code={
-            \foreach \x in {-0.24,-0.12,0,0.12,0.24}
-                \draw[fill=black!10, draw=black!55, rounded corners=1pt] (\x-0.045,-0.06) rectangle (\x+0.045,0.06);
-            \node[font=\tiny] at (0,0) {?};
-        }},
-        pics/decoder/.style={code={
-            \draw[draw=black!60, line width=0.55pt] (-0.22,-0.14) rectangle (0.22,0.14);
-            \draw[draw=black!50, line width=0.4pt] (-0.14,-0.21) -- (-0.05,-0.14);
-            \draw[draw=black!50, line width=0.4pt] (0.14,-0.21) -- (0.05,-0.14);
-            \draw[draw=blue!70!black, line width=0.6pt] (-0.15,0.03) -- (-0.02,0.10) -- (0.14,-0.04);
-            \fill[orange!70!black] (0.15,-0.04) circle (0.03);
-        }},
-        pics/warn/.style={code={
-            \draw[fill=orange!20, draw=orange!75!black, line width=0.55pt] (0,0.22) -- (-0.22,-0.18) -- (0.22,-0.18) -- cycle;
-            \draw[draw=orange!80!black, line width=0.55pt] (0,0.08) -- (0,-0.06);
-            \fill[orange!80!black] (0,-0.12) circle (0.018);
-        }}
-    ]
-        \node[lane=blue, minimum width=11.7cm, minimum height=5.65cm, anchor=west] at (0,-1.62) {};
-
-        \node[stage=blue] (source) at (1.35,0.00) {\textbf{Input text}\\
-            \quotes{A man not playing guitar on stage.}};
-        \node[stage=green] (embed) at (4.25,0.00) {\textbf{Encoder}\\
-            Jina/Qwen3 demo\\embedding vector};
-        \node[stage=orange] (masked) at (7.15,0.00) {\textbf{Initial decoder state}\\
-            all text positions\\masked};
-        \node[stage=lightviolet] (decode) at (10.05,0.00) {\textbf{Conditional MDLM}\\
-            iterative\\unmasking};
-        \node[wide stage=darkgreen] (output) at (5.85,-1.95) {\textbf{Recovered text}\\
-            \textit{A man on a stage guitar playing a guitar on a flat bench.}\\
-            \textit{He is not a stage. A man is playing the role of a music player.}};
-
-        \node[badge=blue] at ([yshift=2.1mm]source.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]source.north) {doc};
-        \node[badge=green] at ([yshift=2.1mm]embed.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]embed.north) {vector};
-        \node[badge=orange] at ([yshift=2.1mm]masked.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]masked.north) {mask};
-        \node[badge=lightviolet] at ([yshift=2.1mm]decode.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]decode.north) {decoder};
-        \draw[line=blue] (source.east) -- (embed.west);
-        \draw[line=green] (embed.east) -- (masked.west);
-        \draw[line=orange] (masked.east) -- (decode.west);
-        \draw[line=lightviolet] (decode.south) -- ([xshift=39mm]output.north);
-
-        \node[note=orange] (check) at (5.85,-3.68) {\textbf{Semantic check}\\
-            The word \quotes{not} appears, but it attaches to a different
-            predicate (\quotes{not a stage}); the main event drifts back toward
-            \quotes{playing guitar}.};
-        \node[badge=orange] at ([xshift=-6.0mm]check.west) {};
-        \pic[scale=0.68] at ([xshift=-6.0mm]check.west) {warn};
-        \draw[line=orange] (output.south) -- (check.north);
-    \end{tikzpicture}}
-    \caption[Embedding-inversion script example.]{Concrete embedding-inversion example from the local
-    \texttt{eval\_metrics.py} artifact. The example was generated through the
-    public Jina demo encode/decode path and is used here only to show what the
-    script does in practice: from a sentence it obtains an embedding, decodes
-    from that embedding, and then exposes a semantic-fidelity issue.}
-    \label{fig:method-embedding-inversion-example}
-\end{figure}
-
-\subsection{Reproduction Boundary}
-\label{subsec:method-embedding-boundary}
-
-The reproduction attempt should be read with a clear boundary. The implemented
-branch reproduced the core conditional-MDLM idea, the AdaLN-style embedding
-conditioning path, the paper-equation loss variants, fixed-mask and sequential
-decoding probes, embedding provenance checks, and controlled overfit tests. It
-did \textbf{not} reproduce the original paper-level full-data baseline. The
-unresolved gap is therefore not treated as a thesis failure by itself: the exact
-paper training data, full set of training conditions, and encoder/task-adapter
-choices were not fully recoverable from the paper artifacts. The local
-\texttt{data\_jinav3} cache was generated in this thesis from the released data
-preparation code: raw C4/mC4 text was tokenized for the decoder and encoded with
-Jina Embeddings v3 \cite{DBLP:journals/corr/abs-2409-10173}.\footnote{Exact
-model identifier used in the local reproduction scripts:
-\url{https://huggingface.co/jinaai/jina-embeddings-v3}.} Here, an encoder task
-adapter means a task-specific embedding mode, such as retrieval or
-classification, that changes the generated vector while keeping the same input
-text. \ChapterRef{chapter:results} reports the diagnostic evidence and the
-resulting negative conclusion.
-
-\subsection{Diagnostic Design}
-\label{subsec:method-embedding-diagnostics}
-
-The main reproduction target followed a conditional masked diffusion approach
-to embedding inversion. The method-level question is whether the reconstructed
-sentence preserves the input meaning, especially when the input contains
-negation or counterfactual content. Several diagnostics were therefore kept
-separate: architecture compatibility, masking behavior, loss behavior, checkpoint
-behavior, and a tiny overfit positive control. This avoids presenting the branch
-as a single clean benchmark when some parts are better interpreted as
-reproduction and diagnostic evidence.
+\TableRef{tab:canonical-dataset-blocks} reports the processed composition used
+in the thesis. The train, validation, and test splits contain respectively
+\textbf{962}, \textbf{290}, and \textbf{828} rows. The mean whitespace-token
+length is 13.17 words overall, with block-level means of 7.47 for controls,
+9.43 for negation and polarity items, and 15.39 for commonsense-sensitive
+items. These short inputs make the corpus suitable for exact or near-exact
+readout diagnostics, while the paired labels make semantic drift visible.
 
 \begin{table}[!htb]
     \centering
     \small
     \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.23\linewidth} p{0.27\linewidth} p{0.27\linewidth} p{0.16\linewidth}}
+    \begin{tabular}{p{0.10\linewidth} p{0.42\linewidth} p{0.42\linewidth}}
         \toprule
-        \textbf{Variant} & \textbf{Changed component} & \textbf{Diagnostic purpose} & \textbf{Claim status} \\
+        \textbf{Block} & \textbf{Input sentence} & \textbf{Contrastive sentence or role} \\
         \midrule
-        Architecture check & Model and checkpoint loading & Verify that the reproduced model path is operational & Diagnostic \\
-        Masking check & Masked-token reconstruction process & Verify whether the decoding process behaves as expected & Diagnostic \\
-        Semantic-stress input & Input sentence content & Observe whether negation or counterfactual meaning is preserved & Qualitative \\
-        Tiny overfit control & Small fully masked training subset & Check whether the implementation can learn an embedding-to-token mapping in a controlled setting & Sanity check \\
+        A &
+        The meeting starts at nine in the morning. &
+        Standard control with no contrastive pair. \\
+        B &
+        The church is empty of song. &
+        The church is filled with song. \\
+        C &
+        when it rains humidity forms &
+        when it is hot humidity forms \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Embedding-inversion branch as a set of diagnostics rather than a
-    single final benchmark.}
-    \label{tab:embedding-diagnostics}
+    \caption{Representative Semantic-Fidelity Corpus examples. The examples
+    show why lexical overlap alone is insufficient: the paired sentence may be
+    close in wording while changing the property being tested.}
+    \label{tab:semantic-fidelity-examples}
 \end{table}
 
-The important methodological choice is that these diagnostics are interpreted
-with caution. A reconstruction may be lexically similar to the input and still
-lose the semantic phenomenon being tested. Conversely, an implementation issue
-in this branch should not invalidate the whole thesis, because SIPIT and NLA
-provide independent latent-to-text views.
+The corpus supports later experiments without defining their outcome. For
+embedding inversion it provides inputs whose recovered text can be checked for
+semantic drift. For hidden-state or soft-prompt readouts it provides short,
+controlled sequences where exact or approximate recovery can be interpreted.
+For activation verbalization it provides examples where a textual description of
+a model state can be inspected for negation, polarity, or commonsense content.
 
-\section{SIPIT Hidden-State Inversion}
-\label{sec:method-sipit}
 
-SIPIT is used to study hidden-state inversion: the input is a decoder-only
-language model hidden state, and the target output is the original prompt token
-sequence \cite{DBLP:journals/corr/abs-2510-15511}. This branch is important
-because it addresses a stronger form of inversion than free-form
-reconstruction. If a method exactly recovers the input token sequence, then
-semantic properties such as negation are preserved by construction.
+\section{Semantic-Fidelity Readout Diagnostics}
+\label{sec:method-readout-diagnostics}
 
-The standard SIPIT setting is important as a reference point. In that setting,
-the hidden states are generated from an ordinary sequence of vocabulary tokens,
-and the recovery target is the same discrete sequence. The extensions below are
-harder because they introduce continuous vectors directly in embedding space.
-Those vectors may be useful to the model while still not corresponding exactly
-to any token in the vocabulary.
-
-The thesis implementation uses SIPIT in three ways:
-
-\begin{itemize}
-    \item it supports the standard reproduction path on GPT-2-style settings;
-    \item it exports a logical dataset derived from the canonical
-    semantic-fidelity rows;
-    \item it adds a random-prefix extension, where the model input begins with
-    continuous vectors that are not necessarily token embeddings.
-\end{itemize}
+The Semantic-Fidelity Corpus is also used to interpret latent-to-text readouts.
+These diagnostics do not introduce new inversion algorithms; the underlying
+methods are prior work discussed in \ChapterRef{chapter:related-work}. The
+methodological role in this thesis is narrower: apply the readout to controlled
+inputs, preserve enough metadata to audit the output, and compare the recovered
+or verbalized text with the semantic property under stress.
 
 \begin{table}[!htb]
     \centering
     \small
     \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.21\linewidth} p{0.30\linewidth} p{0.26\linewidth} p{0.25\linewidth}}
+    \begin{tabular}{p{0.24\linewidth} p{0.28\linewidth} p{0.34\linewidth}}
         \toprule
-        \textbf{Condition} & \textbf{Input to SIPIT} & \textbf{What is recovered} & \textbf{Valid claim} \\
+        \textbf{Diagnostic view} & \textbf{Readout object} & \textbf{Question answered in the thesis} \\
         \midrule
-        Standard recovery &
-        Hidden states from a normal token sequence. &
-        The original prompt tokens. &
-        Tests exact hidden-state inversion on ordinary discrete prompts. \\
-        Known-prefix control &
-        A fixed continuous random prefix plus target hidden states for the real prompt. &
-        Only the real prompt tokens after the fixed prefix. &
-        Tests whether recovery works when the continuous prefix is known. \\
-        Full-sequence random prefix &
-        Hidden states from random continuous prefix vectors followed by real token embeddings. &
-        Prefix positions and prompt positions as vocabulary tokens. &
-        Tests what happens when off-vocabulary continuous prefixes must be discretized. \\
+        Embedding inversion & Text reconstructed from a sentence embedding. &
+        Does the reconstruction preserve negation, polarity, and
+        commonsense-sensitive meaning? \\
+        Hidden-state recovery & Token sequence recovered from decoder hidden states. &
+        When exact recovery is possible, does the recovered sequence preserve the
+        original semantic contrast? \\
+        Activation verbalization & Natural-language description of selected residual-stream activations. &
+        Do verbalizations expose useful semantic evidence that can later be used
+        as proposer feedback? \\
+        Soft-prompt readout & Nearest-token and bounded-recovery description of trained virtual tokens. &
+        Can learned continuous prompt vectors be interpreted as meaningful text,
+        or are they useful but not semantically transparent? \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{SIPIT random-prefix conditions. The two random-prefix modes answer
-    different questions and should not be merged into one result.}
-    \label{tab:sipit-random-prefix-modes}
+    \caption{Diagnostic readout views used to analyze semantic fidelity. The
+    detailed experimental settings and results are reported in
+    \ChapterRef{chapter:experimental_setup} and \ChapterRef{chapter:results}.}
+    \label{tab:semantic-readout-diagnostics}
 \end{table}
 
-The distinction in \TableRef{tab:sipit-random-prefix-modes} is central. In the
-known-prefix control, the random continuous prefix is given as context. SIPIT is
-therefore asked only to recover the real prompt after that prefix. In the
-full-sequence condition, SIPIT must also map the random continuous prefix to
-discrete vocabulary tokens. Since a random vector need not lie exactly on the
-token-embedding manifold, exact recovery of the prefix can be impossible or
-misleading. The correct interpretation is therefore not simply whether the whole
-sequence matches. The method must also ask whether the non-prefix suffix remains
-representation-close to the original.
-
-\ListingRef{lst:sipit-terminal-example} reports a concrete SIPIT exact-recovery
-example in a terminal-style format. The token-search region is abbreviated with
-ellipses because the full run prints many candidate-token probes; the retained
-fields are the ones needed to understand the successful recovery.
-
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize, frame=lines, breaklines=true, columns=fullflexible, showstringspaces=false, caption={Terminal-style SIPIT exact-recovery excerpt from the logical20 artifact.}, label={lst:sipit-terminal-example}]
-[load] dataset=logical.json samples=40 model=openai-community/gpt2 layer=-1
-[sample] index=0 canonical_id=B_jina_negation_test_00095_negative
-[sample] block=B label=negative phenomenon=negation split=test
-
-[target]
-The American football player in yellow does not catch the ball while under
-pressure from the player in white.
-
-[paired positive]
-The American football player in yellow catches the ball while under pressure
-from the player in white.
-
-[window] token_start_index=0 token_length=20
-[input] final-layer GPT-2 hidden states for the decoded 20-token window
-
-[recover] pos=01/20 token_id=464  text="The"       timesteps=22   time=0.90s
-[recover] pos=02/20 token_id=1605 text=" American" timesteps=11   time=0.27s
-...
-[recover] pos=08/20 token_id=407  text=" not"      timesteps=1857 time=50.30s
-...
-[recover] pos=20/20 token_id=13   text="."         timesteps=1452 time=42.49s
-
-[result] match=True inversion_time=277.62s
-[recovered]
-The American football player in yellow does not catch the ball while under
-pressure from the player in white.
-
-[run summary] prompts=40 exact_match_accuracy=1.0000
-[run summary] mean_time=1242.89s vocab_explored=4.61%
-\end{lstlisting}
-
-The key field is \texttt{match=True}: the recovered token sequence is identical
-to the original 20-token window. In this example, exact recovery also preserves
-the negation \quotes{does not catch}, so SIPIT does not collapse the input into
-the positive paired sentence.
-
-For this reason, the random-prefix branch records suffix diagnostics. For each
-failed full-sequence recovery, the recovered non-prefix tokens are compared with
-the original non-prefix tokens in two spaces: token-embedding space and
-contextual hidden-state space. The same comparison is also made against a
-deterministic random-token baseline. If the recovered suffix is much closer
-than random in hidden-state space, then the failure is not pure noise even
-though exact token recovery failed. If it is close to the random baseline, the
-wrong discretized prefix has likely destroyed the useful causal context for the
-suffix.
-
-\section{Standalone NLA Activation Verbalization}
-\label{sec:method-nla-standalone}
-
-Natural Language Activation (NLA) verbalization is used as a second
-latent-to-text view. Instead of trying to recover the exact input string, NLA
-maps an activation vector to a natural-language description of what that vector
-appears to represent \cite{frasertaliente2026nla}. In this thesis, the relevant
-component is the activation verbalizer, not the full autoencoding loop.
-
-The standalone NLA pipeline has four steps:
-
-\begin{itemize}
-    \item the base language model processes an input example;
-    \item selected residual-stream activations are extracted at a compatible
-    layer;
-    \item the activation verbalizer checkpoint turns those vectors into text;
-    \item the resulting verbalizations are saved with metadata for the source
-    example, selected token, layer, and token-selection strategy.
-\end{itemize}
-
-The NLA project page is used as a software and model reference for this
-component.\footnote{\url{https://transformer-circuits.pub/2026/nla/index.html}}
-
-\begin{figure}[!htb]
-    \centering
-    \resizebox{0.98\linewidth}{!}{%
-    \begin{tikzpicture}[
-        font=\scriptsize,
-        >=Latex,
-        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
-        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
-            align=center, text width=25mm, minimum height=16mm, inner sep=3.2pt},
-        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
-            minimum size=8.2mm, inner sep=0pt},
-        lane title/.style={anchor=west, font=\small\bfseries, align=left},
-        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
-        pics/document/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
-            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
-            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
-            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
-        }},
-        pics/network/.style={code={
-            \draw[draw=black!55, line width=0.45pt] (-0.18,0.13) -- (0.02,0.00) -- (0.20,0.13);
-            \draw[draw=black!55, line width=0.45pt] (-0.18,-0.13) -- (0.02,0.00) -- (0.20,-0.13);
-            \foreach \x/\y in {-0.18/0.13,-0.18/-0.13,0.02/0,0.20/0.13,0.20/-0.13}
-                \filldraw[fill=white, draw=black!65] (\x,\y) circle (0.045);
-        }},
-        pics/tokens/.style={code={
-            \foreach \x/\c in {-0.20/blue, -0.07/orange, 0.06/green, 0.19/lightviolet}
-                \filldraw[fill=\c!25, draw=\c!70!black] (\x,0) circle (0.055);
-            \draw[draw=black!45, line width=0.4pt] (-0.145,0) -- (-0.125,0);
-            \draw[draw=black!45, line width=0.4pt] (-0.015,0) -- (0.005,0);
-            \draw[draw=black!45, line width=0.4pt] (0.115,0) -- (0.135,0);
-        }},
-        pics/lens/.style={code={
-            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
-            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
-            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
-        }},
-        pics/archive/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.15) rectangle (0.22,0.16);
-            \draw[draw=black!55, line width=0.35pt] (-0.14,0.07) -- (0.14,0.07);
-            \draw[draw=black!55, line width=0.35pt] (-0.14,-0.01) -- (0.10,-0.01);
-            \draw[draw=darkgreen!70!black, line width=0.65pt] (-0.10,-0.09) -- (-0.03,-0.16) -- (0.14,0.01);
-        }}
-    ]
-        \node[lane=blue, minimum width=9.25cm, minimum height=2.65cm, anchor=west] at (0,0) {};
-        \node[lane=green, minimum width=6.50cm, minimum height=2.65cm, anchor=west] at (9.60,0) {};
-        \node[lane title, text=blue!55!black] at (0.35,1.48) {Activation extraction};
-        \node[lane title, text=green!45!black] at (9.95,1.48) {Natural-language readout};
-
-        \node[card=blue] (input) at (1.90,-0.18) {\textbf{Input example}\\source text\\selected token};
-        \node[card=blue] (base) at (5.05,-0.18) {\textbf{Base LM}\\Qwen2.5-7B\\forward pass};
-        \node[card=blue] (activation) at (8.20,-0.18) {\textbf{Layer-20 vector}\\residual stream\\token position};
-        \node[card=green] (av) at (11.25,-0.18) {\textbf{NLA AV}\\checkpoint\\vector to text};
-        \node[card=green] (record) at (14.30,-0.18) {\textbf{Saved record}\\verbalization\\token/layer metadata};
-
-        \node[badge=blue] at ([yshift=2.1mm]input.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]input.north) {document};
-        \node[badge=blue] at ([yshift=2.1mm]base.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]base.north) {network};
-        \node[badge=blue] at ([yshift=2.1mm]activation.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]activation.north) {tokens};
-        \node[badge=green] at ([yshift=2.1mm]av.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]av.north) {lens};
-        \node[badge=green] at ([yshift=2.1mm]record.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]record.north) {archive};
-
-        \draw[line=blue] (input.east) -- (base.west);
-        \draw[line=blue] (base.east) -- (activation.west);
-        \draw[line=green] (activation.east) -- (av.west);
-        \draw[line=green] (av.east) -- (record.west);
-    \end{tikzpicture}}
-    \caption{Standalone NLA extraction pipeline used before integrating
-    verbalizations into GEPA feedback. The left side extracts a residual-stream
-    vector from the base model at a selected token position; the right side turns
-    that vector into a natural-language record with token, layer, and source
-    metadata.}
-    \label{fig:method-nla-standalone}
-\end{figure}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.22\linewidth} p{0.16\linewidth} p{0.15\linewidth} p{0.39\linewidth}}
-        \toprule
-        \textbf{Artifact field} & \textbf{Position} & \textbf{Token} & \textbf{Verbalization} \\
-        \midrule
-        \shortstack[l]{\texttt{context\_016}\\\texttt{response\_01}} &
-        candidate middle &
-        \texttt{warriors} &
-        \quotes{team} or \quotes{and basketball} or \quotes{but my favorite sports team} \\
-        \shortstack[l]{\texttt{context\_020}\\\texttt{response\_00}} &
-        candidate middle &
-        \texttt{made} &
-        or \quotes{a tiny amount of money,} completing the absurdity about box office failure \\
-        \shortstack[l]{\texttt{context\_011}\\\texttt{response\_03}} &
-        candidate middle &
-        \texttt{human} &
-        the parallel phrase about human diseases, continuing the specific disease-correlation example \\
-        \shortstack[l]{\texttt{context\_054}\\\texttt{response\_05}} &
-        candidate middle &
-        \texttt{need} &
-        or \quotes{a friend to fill my streaming void,} completing the informal request \\
-        \bottomrule
-    \end{tabular}
-    \end{adjustbox}
-    \caption{Example NLA verbalizations from saved Topical-Chat artifacts. Each
-    row reports one selected token from a candidate response and the corresponding
-    Layer-20 activation readout. The selected examples show sports-team semantics,
-    numerical box-office contradiction, factual biological relation, and
-    conversational intent.}
-    \label{tab:nla-standalone-example}
-\end{table}
-
-Standalone NLA is useful for validating the extraction path before using the
-verbalizations inside GEPA. It also supports the broader semantic-fidelity
-question: if an activation is associated with negation or counterfactual
-content, does the verbalizer preserve that information or convert it into a
-generic plausible description? The answer is empirical and depends on which
-tokens are selected, which layer is used, and how the verbalizations are
-filtered. The example in \TableRef{tab:nla-standalone-example} is therefore not
-used as a correctness label. It shows what kind of text the activation
-verbalizer emits and why metadata such as token position, layer, checkpoint, and
-parse status must be preserved.
+This placement keeps the distinction between \textbf{method} and
+\textbf{evaluation} explicit. The method defines which representations are read
+out and which semantic properties must be checked. The setup chapter specifies
+models, checkpoints, token positions, prompts, and hyperparameters. The results
+chapter reports whether each readout succeeded, failed, or produced only partial
+semantic evidence.
 
 \section{G-EVAL-Style Judge Task}
 \label{sec:method-geval-task}
@@ -1710,37 +1333,51 @@ During optimization, training and validation examples are used to guide prompt
 selection. Held-out final-test examples are used only after the optimized prompt
 has been selected.
 
-\section{GEPA Prompt Optimization Loop}
+\section{Latent-GEPA Prompt Optimization Loop}
 \label{sec:method-gepa-loop}
 
-GEPA is the prompt optimizer used in this thesis \cite{DBLP:journals/corr/abs-2507-19457}.
-The base judge remains fixed; GEPA changes the judge prompt. A separate
-proposer model receives feedback about prompt behavior and proposes revised
-instructions. These revised prompts are evaluated, and the best prompt is
-selected according to validation behavior.
+\textbf{Latent-GEPA} is the main proposed optimization pipeline. It keeps the
+evaluated judge fixed and optimizes only the natural-language judge prompt. The
+pipeline starts from a seed rubric prompt, evaluates candidate prompts on small
+sets of examples, collects reflection data from the observed failures, and asks
+a separate proposer model to generate revised prompts. The latent part of the
+method is not a replacement for GEPA's objective: perplexity, activation
+verbalizations, and auxiliary-judge summaries are additional proposer context,
+while candidate selection is still driven by agreement with human scores.
 
 \begin{figure}[!htb]
     \centering
-    \begin{thesispromptbox}[width=0.96\linewidth]{GEPA Optimization Pseudocode}
+\begin{thesispromptbox}[width=0.96\linewidth]{Latent-GEPA Optimization Pseudocode}
 \begin{Verbatim}[fontsize=\small]
 seed_prompt = initial judge rubric
 candidate_pool = {seed_prompt}
+pareto_frontier = {seed_prompt}
 
-for each GEPA iteration:
-    evaluate candidate prompts on training/validation examples
-    compute agreement metrics against human scores
-    collect optional feedback: perplexity, NLA, auxiliary judge
-    ask proposer model to write revised prompts
-    test revised prompts on validation examples
-    keep prompts that improve validation behavior
+for each optimization iteration:
+    sample a minibatch of validation examples
+    evaluate prompts from candidate_pool on the minibatch
+    compute agreement with human scores for each prompt/example
+    collect reflection data from successes and failures
+    optionally attach PPL, NLA, and auxiliary-judge feedback
+    ask the proposer to mutate or merge selected prompts
+    evaluate the proposed prompts on validation examples
+    update candidate_pool and the Pareto-style frontier
 
-selected_prompt = best validation prompt
+selected_prompt = best prompt on the validation frontier
 evaluate selected_prompt on held-out final-test examples
 \end{Verbatim}
     \end{thesispromptbox}
-    \caption{High-level GEPA loop used for prompt optimization in this thesis.}
+    \caption{High-level Latent-GEPA loop used for prompt optimization in this thesis.}
     \label{fig:method-gepa-pseudocode}
 \end{figure}
+
+The Pareto-style frontier is important because prompt quality is not judged from
+a single example. A candidate may improve one subset while hurting another.
+GEPA therefore keeps useful candidates in a pool, proposes edits from that pool,
+and selects a final prompt from validation behavior rather than from the last
+generated prompt. This is why the saved prompt trajectory matters: it records
+which candidate prompts were proposed, which feedback produced them, and which
+ones survived validation-time selection.
 
 The model roles are deliberately separated. The evaluated judge is the base
 Qwen2.5-7B model. The proposer is a stronger Qwen35B model used to propose
@@ -1798,10 +1435,10 @@ judge explain the score briefly, and the parseable final line. GEPA is allowed
 to rewrite the instruction, but not to change the task into a different
 evaluation problem.
 
-\section{Feedback Variants}
+\section{Latent-GEPA Feedback Variants}
 \label{sec:method-feedback-variants}
 
-The GEPA branch is organized as an ablation study. Each variant adds one
+The Latent-GEPA component is organized as an ablation study. Each variant adds one
 additional feedback source or transformation. This makes comparisons meaningful:
 a variant should be compared against a matched control with the same data split,
 judge model, proposer model, and optimization budget.
@@ -1817,7 +1454,7 @@ judge model, proposer model, and optimization budget.
         \texttt{base\_gepa} & yes & no & no & no &
         Can GEPA improve the seed judge prompt using task metric feedback alone? \\
         \texttt{ppl} & yes & yes & no & no &
-        Does response-only perplexity help the proposer understand confidence or failure cases? \\
+        Does response-only perplexity help the proposer distinguish confidence from failure cases? \\
         \texttt{ppl\_nla} & yes & yes & yes & no &
         Do raw activation verbalizations provide useful additional proposer context? \\
         \shortstack[l]{\texttt{ppl\_nla}\\\texttt{\_auxjudge}} & yes & yes & yes & yes &
@@ -1825,7 +1462,7 @@ judge model, proposer model, and optimization budget.
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{GEPA feedback variants used as ablations.}
+    \caption{Latent-GEPA feedback variants used as ablations.}
     \label{tab:feedback-variants}
 \end{table}
 
@@ -1864,10 +1501,10 @@ This distinction matters because final evaluation is still based on agreement
 with human scores. Perplexity can help explain a model response, but it cannot
 replace the target metric.
 
-\section{NLA Feedback for GEPA}
+\section{NLA Feedback for Latent-GEPA}
 \label{sec:method-nla-feedback}
 
-In the GEPA branch, NLA verbalizations are transformed into feedback for the
+In Latent-GEPA, NLA verbalizations are transformed into feedback for the
 prompt proposer. The base judge processes an evaluation example. Selected token
 positions are converted into activation vectors. The activation verbalizer turns
 those vectors into text. The resulting descriptions are attached to the
@@ -1899,7 +1536,7 @@ problem.
         Add latent-derived textual evidence about the judged example. \\
         \bottomrule
     \end{tabular}
-    \caption{How NLA feedback extends the proposer context in the GEPA branch.}
+    \caption{How NLA feedback extends the proposer context in Latent-GEPA.}
     \label{tab:nla-feedback}
 \end{table}
 \clearpage
@@ -2068,18 +1705,18 @@ If the auxiliary judge produces no usable content, the run is excluded from the
 auxiliary-feedback condition. This prevents a silent failure from being
 interpreted as evidence against the method.
 
-\section{Soft-Prompt Training and SIPIT Readout}
+\section{Soft-Prompt Training and SIPIT-Style Readout}
 \label{sec:method-soft-prompt-readout}
 
 \subsection{Purpose}
 \label{subsec:method-soft-prompt-purpose}
 
-The soft-prompt branch uses the same judge task as the GEPA branch, but changes
+The soft-prompt diagnostic uses the same judge task as Latent-GEPA, but changes
 the object being optimized. GEPA searches over readable prompt text. Soft-prompt
 tuning keeps the base judge frozen and trains only a small set of continuous
 \textbf{virtual prompt tokens} prepended to the ordinary judge input.
 
-This branch separates three questions:
+This diagnostic separates three questions:
 
 \begin{itemize}
     \item \textbf{task utility}: do the learned vectors improve agreement with
@@ -2091,7 +1728,7 @@ This branch separates three questions:
 \end{itemize}
 
 Task improvement is therefore only a sanity check. The main object of this
-branch is the interpretability readout: what can be recovered from a trained
+component is the interpretability readout: what can be recovered from a trained
 continuous prompt, and whether that recovery contains useful semantic evidence.
 
 \subsection{Readout Pipeline}
@@ -2169,7 +1806,7 @@ The controls calibrate that interpretation:
 \subsection{Interpretation Rule}
 \label{subsec:method-soft-prompt-interpretation}
 
-This branch is included because it makes the distinction between usefulness,
+This diagnostic is included because it makes the distinction between usefulness,
 inversion, and semantic interpretation explicit. A soft prompt may improve
 agreement with human scores while SIPIT-style recovery still fails to produce a
 faithful or useful natural-language explanation of the learned vectors. That
@@ -2185,8 +1822,8 @@ jobs.
 
 \ChapterRef{chapter:experimental_setup} instantiates this method with concrete datasets, model checkpoints,
 metrics, hyperparameters, and execution environment. \ChapterRef{chapter:results} then uses the
-saved artifacts to evaluate which branches preserve semantic content and which
-feedback variants improve, fail to improve, or diagnose GEPA prompt
+saved artifacts to evaluate which readouts preserve semantic content and which
+feedback variants improve, fail to improve, or diagnose Latent-GEPA prompt
 optimization.
 
 \chapter{Experimental Setup}
