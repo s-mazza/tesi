@@ -319,11 +319,18 @@ Recovery action:
 
 Pipeline mitigation for later jobs:
 
-- `run_docker.sh` now defaults `LLAMACPP_BATCH_SIZE` to `128`;
-- all queued llama.cpp/Qwen35B configs now set `LLAMACPP_BATCH_SIZE=128`
-  explicitly;
+- the first recovery mitigation, `LLAMACPP_BATCH_SIZE=128` with flash attention
+  enabled, was not sufficient: the recovery sidecar crashed again near the end
+  of D4 with the same `GGML_ASSERT(stat == cudaSuccess)` failure;
+- D4 was recovered a second time with `LLAMACPP_BATCH_SIZE=64` and
+  `LLAMACPP_FLASH_ATTN=off`; this endpoint became ready and GEPA resumed
+  `Proposed new text` entries;
+- `run_docker.sh` now defaults `LLAMACPP_BATCH_SIZE` to `64` and
+  `LLAMACPP_FLASH_ATTN` to `off`;
+- all queued llama.cpp/Qwen35B configs now set `LLAMACPP_BATCH_SIZE=64` and
+  `LLAMACPP_FLASH_ATTN=off` explicitly;
 - future jobs still use the same model, context size, proposer temperature, and
-  feedback settings, but with a more conservative llama.cpp batch size.
+  feedback settings, but with more conservative llama.cpp execution settings.
 - because the D4 recovery sidecar was started manually outside the original
   `run_docker.sh` cleanup scope, a remote watcher now waits for the D4 main
   container to exit and then stops the recovery sidecar. This prevents GPU `2`

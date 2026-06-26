@@ -1271,7 +1271,7 @@ Actions taken:
   `LLAMACPP_BATCH_SIZE=128`;
 - verified `/v1/models` readiness and resumed `Proposed new text` entries in
   the D4 log;
-- changed the launcher default and all llama.cpp/Qwen35B configs from
+- initially changed the launcher default and all llama.cpp/Qwen35B configs from
   `LLAMACPP_BATCH_SIZE=512` to `128` for later queued jobs;
 - updated `telegram_pid_monitor.py` to start at the end of existing logs,
   deduplicate alerts by signature, and enforce cooldown/poll caps.
@@ -1281,6 +1281,12 @@ Actions taken:
 - added a remote watcher for the manually recovered D4 sidecar: it waits for the
   D4 main container to exit and then stops the recovery llama.cpp container, so
   GPU `2` is released before the next queue item starts.
+- follow-up check at 2026-06-26 11:03 CEST showed that the 128-batch recovery
+  sidecar had also crashed with the same `GGML_ASSERT(stat == cudaSuccess)`.
+  D4 was recovered again with `LLAMACPP_BATCH_SIZE=64` and
+  `LLAMACPP_FLASH_ATTN=off`; GEPA resumed proposer calls. The launcher default
+  and queued llama.cpp/Qwen35B configs were tightened to this safer setting for
+  subsequent jobs.
 
 Current interpretation: D4 remains usable if it finishes, but its final report
 should mention that a transient proposer outage occurred near the end of the
