@@ -1250,3 +1250,37 @@ Priority order:
 5. candidate-content NLA wiring probe;
 6. full NLA token-position smoke sweep;
 7. matched no-aux fixed-NLA long run if time remains.
+
+## 2026-06-26 Locked-GPU D4 Recovery
+
+D4 stayed alive overnight and reached late GEPA optimization, but the Qwen35B
+llama.cpp sidecar crashed during a long proposer generation:
+
+- symptom in GEPA log: repeated `Connection refused` / `Loading model` errors
+  during reflection/proposal;
+- sidecar log root cause: `GGML_ASSERT(stat == cudaSuccess)` in
+  `ggml-cuda.cu`;
+- scope: proposer/aux-judge sidecar only, not the vLLM judge container;
+- effect: GEPA skipped some reflective mutations while the proposer endpoint was
+  unavailable, then resumed after recovery.
+
+Actions taken:
+
+- stopped the flooding Telegram monitor;
+- restarted llama.cpp on the same port `19021` using the local GGUF path and
+  `LLAMACPP_BATCH_SIZE=128`;
+- verified `/v1/models` readiness and resumed `Proposed new text` entries in
+  the D4 log;
+- changed the launcher default and all llama.cpp/Qwen35B configs from
+  `LLAMACPP_BATCH_SIZE=512` to `128` for later queued jobs;
+- updated `telegram_pid_monitor.py` to start at the end of existing logs,
+  deduplicate alerts by signature, and enforce cooldown/poll caps.
+- restarted the monitor on per-job logs only, with two-hour duplicate cooldown
+  and one log alert per poll, to avoid duplicate alerts from the queue `tee`
+  output and the job log containing the same traceback.
+
+Current interpretation: D4 remains usable if it finishes, but its final report
+should mention that a transient proposer outage occurred near the end of the
+optimization and caused skipped proposal steps. The follow-up jobs should be
+less likely to hit the same llama.cpp CUDA assertion because they now use the
+more conservative batch size.

@@ -286,3 +286,51 @@ The D1 smoke result is not interpreted as a scientific improvement signal: the
 optimized prompt was worse on the 12-row smoke final test. Its purpose here was
 startup and feedback-path validation, which it satisfied after the no-thinking
 fix.
+
+## 2026-06-26 D4 Sidecar Recovery
+
+At 2026-06-26 09:43 CEST the D4 long run was still alive, but Telegram had
+started sending many log alerts. The root cause was a llama.cpp proposer sidecar
+crash, while the main GEPA/vLLM container kept running and retried proposer
+calls:
+
+```text
+D4 progress at detection: about 91%
+main GEPA container: alive
+Qwen35B llama.cpp endpoint: down
+main symptom: litellm/OpenAI connection refused during reflection/proposal
+sidecar failure: GGML_ASSERT(stat == cudaSuccess) in ggml-cuda.cu
+```
+
+This failure was localized to the Qwen35B proposer/aux-judge sidecar. It was not
+a vLLM judge crash and did not stop the GEPA process. GEPA skipped several
+reflective mutations while the proposer endpoint was unavailable.
+
+Recovery action:
+
+- stopped the stalled first recovery sidecar that had bound the port but did not
+  load the model;
+- restarted llama.cpp on the same endpoint, `127.0.0.1:19021`, using the local
+  GGUF path directly instead of the `-hf` resolver;
+- reduced llama.cpp batch size from `512` to `128` for the recovery sidecar;
+- confirmed `/v1/models` readiness and GPU `2` memory usage around 21 GiB;
+- confirmed that D4 resumed proposer calls by logging new
+  `Proposed new text for judge.predict` entries.
+
+Pipeline mitigation for later jobs:
+
+- `run_docker.sh` now defaults `LLAMACPP_BATCH_SIZE` to `128`;
+- all queued llama.cpp/Qwen35B configs now set `LLAMACPP_BATCH_SIZE=128`
+  explicitly;
+- future jobs still use the same model, context size, proposer temperature, and
+  feedback settings, but with a more conservative llama.cpp batch size.
+
+Telegram monitor mitigation:
+
+- the direct PID monitor was stopped immediately to end the notification flood;
+- `telegram_pid_monitor.py` now starts from the end of existing logs on restart;
+- repeated alerts are grouped by error signature;
+- repeated signatures have a cooldown, and each poll has a maximum alert count;
+- after the first deduplicated restart still produced duplicate alerts from both
+  the queue `tee` log and the per-job log, the monitor was restarted to watch
+  only per-job logs, with a two-hour cooldown and at most one log alert per poll.
