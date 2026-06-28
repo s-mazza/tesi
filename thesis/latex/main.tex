@@ -58,22 +58,23 @@ distinction matters especially for inputs involving negation, logical polarity,
 counterfactual statements, or violations of commonsense, where a reconstruction
 can remain lexically similar while changing the meaning.
 
-This thesis studies semantic fidelity in latent-to-text methods and evaluates
+The analysis focuses on semantic fidelity in latent-to-text methods and on
 whether activation-derived evidence can improve prompt optimization for
-LLM-as-a-judge evaluation. The work combines dataset construction, diagnostic
-experiments on inversion and verbalization methods, and a G-EVAL-style
-evaluation pipeline optimized with GEPA. The method can be summarized as a
-two-track analysis: first, latent representations are inverted or verbalized
-and checked for semantic preservation; second, perplexity and activation
-verbalizations are tested as signals for improving judge prompts.
+LLM-as-a-judge evaluation. It combines the construction of a new
+Semantic-Fidelity Corpus, diagnostic experiments on inversion and verbalization
+methods, and a G-EVAL-style evaluation pipeline optimized with GEPA. The method
+can be summarized as a two-track analysis: first, latent representations are
+inverted or verbalized and checked for semantic preservation; second,
+perplexity and activation verbalizations are tested as signals for improving
+judge prompts.
 
 The experimental setup uses semantic-stress examples, hidden-state inversion
 diagnostics, activation verbalizations from a base language model, and
 G-EVAL-style datasets evaluated with correlation metrics against human
 judgments. Early results show that perplexity feedback can improve GEPA prompt
-optimization in this setting. These findings frame the thesis as both an
-empirical study of semantic fidelity and a diagnostic analysis of how activation
-information can be made useful for downstream evaluation.
+optimization in this setting. Together, the findings characterize semantic
+fidelity empirically and test how activation information can be made useful for
+downstream evaluation.
 
 \chapter*{Introduction}
 \markboth{Introduction}{Introduction}
@@ -82,7 +83,7 @@ Large Language Models (LLMs) are usually observed through the text they generate
 but their behavior is mediated by latent numerical representations: embeddings,
 hidden states, logits, residual streams, and soft prompts. These representations
 are increasingly used for retrieval, interpretability, inversion, and automatic
-evaluation. This raises a central question for the thesis: when a latent
+evaluation. This raises a central question: when a latent
 representation is mapped back to natural language, does the output preserve the
 meaning of the original input, or does it merely produce fluent and plausible
 text?
@@ -92,28 +93,27 @@ meaning-changing errors. A recovered sentence may share most of its words with
 the input while losing a negation, reversing a causal relation, or normalizing a
 counterfactual statement toward commonsense. For instance,
 \quotes{The ice does not melt under the sun} and \quotes{The ice melts under
-the sun} are lexically close, but logically incompatible. Surface similarity is
-therefore not enough to evaluate whether an inversion or verbalization method
-preserves semantic fidelity.
+the sun} are lexically close, but logically incompatible. Evaluating inversion
+or verbalization methods therefore requires semantic-fidelity checks beyond
+surface similarity.
 
-This thesis studies that mismatch through two connected lines of work. The
-first analyzes embedding- and activation-inversion methods on examples where
-meaning is fragile, especially under negation, polarity changes, and
-commonsense-sensitive statements. The second uses latent-representation
-analysis as feedback for LLM-as-a-judge prompt optimization. In this setting, a
-model scores generated text according to a rubric, and quality is measured by
-agreement with human judgments. The proposed pipeline, \textbf{Latent-GEPA},
-keeps the evaluated judge fixed while using prompt optimization enriched with
-signals such as perplexity, activation verbalizations, and optional
-auxiliary-judge feedback.
+The mismatch motivates two connected experimental lines. The first analyzes
+embedding- and activation-inversion methods on examples where meaning is
+fragile, especially under negation, polarity changes, and commonsense-sensitive
+statements. The second uses latent-representation analysis as feedback for
+LLM-as-a-judge prompt optimization. In this setting, a model scores generated
+text according to a rubric, and quality is measured by agreement with human
+judgments. The proposed pipeline, \textbf{Latent-GEPA}, keeps the evaluated
+judge fixed while using prompt optimization enriched with signals such as
+perplexity, activation verbalizations, and optional auxiliary-judge feedback.
 
-The thesis is guided by two research questions. First, what do latent-to-text
+Two research questions guide the study. First, what do latent-to-text
 methods reveal about the semantic content preserved in internal
 representations, especially for logically fragile inputs? Second, can such
 latent evidence be transformed into useful guidance for improving
 G-EVAL-style judge prompts through Latent-GEPA?
 
-The remainder of the thesis is organized as follows:
+The remaining chapters are organized as follows:
 
 \vspace{4mm}
 
@@ -127,7 +127,7 @@ The remainder of the thesis is organized as follows:
     activation verbalization, G-EVAL-style evaluation, and prompt optimization.
 
     \item \textbf{\ChapterRef{chapter:method} - Method}: defines the semantic-fidelity task and
-    presents \textbf{Latent-GEPA}, including the feedback variants used to test
+    presents \textbf{Latent-GEPA}, including the feedback conditions used to test
     latent-derived guidance.
 
     \item \textbf{\ChapterRef{chapter:experimental_setup} - Experimental Setup}: specifies
@@ -138,7 +138,7 @@ The remainder of the thesis is organized as follows:
     soft-prompt and activation-readout analyses, GEPA ablations, runtime
     measurements, and the resulting claim boundaries.
 
-    \item \textbf{Conclusions and Future Directions}: summarizes the thesis claims,
+    \item \textbf{Conclusions and Future Directions}: summarizes the main claims,
     limitations, and future extensions.
 \end{itemize}
 
@@ -171,16 +171,16 @@ The remainder of the thesis is organized as follows:
 
 Language models process text through numerical representations. Tokens are
 mapped to vectors, vectors are transformed layer after layer, and the final
-model output is produced from a distribution over the vocabulary. This thesis
-uses several representation types, so it is useful to distinguish their roles
+model output is produced from a distribution over the vocabulary. Several
+representation types are used here, so it is useful to distinguish their roles
 before discussing inversion and evaluation.
 
 \textbf{Text embeddings} are fixed-size vectors associated with words,
 sentences, passages, or documents. They are commonly used for retrieval and
 semantic similarity because nearby vectors are expected to represent similar
-content. In this thesis, embeddings are relevant both as objects that can be
-inverted and as examples of representations whose similarity may not be
-sufficient to guarantee semantic fidelity.
+content. Here, embeddings are relevant both as objects that can be
+inverted and as examples of representations whose similarity can fall short of
+semantic fidelity.
 
 \textbf{Hidden states} are the internal vectors produced by a language model at
 each layer and token position. In a decoder-only model, the hidden state of a
@@ -201,14 +201,14 @@ or \textbf{decode} what a model represents internally.
 \textbf{Logits} are the pre-softmax scores assigned to each vocabulary token
 before the model samples or selects an output token. After applying a softmax,
 the logits become a probability distribution. Logits are useful because they
-expose not only the selected token, but also the alternatives the model
-considered likely.
+expose the selected token together with the alternatives the model considered
+likely.
 
 \textbf{Soft prompts} are continuous prompt-like vectors optimized directly in
-embedding space. Unlike ordinary prompts, they are not necessarily readable as
-text. Their existence highlights a central issue for this thesis: a
-representation can be useful to a model while remaining difficult to interpret
-for humans.
+embedding space. They can steer model behavior while lacking the immediately
+readable form of ordinary prompts. Their existence highlights a central issue:
+a representation can be useful to a model while remaining difficult to
+interpret for humans.
 
 \section{Latent-To-Text Inversion}
 
@@ -235,30 +235,31 @@ and layer where they are extracted. It is also more direct for decoder-only
 models, since the hidden state is part of the causal computation that produces
 the next token.
 
-In \textbf{activation verbalization}, the output is not necessarily the original
-text. Here, an \textbf{activation} is an intermediate numerical state produced
-inside a model while it processes an input, such as a hidden vector at a
-specific layer and token position. To \textbf{verbalize} an activation means to
-translate that internal state into a natural-language description of what it
-appears to encode. A verbalization may say that an activation concerns a
-refusal, a factual correction, a sentiment, or a mathematical operation without
-reconstructing the exact input sentence.
+In \textbf{activation verbalization}, the output may describe the represented
+information while leaving the original text unreproduced. Here, an
+\textbf{activation} is an intermediate numerical state produced inside a model
+while it processes an input, such as a hidden vector at a specific layer and
+token position. To \textbf{verbalize} an activation means to translate that
+internal state into a natural-language description of what it appears to encode.
+A verbalization may say that an activation concerns a refusal, a factual
+correction, a sentiment, or a mathematical operation while leaving the exact
+input sentence unreconstructed.
 
 \subsection{Different Notions of Success}
 
-These tasks should not be collapsed into a single notion of success. Exact
-reconstruction, plausible paraphrase, semantic preservation, and useful
-description are different targets. The rest of the thesis uses this distinction
-to avoid overclaiming: a method can be useful while still failing to preserve
-the specific semantic property being tested.
+These tasks require separate notions of success. Exact reconstruction,
+plausible paraphrase, semantic preservation, and useful description are
+different targets. Later chapters use this distinction to avoid
+overclaiming: a method can be useful while still failing to preserve the
+specific semantic property being tested.
 
 \section{Semantic Fidelity}
 
-\subsection{Surface Similarity Is Not Meaning}
+\subsection{Surface Similarity and Meaning}
 
 Semantic fidelity is the degree to which an output preserves the meaning of the
-input, not merely its surface form. A reconstruction can share many words with
-the original and still be semantically wrong. This is especially clear when the
+input beyond its surface form. A reconstruction can share many words with the
+original and still be semantically wrong. This is especially clear when the
 input contains small linguistic markers with large logical effects.
 
 Negation is the simplest example. The sentences \quotes{The treatment did not
@@ -276,11 +277,11 @@ commonsense violations are another stress case. Because language models are
 trained to produce likely text, they may normalize unusual statements toward
 more plausible ones. A method that reconstructs \quotes{The glass did not break
 after falling on concrete} as \quotes{The glass broke after falling on concrete}
-has produced a more typical sentence, but not a faithful one.
+has produced a more typical sentence while losing fidelity.
 
 \subsection{Consequences for Evaluation}
 
-This thesis therefore treats standard reconstruction metrics as incomplete.
+Standard reconstruction metrics are therefore treated as incomplete.
 Token overlap, semantic similarity, and embedding similarity remain useful, but
 they must be complemented by targeted checks for meaning-preserving behavior.
 The central empirical question is whether inversion and verbalization methods
@@ -296,8 +297,8 @@ target than ordinary language generation. In generation, a model may produce a
 sentence that is plausible after a context; in recovery, the objective is to
 infer the original context itself from the representation.
 
-This distinction matters because plausible text is not necessarily faithful
-text. If an internal state came from the sentence \quotes{The treatment did not
+This distinction matters because plausible text and faithful text can diverge.
+If an internal state came from the sentence \quotes{The treatment did not
 improve the symptoms}, a continuation model only needs to produce likely text
 given that context. A recovery method instead tries to recover the input
 sentence or an equivalent representation of it. The second target gives a much
@@ -322,42 +323,41 @@ recovering an input and generating a likely text.
 
 \subsection{What Is Being Verbalized}
 
-An activation is a model-internal numerical object, not a sentence. It may be a
+An activation is a model-internal numerical object, distinct from sentences. It may be a
 single vector at one layer and token position, a residual-stream state, or a
-small collection of internal states selected around a model decision. Since
-these objects are not directly readable, activation verbalization tries to map
-them into ordinary language.
+small collection of internal states selected around a model decision. These
+objects require a translation step before they can be inspected in ordinary
+language.
 
-The word \textbf{verbalization} is used here in a narrow sense: it does not mean
-that the activation is converted back into the exact prompt. It means that a
-model or procedure produces a textual description of the information that the
-activation seems to carry.
+The word \textbf{verbalization} is used here in a narrow sense: a model or
+procedure produces a textual description of the information that the activation
+seems to carry while leaving the exact prompt unreconstructed.
 
-\subsection{Description Rather Than Reconstruction}
+\subsection{Description and Reconstruction}
 
 Activation verbalization provides a different view of latent-to-text analysis.
 Instead of treating activations only as vectors to be decoded into the original
 prompt, it asks whether an activation can be translated into a readable natural
 language description. The output is therefore a \textbf{description of internal
-content}, not necessarily a reconstruction of the exact input string.
+content}, which may differ from a reconstruction of the exact input string.
 
 This idea is attractive because it can make internal model states inspectable.
 If an activation carries information about negation, contradiction, uncertainty,
 or task-specific reasoning, a verbalization might expose that information in a
 form that can be read by a human or reused by another model. In this sense,
-activation verbalization sits between interpretability and inversion: it does
-not promise exact decoding, but it can provide a semantic hypothesis about what
-the model is representing.
+activation verbalization sits between interpretability and inversion: it
+provides a semantic hypothesis about what the model is representing, with exact
+decoding handled by stricter recovery methods.
 
 \subsection{Faithfulness Caveats}
 
-However, a verbalization is not automatically faithful. It may be generic,
-completion-like, or focused on a token-level feature that is not useful for the
-task. The choice of token position, layer, and verbalization strategy matters.
+However, faithfulness still has to be checked. A verbalization may be generic,
+completion-like, or focused on a token-level feature with limited task value.
+The choice of token position, layer, and verbalization strategy matters.
 For example, verbalizing only the final token may give less semantic context
 than verbalizing several candidate tokens around a model decision. Later
 chapters use these theoretical distinctions to interpret method-specific
-results without assuming that every readable description is also a faithful one.
+results while checking readable descriptions for faithfulness.
 
 \section{Perplexity and Model Confidence}
 
@@ -382,13 +382,12 @@ Perplexity is the exponential of this value:
 
 \subsection{Use as an Auxiliary Signal}
 
-In this thesis, perplexity is used as auxiliary feedback for prompt
+Here, perplexity is used as auxiliary feedback for prompt
 optimization. It is computed from the evaluated model and can indicate whether a
-generated score or explanation was natural under that model. This signal is not
-the same as correctness and it is not the same as agreement with human
-annotations. A low-perplexity answer can still be wrong. Nevertheless, it can
-provide useful evidence about model confidence or hesitation when combined with
-task metrics.
+generated score or explanation was natural under that model. This signal differs
+from correctness and from agreement with human annotations: a low-perplexity
+answer can still be wrong. Nevertheless, it can provide useful evidence about
+model confidence or hesitation when combined with task metrics.
 
 \section{LLM-as-a-Judge Evaluation}
 
@@ -410,7 +409,7 @@ evaluator model for fine-grained rubric scoring
 uses calibrated LLM-as-a-judge protocols against human raters
 \cite{DBLP:journals/corr/abs-2605-16215}, and legal-domain work proposes
 domain-specific legal judge procedures \cite{DBLP:journals/corr/abs-2510-07243}.
-These examples motivate a key methodological point for this thesis: an LLM
+These examples motivate a key methodological point for the present study: an LLM
 judge is useful only if its scoring behavior is validated against human
 judgments for the task being studied.
 
@@ -428,15 +427,15 @@ be produced.
 LLM-as-a-judge evaluation is a method for carrying out such a scoring task. A
 language model receives the material to evaluate, the rubric, and usually an
 instruction specifying the output format. It then produces a score, sometimes
-with a short explanation. In this setting, the LLM is not the task itself; it is
-the \textbf{scoring procedure} used to approximate or automate a judgment that
-would otherwise be produced by humans.
+with a short explanation. In this setting, the LLM serves as the
+\textbf{scoring procedure} used to approximate or automate a judgment that would
+otherwise be produced by humans.
 
 This distinction avoids an important ambiguity. A dataset or benchmark can
 define examples, human annotations, and target scores. A judge prompt can define
 how the model should apply a rubric. The LLM-as-a-judge method is the act of
 using the model to assign scores under those instructions. Later chapters
-introduce the specific benchmarks and implementations used in this thesis.
+introduce the specific benchmarks and implementations used in the experiments.
 
 \subsection{The Judge Prompt as Part of the Measurement}
 
@@ -450,24 +449,24 @@ problem.
 
 \section{Agreement Metrics}
 
-\subsection{Agreement Rather than Absolute Truth}
+\subsection{Agreement and Evidence}
 
 When a judge model assigns scores to examples that already have human
 annotations, performance is measured by agreement between the model scores and
 the human scores. The most important distinction is that these metrics evaluate
-relative alignment, not absolute truth. A judge is useful if examples that
+relative alignment between model scores and reference scores. A judge is useful if examples that
 humans rate higher also tend to receive higher model scores.
 
 Recent work on LLM judges makes this boundary explicit. High correlation with
-human scores is informative, but it does not guarantee that the model agrees
-with humans case by case or that it has the same error distribution. For
+human scores is informative, while case-by-case agreement and error-distribution
+matching require separate checks. For
 example, agreement-focused judge studies move from correlation to measures such
 as Cohen's kappa and human-likeness tests
 \cite{DBLP:journals/corr/abs-2510-09738}, while selective-evaluation methods ask
 the judge to abstain or escalate when confidence is insufficient to guarantee a
 target level of human agreement \cite{DBLP:journals/corr/abs-2407-18370}. This
-is why the thesis reports correlation metrics as agreement indicators, not as
-proof that the model has discovered an objective notion of quality.
+is why the reported experiments use correlation metrics as agreement indicators rather
+than proof that the model has discovered an objective notion of quality.
 
 \subsection{Correlation Metrics}
 
@@ -503,8 +502,7 @@ is less important than whether two raters order examples similarly.
 \subsection{Interpreting Improvements}
 
 These metrics have different sensitivities, so a complete evaluation should
-report the paper-aligned set rather than selecting only the metric that improves
-most. Later chapters define the exact metric boundaries, datasets, dimensions,
+report the paper-aligned set together with the final-test metric. Later chapters define the exact metric boundaries, datasets, dimensions,
 and comparison protocol used in the experiments. For \ChapterRef{chapter:theory}, the key idea is
 that agreement metrics determine whether a judge prompt actually behaves more
 like human annotators.
@@ -530,30 +528,29 @@ according to validation performance.
 In judge tasks, prompt optimization operates on the instructions given to the
 judge model. The evaluation task and the human reference scores stay fixed; what
 changes is the textual interface that tells the model how to apply the rubric.
-This boundary is important: optimizing the prompt does not redefine the task,
-but it can change how reliably the model performs the task.
+This boundary is important: optimizing the prompt preserves the task while
+changing how reliably the model performs it.
 
 Over time, the search can produce prompts that are \textbf{longer},
 \textbf{more explicit}, and \textbf{more aligned} with the target evaluation
-metric. The method-specific optimizer used later in the thesis is introduced in
+metric. The method-specific optimizer used later is introduced in
 the related-work chapter and then described operationally in the method chapter.
 
 This chapter introduced the theoretical concepts needed by the rest of the
-thesis. The next chapter positions these concepts within previous work on
+work. The next chapter positions these concepts within previous work on
 embedding inversion, hidden-state inversion, activation verbalization,
 interpretable prompts, LLM-as-a-judge evaluation, and prompt optimization.
 
 \chapter{Related Work}
 \label{chapter:related-work}
 
-This chapter positions the thesis with respect to the main research lines that
-it builds on. The goal is not to provide a general survey of language models,
-but to identify the precise gaps that motivate the experimental work. Previous
-work has studied text inversion, hidden-state recovery, activation
-interpretability, LLM-based evaluation, and prompt optimization mostly as
-separate problems. This thesis connects them through a single question:
+This chapter positions the experimental questions with respect to the main
+research lines that motivate them. Previous work has studied text inversion,
+hidden-state recovery, activation interpretability, LLM-based evaluation, and
+prompt optimization mostly as separate problems. The chapters that follow
+connect them through a single question:
 \textbf{can latent evidence be turned into useful natural-language guidance
-without losing the semantic distinctions that matter for evaluation?}
+while preserving the semantic distinctions that matter for evaluation?}
 
 \section{Embedding Inversion}
 \label{sec:related-embedding-inversion}
@@ -567,20 +564,19 @@ semantic information than its fixed dimensionality may suggest.
 Early generative attacks showed that sentence embeddings can leak substantial
 information about the original input. GEIA, for instance, frames inversion as a
 generation problem and demonstrates that embeddings can support recovery of
-whole sentences rather than only coarse semantic summaries
+whole sentences beyond coarse semantic summaries
 \cite{DBLP:conf/acl/0003XS23}. Later work moves toward more general and less
 task-specific settings. Universal zero-shot inversion aims to recover text from
-embeddings without training a separate attacker for each embedding model
+embeddings across embedding models with a shared inversion setup
 \cite{DBLP:journals/corr/abs-2504-00147}. Zero2Text similarly studies cross-domain inversion
-without a dedicated training phase for the target domain \cite{DBLP:journals/corr/abs-2602-01757}.
+with no dedicated training phase for the target domain \cite{DBLP:journals/corr/abs-2602-01757}.
 Conditional masked diffusion methods, such as the Jina embedding inversion
 work, approach the problem through iterative denoising conditioned on the
 observed embedding \cite{DBLP:journals/corr/abs-2602-11047}.
 
 \FigureRef{fig:related-embedding-diffusion} shows why this family is useful as
-a reference point for the thesis: the latent representation is not treated as a
-label or retrieval key, but as a conditioning signal that guides an explicit
-text-generation process.
+a reference point for the experiments: the latent representation acts as a
+conditioning signal that guides an explicit text-generation process.
 
 \begin{figure}[!htb]
     \centering
@@ -590,16 +586,16 @@ text-generation process.
     \label{fig:related-embedding-diffusion}
 \end{figure}
 
-These works establish that embeddings are not opaque summaries. They can retain
-recoverable lexical, syntactic, and semantic information. However, the main
+These works establish that embeddings can retain recoverable lexical, syntactic,
+and semantic information. However, the main
 success criteria are usually reconstruction quality, token overlap, semantic
-similarity, or attack success. This thesis uses that line of work as the
-starting point, but asks a narrower question: \textbf{does the recovered text
+similarity, or attack success. The experiments use that line of work as the
+starting point, but ask a narrower question: \textbf{does the recovered text
 preserve logically fragile meaning?} A reconstruction that removes a negation
 or normalizes a counterfactual statement may still look strong under standard
-similarity metrics. The contribution here is therefore not a new embedding
-inversion attack, but a semantic-fidelity analysis of what inversion-style
-outputs preserve and what they distort.
+similarity metrics. The analysis shifts the target from broad reconstruction
+quality to semantic fidelity: which meaning components are preserved, and which
+are distorted?
 
 \section{Hidden-State Inversion and SIPIT}
 \label{sec:related-sipit}
@@ -611,21 +607,21 @@ starts from hidden states generated by the model while processing a prompt.
 This makes the task more directly tied to autoregressive LLMs and to the
 information carried through their internal computation.
 
-SIPIT is the central reference for this part of the thesis. It argues that
+SIPIT is the central reference for hidden-state inversion. It argues that
 language models can be injective under the considered setting and therefore
 invertible, and it provides a practical method for reconstructing prompts from
 hidden states \cite{DBLP:journals/corr/abs-2510-15511}. This is a stronger target than
 producing a plausible paraphrase: the method is evaluated by whether it can
 recover the prompt that generated the state. SIPIT is therefore useful as a
 methodological anchor for the distinction introduced in
-\ChapterRef{chapter:theory}: \textbf{recovering the input} is not the same as
-\textbf{continuing from the input}.
+\ChapterRef{chapter:theory}: \textbf{recovering the input} and
+\textbf{continuing from the input} are different objectives.
 
-The thesis uses SIPIT in two roles. First, it provides a concrete SOTA
+SIPIT plays two roles in the experiments. First, it provides a concrete SOTA
 hidden-state inversion baseline for prompt recovery. Second, it motivates
 diagnostics where exact recovery is compared with semantic preservation under
-harder logical or continuous-prefix settings. Relative to SIPIT, this thesis
-adds a semantic-fidelity perspective: it asks whether inversion behavior remains
+harder logical or continuous-prefix settings. The experiments extend SIPIT with
+a semantic-fidelity perspective: they ask whether inversion behavior remains
 informative when the original input contains negation, contradiction, or other
 meaning-sensitive phenomena.
 
@@ -633,33 +629,34 @@ meaning-sensitive phenomena.
 \label{sec:related-semantic-stress-tests}
 
 The importance of negation and logical polarity has been studied in benchmark
-construction for language understanding. \textit{This is not a Dataset}
-collects and organizes negation examples to challenge LLMs in settings where a
+construction for language understanding. The negation benchmark by Truong et
+al. collects and organizes examples to challenge LLMs in settings where a
 single negation marker can change the truth conditions of a sentence
 \cite{DBLP:journals/corr/abs-2310-15941}. This type of benchmark is relevant because
 standard semantic similarity can be misleading: two sentences may be close in
 form while expressing incompatible meanings.
 
-For this thesis, semantic stress tests provide the bridge between inversion and
+Here, semantic stress tests provide the bridge between inversion and
 evaluation. Inversion methods are often judged by whether the output is fluent
 and close to the original. But if the input is \quotes{The treatment did not
 improve the symptoms} and the reconstruction is \quotes{The treatment improved
 the symptoms}, the reconstruction has failed the property that matters most,
 even if many tokens are shared. Negation, polarity, counterfactuality, and
 commonsense violations therefore act as \textbf{high-sensitivity probes}: they
-make meaning changes visible in a way that aggregate similarity scores may not.
+make meaning changes visible in places where aggregate similarity scores can
+remain high.
 
-This thesis adapts that idea to latent-to-text analysis. The semantic-stress
-examples serve as targeted probes for testing whether latent representations and
-their verbalizations preserve the meaning components that are easiest to
-normalize away.
+This idea is adapted to latent-to-text analysis. The semantic-stress examples
+serve as targeted probes for testing whether latent representations and their
+verbalizations preserve the meaning components that are easiest to normalize
+away.
 
 \section{Prompt Optimization}
 \label{sec:related-prompt-optimization}
 
 Prompt optimization studies how to improve a model's behavior by changing the
-input interface rather than necessarily updating all model weights. This
-research line is relevant to the thesis in two different forms. The first form
+input interface while leaving model weights fixed in many settings. This
+research line is relevant here in two different forms. The first form
 uses \textbf{latent or continuous} prompt parameters, such as soft prompts and
 prefix vectors. The second form optimizes \textbf{hard natural-language}
 instructions, where the prompt remains readable and can be inspected by a human.
@@ -668,16 +665,15 @@ instructions, where the prompt remains readable and can be inspected by a human.
 \label{sec:related-soft-prompts}
 
 Soft prompts and prefix-tuning methods optimize continuous vectors that are
-prepended to a model input. They can steer the model effectively without being
-ordinary readable text, but their interpretability is problematic because the
-nearest vocabulary tokens to a learned vector need not represent what the prompt
-is doing.
+prepended to a model input. They can steer the model effectively while lacking
+ordinary readable text, which makes interpretability difficult: the nearest
+vocabulary tokens to a learned vector can misrepresent what the prompt is doing.
 
 Prompt waywardness formalizes this issue: continuous prompts can behave in ways
-that are not faithfully explained by mapping them to nearby discrete tokens
+that nearby discrete tokens explain poorly
 \cite{DBLP:conf/naacl/KhashabiLMQ0WHK22}. This matters because it warns against a
-naive interpretation strategy. If a vector is close to a word embedding, that
-word is not necessarily a correct explanation of the vector's functional role.
+naive interpretation strategy. A nearby word embedding gives a candidate
+description, while the vector's functional role still has to be validated.
 More recent work on interpretable soft prompts studies methods for making
 learned prompt vectors more understandable while preserving task performance
 \cite{DBLP:journals/corr/abs-2504-02144}.
@@ -694,9 +690,9 @@ can look unrelated or even misleading.
     \label{fig:related-prompt-waywardness}
 \end{figure}
 
-This line of work is relevant to the thesis because the soft-prompt diagnostic
+This line of work is relevant here because the soft-prompt diagnostic
 trains task-specific continuous prompts and then asks whether inversion or
-verbalization methods can explain the learned soft embeddings. The thesis
+verbalization methods can explain the learned soft embeddings. The diagnostic
 therefore treats soft prompts as an interpretability stress case: useful
 internal vectors may be hard to verbalize faithfully.
 
@@ -708,9 +704,9 @@ In judge tasks, this means that the rubric, input fields, output format, and
 common-error warnings can be rewritten while the underlying examples and human
 labels remain fixed. This form is easier to audit than continuous prompt tuning:
 the final artifact is a natural-language prompt that can be read, compared with
-the seed prompt, and included in the thesis.
+the seed prompt, and reported directly.
 
-GEPA is the hard-prompt optimizer used in this thesis. It performs reflective
+GEPA is the hard-prompt optimizer used here. It performs reflective
 prompt evolution: candidate prompts are evaluated, failures are summarized in
 natural language, and a proposer model generates prompt revisions that are
 tested on subsets and validation examples
@@ -720,7 +716,7 @@ prompt-optimization backbone for \textbf{Latent-GEPA}, the method introduced in
 with perplexity, activation verbalizations, and auxiliary-judge summaries.
 
 \FigureRef{fig:related-gepa-overview} makes explicit the part of GEPA that is
-most relevant for the thesis: prompts are kept in a candidate pool, evaluated on
+most relevant here: prompts are kept in a candidate pool, evaluated on
 tasks, filtered through a Pareto-style frontier, and mutated or merged by a
 proposer using textual feedback.
 
@@ -740,7 +736,7 @@ internals.\footnote{\href{https://transformer-circuits.pub/2026/nla/index.html\#
 Instead of directly reconstructing the original prompt, NLA maps an activation
 vector to a natural-language description and can also reconstruct an activation
 from such a description \cite{frasertaliente2026nla}. The component used in
-this thesis is the activation verbalizer, because the relevant direction is
+the experiments is the activation verbalizer, because the relevant direction is
 latent-to-text: an internal state is turned into a readable description.
 
 The released NLA system is an autoencoder over residual-stream activations. Its
@@ -748,15 +744,14 @@ two components have complementary roles. The \textbf{Activation Verbalizer}
 (AV) takes an activation vector, injects it into a prompt as if it were a token
 embedding, and autoregressively generates a textual explanation. The
 \textbf{Activation Reconstructor} (AR) performs the reverse direction: it reads a
-description and predicts an activation vector. The round-trip objective is
-therefore not ordinary text reconstruction, but whether the text emitted by the
-AV carries enough information for the AR to recover the original activation
-direction. The public implementation reports this comparison after normalizing
-vectors, so the reconstruction error is tied to cosine-direction agreement
-rather than raw vector magnitude.
+description and predicts an activation vector. The round-trip objective asks
+whether the text emitted by the AV carries enough information for the AR to
+recover the original activation direction. The public implementation reports
+this comparison after normalizing vectors, so the reconstruction error is tied
+to cosine-direction agreement over raw vector magnitude.
 
 The NLA autoencoder structure in \FigureRef{fig:related-nla-autoencoder}
-clarifies the boundary used in this thesis. The full method includes both an
+clarifies the boundary adopted here. The full method includes both an
 activation verbalizer and an activation reconstructor, but the experiments use
 only the verbalizer output as text feedback.
 
@@ -772,13 +767,13 @@ The released checkpoints are model- and layer-specific. The public repository
 lists AV/AR pairs for Qwen2.5-7B-Instruct, Gemma-3-12B-IT,
 Gemma-3-27B-IT, and Llama-3.3-70B-Instruct, with extraction layers chosen
 roughly two thirds through the corresponding transformer. This design choice is
-important for the experiments in this thesis: an AV trained for one base model
-and layer should not be used as an explanation model for another base model or
-layer. The concrete checkpoint choice is therefore an experimental constraint,
-not a cosmetic implementation detail.
+important for the experiments reported here: each activation source requires a
+compatible AV trained for the same base model and layer. The concrete checkpoint
+choice is therefore an experimental constraint with direct implementation
+consequences.
 
-NLA is important for this thesis because it offers a potential interface
-between \textbf{model internals} and \textbf{prompt optimization}. If an
+NLA offers a potential interface between \textbf{model internals} and
+\textbf{prompt optimization}. If an
 activation verbalization describes what the model is uncertain about, what
 semantic property it is tracking, or which part of the input drives a decision,
 then that text may be useful as feedback for another model. This is the
@@ -788,7 +783,7 @@ given to the prompt proposer as additional evidence.
 At the same time, NLA introduces new experimental choices. The verbalized
 activation depends on the selected model, layer, token position, and token
 window. A verbalization can be semantically useful, but it can also be generic,
-too local, or focused on completion behavior rather than on the rubric used by
+too local, or focused on completion behavior while missing the rubric used by
 the downstream task. The experiments therefore treat raw NLA descriptions as a
 feedback hypothesis to validate: when they help, they support Latent-GEPA; when
 they fail, they reveal a mismatch between activation-level descriptions and
@@ -803,13 +798,12 @@ expensive, while an LLM judge can score many examples consistently under a
 fixed prompt. The risk is methodological: the judge prompt, the model family,
 and the output parsing procedure become part of the measurement instrument.
 
-G-EVAL is the main reference for the evaluation setting of this thesis. It uses
+G-EVAL is the main reference for the evaluation setting used here. It uses
 GPT-4 as an evaluator for natural language generation tasks and reports stronger
 alignment with human judgments than several previous automatic metrics
 \cite{DBLP:conf/emnlp/LiuIXWXZ23}. Its setup is especially relevant because it defines
 rubric-based evaluation dimensions and reports correlations with human scores.
-Those correlation metrics, rather than the raw model scores alone, are the
-scientific target for comparison.
+Those correlation metrics are the scientific target for comparison.
 
 \FigureRef{fig:related-geval-framework} shows the G-EVAL pipeline at a high
 level: task instructions and criteria are turned into evaluation steps, the
@@ -824,316 +818,117 @@ from the model's score distribution.
     \label{fig:related-geval-framework}
 \end{figure}
 
-The distinction used in this thesis is that G-EVAL is a particular method and
-experimental protocol within the broader LLM-as-a-judge family. The thesis
-adopts G-EVAL-style datasets, dimensions, and agreement metrics as the
-benchmark surface, while using a different local model and a prompt-optimization
-pipeline. Improvements therefore measure whether the optimized judge prompt
-aligns better with human scores in a G-EVAL-style setting.
+The distinction adopted here is that G-EVAL is a particular method and
+experimental protocol within the broader LLM-as-a-judge family. The experiments
+adopt G-EVAL-style datasets, dimensions, and agreement metrics as the benchmark
+surface, while using a different local model and a prompt-optimization pipeline.
+Improvements therefore measure whether the optimized judge prompt aligns better
+with human scores in a G-EVAL-style setting.
 
 \section{Summary of the Research Gap}
 \label{sec:related-summary-gap}
 
-The reviewed work provides the building blocks for this thesis but leaves an
+The reviewed work provides the building blocks for the present study but leaves an
 open integration problem. Embedding and hidden-state inversion show that latent
 representations can contain recoverable information. Semantic stress tests show
 that standard similarity can miss meaning-changing errors. Soft-prompt work
-shows that useful continuous vectors are not automatically interpretable. NLA
+shows that useful continuous vectors still require interpretability checks. NLA
 offers a way to verbalize activations, and G-EVAL-style tasks provide a
 downstream setting where judge quality can be measured against human
 annotations. GEPA supplies the optimization loop that can consume textual
 feedback. What remains underexplored is whether latent-derived evidence, once
 expressed as text, is useful enough to guide that optimization loop.
 
-The thesis contribution is to connect these pieces experimentally. It asks
-whether latent-derived textual evidence, especially perplexity and NLA
-verbalizations, can improve prompt optimization for LLM-as-a-judge evaluation,
-and whether the same methods preserve semantic fidelity on logically fragile
-inputs. This combined perspective is the gap addressed by the method and
-experimental chapters that follow.
+These pieces are connected experimentally by asking whether latent-derived
+textual evidence, especially perplexity and NLA verbalizations, can improve
+prompt optimization for LLM-as-a-judge evaluation, and whether the same methods
+preserve semantic fidelity on logically fragile inputs. This combined
+perspective motivates the method and experimental chapters that follow.
 
 \chapter{Method}
 \label{chapter:method}
 
-This chapter defines the methodology used in the thesis. The central proposed
-component is \textbf{Latent-GEPA}: a prompt-optimization pipeline for
-LLM-as-a-judge evaluation in which GEPA receives ordinary task feedback together
-with optional signals derived from the base model's latent behavior. The chapter
-also defines the semantic-fidelity corpus and the diagnostic readouts used to
-interpret latent representations throughout the experimental analysis.
+Latent-to-text methods make internal model states readable, while semantic
+fidelity requires separate evidence. A reconstruction can preserve fluent
+surface form while changing negation, polarity, or a commonsense-sensitive
+relation. The first methodological step is therefore to build a new controlled
+corpus in which these fragile meaning components are explicit and measurable.
 
-The method is organized around two connected objectives. The first is to build a
-controlled setting for observing whether latent-to-text readouts preserve
-negation, polarity, and commonsense-sensitive meaning. The second is to test
-whether such evidence can become useful feedback for optimizing a judge prompt,
-rather than remaining only an interpretability artifact.
+The second step uses the same idea operationally. If a model state can be
+translated into textual evidence, that evidence can be passed to a prompt
+optimizer as feedback. The proposed pipeline, \textbf{Latent-GEPA}, keeps the
+GEPA search procedure centered on task performance while adding latent-derived
+signals to the prompt-revision feedback. The method is defined before the
+task-specific instantiations, so the same structure can be applied to any
+scoring task with parseable outputs and a task metric.
 
 \section{Method Overview}
 \label{sec:method-overview}
 
-The complete pipeline starts from a single methodological question: when a model
-state is translated into text or into feedback for another model, which parts of
-the original meaning are preserved? \FigureRef{fig:method-overview} separates
-the corpus construction, Latent-GEPA optimization, and soft-prompt diagnostic
-components while keeping the same semantic-fidelity motivation across them.
+The method is organized around three research questions:
 
-\begin{figure}[!htb]
+\begin{itemize}
+    \item \textbf{RQ1.} How can a controlled corpus expose semantic drift in
+    latent-to-text readouts?
+    \item \textbf{RQ2.} Can latent-derived textual evidence improve prompt
+    optimization beyond scalar task feedback?
+    \item \textbf{RQ3.} When continuous prompts improve task behavior, can their
+    textual readouts provide interpretable semantic content?
+\end{itemize}
+
+\begin{table}[!htb]
     \centering
-    \resizebox{\textwidth}{!}{%
-    \begin{tikzpicture}[
-        font=\scriptsize,
-        >=Latex,
-        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
-        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
-            align=center, text width=28mm, minimum height=18mm, inner sep=3.5pt},
-        track label/.style={draw=#1!65!black, fill=#1!12, very thick,
-            rounded corners=4pt, align=center, text width=22mm,
-            minimum height=13mm, inner sep=3pt, font=\scriptsize\bfseries},
-        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
-            minimum size=8.5mm, inner sep=0pt},
-        line/.style={-{Latex[length=2.4mm]}, very thick, draw=#1!65!black},
-        lane title/.style={anchor=west, font=\small\bfseries, align=left,
-            fill=white, inner xsep=3pt, inner ysep=1pt},
-        pics/document/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
-            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
-            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
-            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
-        }},
-        pics/network/.style={code={
-            \draw[draw=black!55, line width=0.45pt] (-0.18,0.13) -- (0.02,0.00) -- (0.20,0.13);
-            \draw[draw=black!55, line width=0.45pt] (-0.18,-0.13) -- (0.02,0.00) -- (0.20,-0.13);
-            \foreach \x/\y in {-0.18/0.13,-0.18/-0.13,0.02/0,0.20/0.13,0.20/-0.13}
-                \filldraw[fill=white, draw=black!65] (\x,\y) circle (0.045);
-        }},
-        pics/lens/.style={code={
-            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
-            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
-            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
-        }},
-        pics/scale/.style={code={
-            \draw[draw=black!65, line width=0.55pt] (0,-0.22) -- (0,0.18);
-            \draw[draw=black!65, line width=0.55pt] (-0.20,0.08) -- (0.20,0.08);
-            \draw[draw=black!65, line width=0.45pt] (-0.15,0.08) -- (-0.23,-0.07) -- (-0.07,-0.07) -- cycle;
-            \draw[draw=black!65, line width=0.45pt] (0.15,0.08) -- (0.07,-0.07) -- (0.23,-0.07) -- cycle;
-            \draw[draw=black!65, line width=0.55pt] (-0.10,-0.22) -- (0.10,-0.22);
-        }},
-        pics/feedback/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.08) rectangle (0.10,0.15);
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.06,-0.17) rectangle (0.24,0.06);
-            \draw[draw=black!55, line width=0.35pt] (-0.16,0.06) -- (0.04,0.06);
-            \draw[draw=black!55, line width=0.35pt] (0.00,-0.03) -- (0.18,-0.03);
-            \fill[darkyellow!80!black] (0.19,0.14) circle (0.035);
-        }},
-        pics/tokens/.style={code={
-            \foreach \x/\c in {-0.20/blue, -0.07/orange, 0.06/green, 0.19/lightviolet}
-                \filldraw[fill=\c!25, draw=\c!70!black] (\x,0) circle (0.055);
-            \draw[draw=black!45, line width=0.4pt] (-0.145,0) -- (-0.125,0);
-            \draw[draw=black!45, line width=0.4pt] (-0.015,0) -- (0.005,0);
-            \draw[draw=black!45, line width=0.4pt] (0.115,0) -- (0.135,0);
-        }},
-        pics/prompt/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.20,-0.17) rectangle (0.18,0.17);
-            \draw[draw=black!55, line width=0.35pt] (-0.13,0.08) -- (0.11,0.08);
-            \draw[draw=black!55, line width=0.35pt] (-0.13,0.00) -- (0.08,0.00);
-            \draw[draw=orange!80!black, line width=0.75pt] (-0.06,-0.10) -- (0.16,0.12);
-            \filldraw[fill=orange!45, draw=orange!80!black] (0.16,0.12) circle (0.025);
-        }}
-    ]
-        \node[lane=blue, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,0) {};
-        \node[lane=orange, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,-2.45) {};
-        \node[lane=green, minimum width=15.5cm, minimum height=2.1cm, anchor=west] at (0,-4.90) {};
-
-        \node[track label=blue, text=blue!55!black] at (1.25,0) {Semantic\\readout\\diagnostics};
-        \node[track label=orange, text=orange!70!black] at (1.25,-2.45) {Prompt\\optimization\\track};
-        \node[track label=green, text=green!45!black] at (1.25,-4.90) {Soft-prompt\\diagnostic};
-
-        \node[card=blue] (corpus) at (4.10,0) {\textbf{Semantic-Fidelity}\\Corpus probes};
-        \node[card=blue] (latent_track) at (7.75,0) {\textbf{Latent readouts}\\inversion\\verbalization};
-        \node[card=blue] (semantic) at (11.40,0) {\textbf{Semantic analysis}\\meaning-preservation checks};
-
-        \node[card=orange] (geval) at (4.05,-2.45) {\textbf{Judge examples}\\G-EVAL-style data};
-        \node[card=orange] (judge) at (7.15,-2.45) {\textbf{Base judge}\\Qwen2.5-7B};
-        \node[card=orange] (gepa_feedback) at (10.25,-2.45) {\textbf{Feedback}\\metrics, PPL, NLA\\aux judge};
-        \node[card=orange] (gepa_result) at (13.35,-2.45) {\textbf{Latent-GEPA}\\prompt selection\\final-test metrics};
-
-        \node[card=green] (judge_task) at (4.05,-4.90) {\textbf{Same judge task}\\Topical-Chat scoring};
-        \node[card=green] (soft) at (7.15,-4.90) {\textbf{Soft tokens}\\frozen judge\\trained vectors};
-        \node[card=green] (readout) at (10.25,-4.90) {\textbf{Readout}\\nearest-token\\SIPIT-style recovery};
-        \node[card=green] (interp) at (13.35,-4.90) {\textbf{Diagnostic}\\continuous-prompt\\interpretability};
-
-        \node[badge=blue] at ([yshift=2.2mm]corpus.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]corpus.north) {document};
-        \node[badge=blue] at ([yshift=2.2mm]latent_track.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]latent_track.north) {network};
-        \node[badge=blue] at ([yshift=2.2mm]semantic.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]semantic.north) {lens};
-
-        \node[badge=orange] at ([yshift=2.2mm]geval.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]geval.north) {document};
-        \node[badge=orange] at ([yshift=2.2mm]judge.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]judge.north) {scale};
-        \node[badge=orange] at ([yshift=2.2mm]gepa_feedback.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]gepa_feedback.north) {feedback};
-        \node[badge=orange] at ([yshift=2.2mm]gepa_result.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]gepa_result.north) {prompt};
-
-        \node[badge=green] at ([yshift=2.2mm]judge_task.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]judge_task.north) {scale};
-        \node[badge=green] at ([yshift=2.2mm]soft.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]soft.north) {tokens};
-        \node[badge=green] at ([yshift=2.2mm]readout.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]readout.north) {lens};
-        \node[badge=green] at ([yshift=2.2mm]interp.north) {};
-        \pic[scale=0.82] at ([yshift=2.2mm]interp.north) {network};
-
-        \draw[line=blue] (corpus.east) -- (latent_track.west);
-        \draw[line=blue] (latent_track.east) -- (semantic.west);
-        \draw[line=orange] (geval.east) -- (judge.west);
-        \draw[line=orange] (judge.east) -- (gepa_feedback.west);
-        \draw[line=orange] (gepa_feedback.east) -- (gepa_result.west);
-        \draw[line=green] (judge_task.east) -- (soft.west);
-        \draw[line=green] (soft.east) -- (readout.west);
-        \draw[line=green] (readout.east) -- (interp.west);
-    \end{tikzpicture}}
-    \caption{High-level method diagram for the thesis. Pictograms mark
-    the object handled in each step: datasets, latent representations,
-    semantic checks, judge scoring, feedback, prompt search, and soft-token
-    readout. The three rows show the diagnostic and optimization components
-    that are instantiated in the experimental setup.}
-    \label{fig:method-overview}
-\end{figure}
-
-\FigureRef{fig:method-overview} summarizes the information flow. The
-semantic-fidelity corpus contains examples that are deliberately easy to
-misinterpret if only lexical similarity is considered. Diagnostic readouts are
-used to inspect how latent representations are rendered as text. Latent-GEPA
-then uses a separate LLM-as-a-judge task in which a fixed base model produces
-scores and GEPA optimizes only the judge prompt. Perplexity, activation
-verbalizations, and auxiliary-judge summaries are optional proposer-side
-signals; final evaluation remains based on agreement with human annotations.
-
-\begin{figure}[!htbp]
-    \centering
-    \resizebox{0.98\textwidth}{!}{%
-    \begin{tikzpicture}[
-        font=\scriptsize,
-        >=Latex,
-        lane/.style={draw=#1!60!black, fill=#1!5, very thick, rounded corners=6pt},
-        card/.style={draw=#1!65!black, fill=white, very thick, rounded corners=4pt,
-            align=center, text width=25mm, minimum height=16mm, inner sep=3.2pt},
-        badge/.style={circle, draw=white, line width=0.8pt, fill=#1!18,
-            minimum size=8.2mm, inner sep=0pt},
-        lane tag/.style={draw=#1!65!black, fill=#1!12, very thick,
-            rounded corners=4pt, align=center, text width=20mm,
-            minimum height=12mm, inner sep=3pt, font=\scriptsize\bfseries},
-        line/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black},
-        turn/.style={-{Latex[length=2.2mm]}, very thick, draw=#1!65!black,
-            rounded corners=7pt},
-        optional/.style={draw=#1!65!black, densely dashed},
-        pics/document/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.15,-0.15) rectangle (0.14,0.18);
-            \draw[fill=white, draw=black!65, rounded corners=0.3pt] (-0.07,-0.08) rectangle (0.22,0.25);
-            \draw[draw=black!55, line width=0.35pt] (-0.02,0.15) -- (0.16,0.15);
-            \draw[draw=black!55, line width=0.35pt] (-0.02,0.07) -- (0.16,0.07);
-        }},
-        pics/scale/.style={code={
-            \draw[draw=black!65, line width=0.55pt] (0,-0.22) -- (0,0.18);
-            \draw[draw=black!65, line width=0.55pt] (-0.20,0.08) -- (0.20,0.08);
-            \draw[draw=black!65, line width=0.45pt] (-0.15,0.08) -- (-0.23,-0.07) -- (-0.07,-0.07) -- cycle;
-            \draw[draw=black!65, line width=0.45pt] (0.15,0.08) -- (0.07,-0.07) -- (0.23,-0.07) -- cycle;
-            \draw[draw=black!65, line width=0.55pt] (-0.10,-0.22) -- (0.10,-0.22);
-        }},
-        pics/feedback/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.08) rectangle (0.10,0.15);
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.06,-0.17) rectangle (0.24,0.06);
-            \draw[draw=black!55, line width=0.35pt] (-0.16,0.06) -- (0.04,0.06);
-            \draw[draw=black!55, line width=0.35pt] (0.00,-0.03) -- (0.18,-0.03);
-            \fill[darkyellow!80!black] (0.19,0.14) circle (0.035);
-        }},
-        pics/prompt/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.20,-0.17) rectangle (0.18,0.17);
-            \draw[draw=black!55, line width=0.35pt] (-0.13,0.08) -- (0.11,0.08);
-            \draw[draw=black!55, line width=0.35pt] (-0.13,0.00) -- (0.08,0.00);
-            \draw[draw=orange!80!black, line width=0.75pt] (-0.06,-0.10) -- (0.16,0.12);
-            \filldraw[fill=orange!45, draw=orange!80!black] (0.16,0.12) circle (0.025);
-        }},
-        pics/lens/.style={code={
-            \draw[draw=black!65, line width=0.55pt] (-0.03,0.04) circle (0.13);
-            \draw[draw=black!65, line width=0.55pt] (0.07,-0.06) -- (0.22,-0.21);
-            \draw[draw=darkgreen!70!black, line width=0.7pt] (-0.09,0.03) -- (-0.02,-0.05) -- (0.10,0.10);
-        }},
-        pics/archive/.style={code={
-            \draw[fill=white, draw=black!65, rounded corners=1pt] (-0.22,-0.15) rectangle (0.22,0.16);
-            \draw[draw=black!55, line width=0.35pt] (-0.14,0.07) -- (0.14,0.07);
-            \draw[draw=black!55, line width=0.35pt] (-0.14,-0.01) -- (0.10,-0.01);
-            \draw[draw=darkgreen!70!black, line width=0.65pt] (-0.10,-0.09) -- (-0.03,-0.16) -- (0.14,0.01);
-        }}
-    ]
-        \node[lane=orange, minimum width=16.4cm, minimum height=2.0cm, anchor=west] at (0,0) {};
-        \node[lane=green, minimum width=16.4cm, minimum height=2.0cm, anchor=west] at (0,-2.35) {};
-
-        \node[lane tag=orange, text=orange!70!black] at (1.15,0) {Validation\\feedback};
-        \node[lane tag=green, text=green!45!black] at (1.15,-2.35) {Prompt\\selection};
-
-        \node[card=orange] (example) at (3.50,0) {\textbf{Evaluation example}\\dialogue, response\\human score};
-        \node[card=orange] (judge) at (6.40,0) {\textbf{Base judge}\\Qwen2.5-7B\\predicted score};
-        \node[card=orange] (reflection) at (9.30,0) {\textbf{Reflection data}\\metric error\\optional PPL/NLA};
-        \node[card=orange, optional=orange] (aux) at (12.20,0) {\textbf{Aux judge}\\optional\\feedback compression};
-        \node[card=orange] (proposer) at (15.10,0) {\textbf{Proposer}\\Qwen35B\\candidate edit};
-
-        \node[card=green] (candidate) at (15.10,-2.35) {\textbf{Candidate prompt}\\new judge\\instructions};
-        \node[card=green] (validation) at (11.60,-2.35) {\textbf{Validation}\\score candidate\\on held-out val};
-        \node[card=green] (archive) at (8.10,-2.35) {\textbf{Prompt pool}\\keep if useful\\or discard};
-        \node[card=green] (final) at (4.60,-2.35) {\textbf{Final test}\\run once after\\selection};
-
-        \node[badge=orange] at ([yshift=2.1mm]example.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]example.north) {document};
-        \node[badge=orange] at ([yshift=2.1mm]judge.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]judge.north) {scale};
-        \node[badge=orange] at ([yshift=2.1mm]reflection.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]reflection.north) {feedback};
-        \node[badge=orange] at ([yshift=2.1mm]aux.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]aux.north) {lens};
-        \node[badge=orange] at ([yshift=2.1mm]proposer.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]proposer.north) {prompt};
-
-        \node[badge=green] at ([yshift=2.1mm]candidate.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]candidate.north) {prompt};
-        \node[badge=green] at ([yshift=2.1mm]validation.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]validation.north) {scale};
-        \node[badge=green] at ([yshift=2.1mm]archive.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]archive.north) {archive};
-        \node[badge=green] at ([yshift=2.1mm]final.north) {};
-        \pic[scale=0.78] at ([yshift=2.1mm]final.north) {lens};
-
-        \draw[line=orange] (example.east) -- (judge.west);
-        \draw[line=orange] (judge.east) -- (reflection.west);
-        \draw[line=orange] (reflection.east) -- (aux.west);
-        \draw[line=orange] (aux.east) -- (proposer.west);
-        \draw[turn=orange] (proposer.south) -- ++(0,-0.18) -| ([xshift=7mm]candidate.north);
-        \draw[line=green] (candidate.west) -- (validation.east);
-        \draw[line=green] (validation.west) -- (archive.east);
-        \draw[line=green] (archive.west) -- (final.east);
-    \end{tikzpicture}}
-    \caption{Detailed GEPA feedback flow used in the prompt-optimization track.
-    Reflection data are produced on validation examples, optionally enriched with
-    perplexity, NLA verbalizations, or an auxiliary judge, and then given to the
-    proposer to generate candidate prompts. Final metrics are computed only after
-    prompt selection; test examples do not drive proposal or validation-time
-    selection.}
-    \label{fig:method-gepa-feedback-flow}
-\end{figure}
-
-\FloatBarrier
+    \small
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{p{0.23\linewidth} p{0.36\linewidth} p{0.33\linewidth}}
+        \toprule
+        \textbf{Method component} & \textbf{Object constructed or optimized} & \textbf{Question supported} \\
+        \midrule
+        Semantic-Fidelity Corpus &
+        Newly constructed sentence pairs with explicit semantic contrasts. &
+        Measures whether readouts preserve fragile meaning. \\
+        Latent-GEPA &
+        Natural-language prompt search enriched with latent-derived feedback. &
+        Tests whether latent evidence can guide prompt optimization. \\
+        Continuous-prompt diagnostic &
+        Learned continuous prompt vectors and their textual readouts. &
+        Separates task utility from semantic interpretability. \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Main methodological components and their role in the argument.}
+    \label{tab:method-components}
+\end{table}
 
 \section{Semantic-Fidelity Corpus}
-\label{sec:method-canonical-dataset}
+\label{sec:method-semantic-fidelity-corpus}
 
-The thesis uses a \textbf{Semantic-Fidelity Corpus} to stress-test readouts of
-latent representations. The corpus is not designed as a large general benchmark.
-Its role is to isolate cases where a generated reconstruction can remain fluent
-and lexically similar while changing the logical meaning of the input.
+A new \textbf{Semantic-Fidelity Corpus} was constructed to stress-test readouts
+of latent representations. Its role is to isolate cases where a generated
+reconstruction can remain fluent and lexically similar while changing the
+logical meaning of the input. The examples are built around the failure modes
+exposed by latent-to-text recovery: each row turns a potential loss of negation,
+polarity, or commonsense consistency into a controlled evaluation surface for
+the later experiments.
+
+The construction follows three principles. First, every example must contain a
+semantic property that can be checked independently of lexical overlap. Second,
+contrastive examples must differ in a small but meaning-changing way. Third, the
+same row identifiers and metadata must support later joins across inversion,
+verbalization, and readout experiments.
+
+The corpus has three blocks:
+
+\begin{itemize}
+    \item \textbf{Block A: standard controls.} Short ordinary sentences provide a
+    non-adversarial baseline for the readout pipeline.
+    \item \textbf{Block B: negation and polarity.} Contrastive pairs differ by
+    logical polarity, so losing or inserting a negation changes the truth
+    conditions.
+    \item \textbf{Block C: commonsense-sensitive statements.} Each pair contrasts
+    a commonsense-consistent sentence with a counterfactual or implausible
+    version, making normalization toward the more likely sentence visible.
+\end{itemize}
 
 Each row contains stable metadata that makes outputs from different experiments
 joinable:
@@ -1170,16 +965,32 @@ joinable:
     \end{adjustbox}
     \caption{Semantic-Fidelity Corpus composition. The processed corpus contains
     2080 rows organized into 1060 examples or contrastive pairs.}
-    \label{tab:canonical-dataset-blocks}
+    \label{tab:semantic-fidelity-corpus-blocks}
 \end{table}
 
-\TableRef{tab:canonical-dataset-blocks} reports the processed composition used
-in the thesis. The train, validation, and test splits contain respectively
-\textbf{962}, \textbf{290}, and \textbf{828} rows. The mean whitespace-token
-length is 13.17 words overall, with block-level means of 7.47 for controls,
-9.43 for negation and polarity items, and 15.39 for commonsense-sensitive
-items. These short inputs make the corpus suitable for exact or near-exact
-readout diagnostics, while the paired labels make semantic drift visible.
+\TableRef{tab:semantic-fidelity-corpus-blocks} reports the processed composition.
+\TableRef{tab:semantic-fidelity-split-stats} gives the split-level statistics.
+These short inputs make the corpus suitable for exact or near-exact readout
+diagnostics, while the paired labels make semantic drift visible.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{p{0.18\linewidth} r r r r r}
+        \toprule
+        \textbf{Split} & \textbf{Rows} & \textbf{Mean words} & \textbf{Median words} & \textbf{90th percentile words} & \textbf{Max words} \\
+        \midrule
+        Train & 962 & 15.51 & 10.5 & 26 & 29 \\
+        Validation & 290 & 10.01 & 8 & 23 & 26 \\
+        Test & 828 & 11.57 & 9 & 26 & 33 \\
+        All rows & 2080 & 13.17 & 9 & 26 & 33 \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Semantic-Fidelity Corpus split statistics computed over whitespace-tokenized input text.}
+    \label{tab:semantic-fidelity-split-stats}
+\end{table}
 
 \begin{table}[!htb]
     \centering
@@ -1207,18 +1018,12 @@ readout diagnostics, while the paired labels make semantic drift visible.
     \label{tab:semantic-fidelity-examples}
 \end{table}
 
-The corpus supports later experiments without defining their outcome. For
-embedding inversion it provides inputs whose recovered text can be checked for
-semantic drift. For hidden-state or soft-prompt readouts it provides short,
-controlled sequences where exact or approximate recovery can be interpreted.
-For activation verbalization it provides examples where a textual description of
-a model state can be inspected for negation, polarity, or commonsense content.
-
-\section{Semantic-Fidelity Readout Diagnostics}
+\paragraph{Semantic-Fidelity Readout Diagnostics.}
 \label{sec:method-readout-diagnostics}
 
-\TableRef{tab:semantic-readout-diagnostics} summarizes the diagnostic readout
-views used in the thesis and the question each view is meant to answer.
+The corpus supports several diagnostic views. Each view asks whether a different
+kind of latent-to-text readout preserves the semantic property encoded in the
+source example.
 
 \begin{table}[!htb]
     \centering
@@ -1226,7 +1031,7 @@ views used in the thesis and the question each view is meant to answer.
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{p{0.24\linewidth} p{0.28\linewidth} p{0.34\linewidth}}
         \toprule
-        \textbf{Diagnostic view} & \textbf{Readout object} & \textbf{Question answered in the thesis} \\
+        \textbf{Diagnostic view} & \textbf{Readout object} & \textbf{Method question} \\
         \midrule
         Embedding inversion & Text reconstructed from a sentence embedding. &
         Does the reconstruction preserve negation, polarity, and
@@ -1235,122 +1040,531 @@ views used in the thesis and the question each view is meant to answer.
         When exact recovery is possible, does the recovered sequence preserve the
         original semantic contrast? \\
         Activation verbalization & Natural-language description of selected residual-stream activations. &
-        Do verbalizations expose useful semantic evidence that can later be used
-        as proposer feedback? \\
-        Soft-prompt readout & Nearest-token and bounded-recovery description of trained virtual tokens. &
-        Can learned continuous prompt vectors be interpreted as meaningful text,
-        or are they useful but not semantically transparent? \\
+        Do verbalizations expose useful semantic evidence for downstream
+        feedback? \\
+        Continuous-prompt readout & Textual probes of learned continuous prompt vectors. &
+        Do continuous prompts retain interpretable semantic traces, or are they
+        useful while remaining semantically opaque? \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Diagnostic readout views used to analyze semantic fidelity. The
-    detailed experimental settings and results are reported in
-    \ChapterRef{chapter:experimental_setup} and \ChapterRef{chapter:results}.}
+    \caption{Diagnostic readout views used to analyze semantic fidelity.}
     \label{tab:semantic-readout-diagnostics}
 \end{table}
 
-\section{G-EVAL-Style Judge Task}
-\label{sec:method-geval-task}
-
-The second part of the method uses G-EVAL-style LLM-as-a-judge evaluation
-\cite{DBLP:conf/emnlp/LiuIXWXZ23}. Each example contains an input context, a
-candidate output, optional reference or factual information depending on the
-dataset, and human scores for one or more evaluation dimensions. The judge model
-receives a dimension-specific prompt and must output a score that can be parsed
-and compared with the human target.
-
-\begin{figure}[!htb]
-    \centering
-    \begin{thesispromptbox}[width=0.96\linewidth]{G-EVAL-Style Judge Record Schema}
-\begin{Verbatim}[fontsize=\small]
-{
-  "context": "...",
-  "candidate_output": "...",
-  "reference_or_fact": "...",
-  "dimension": "engagingness",
-  "human_score": 2.67,
-  "judge_output": "Score: 3",
-  "parsed_score": 3,
-  "parsed_score_status": "ok"
-}
-\end{Verbatim}
-    \end{thesispromptbox}
-    \caption{Method-level schema for a parseable G-EVAL-style judge record.}
-    \label{fig:method-geval-record-schema}
-\end{figure}
-
-The schema above is illustrative, but it captures the method-level contract. The
-task is not open-ended generation. The judge must produce a bounded score, and
-the score must be parseable. The final objective is agreement with human
-annotations, measured by dataset-appropriate correlation metrics in
-\ChapterRef{chapter:experimental_setup}.
-During optimization, training and validation examples are used to guide prompt
-selection. Held-out final-test examples are used only after the optimized prompt
-has been selected.
-
-\section{Latent-GEPA Prompt Optimization Loop}
+\section{Latent-GEPA Prompt Optimization}
 \label{sec:method-gepa-loop}
 
-\textbf{Latent-GEPA} is the main proposed optimization pipeline. It keeps the
-evaluated judge fixed and optimizes only the natural-language judge prompt. The
-pipeline starts from a seed rubric prompt, evaluates candidate prompts on small
-sets of examples, collects reflection data from the observed failures, and asks
-a separate proposer model to generate revised prompts. The latent part of the
-method keeps GEPA's objective intact: perplexity, activation verbalizations,
-and auxiliary-judge summaries are additional proposer context, while candidate
-selection is still driven by agreement with human scores.
+Latent-GEPA is the prompt-optimization component of the method. It starts from a
+standard GEPA loop: candidate prompts are evaluated on minibatches, successes and
+failures are collected as \textbf{reflection data}, and a \textbf{proposer}
+model generates revised prompts. The proposer is the model responsible for
+rewriting prompts, while the \textbf{base model} is the model being evaluated
+under each candidate prompt.
 
-\begin{figure}[!htb]
+Standard GEPA observes candidate prompts through task-level behavior: which
+examples were scored correctly, which examples failed, and how the validation
+metric changed. This view is effective for prompt search, but it gives limited
+information about the semantic content represented by the base model when a
+score is uncertain or wrong. Latent-GEPA adds a complementary feedback channel:
+perplexity and activation verbalizations are attached to the reflection data, so
+prompt revisions can use both task outcomes and latent semantic evidence.
+
+\subsection{Task Interface}
+\label{sec:method-task-interface}
+
+The method assumes a supervised scoring interface. Each example contains an
+input object, an output or candidate to be scored, optional evidence depending on
+the task, and a human or reference target. A base model receives the current
+prompt plus the example and returns a parseable prediction. A task metric then
+compares the prediction with the target.
+
+\begin{table}[!htb]
     \centering
-\begin{thesispromptbox}[width=0.96\linewidth]{Latent-GEPA Optimization Pseudocode}
-\begin{Verbatim}[fontsize=\small]
-seed_prompt = initial judge rubric
-candidate_pool = {seed_prompt}
-pareto_frontier = {seed_prompt}
+    \small
+    \begin{tabular}{p{0.30\linewidth} p{0.58\linewidth}}
+        \toprule
+        \textbf{Required element} & \textbf{Method role} \\
+        \midrule
+        Input object &
+        Provides the context that the model must evaluate. \\
+        Candidate or output to score &
+        Defines the object whose quality or correctness is being judged. \\
+        Optional task evidence &
+        Supplies references, facts, or source material when the task requires
+        them. \\
+        Reference target &
+        Defines the supervision signal used by the task metric. \\
+        Model prediction &
+        Provides the score or decision produced under the current prompt. \\
+        Parseability check &
+        Ensures that the prediction can be compared with the reference target. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Method-level contract for a parseable scoring task.}
+    \label{tab:method-scoring-contract}
+\end{table}
 
-for each optimization iteration:
-    sample a minibatch of validation examples
-    evaluate prompts from candidate_pool on the minibatch
-    compute agreement with human scores for each prompt/example
-    collect reflection data from successes and failures
-    optionally attach PPL, NLA, and auxiliary-judge feedback
-    ask the proposer to mutate or merge selected prompts
-    evaluate the proposed prompts on validation examples
-    update candidate_pool and the Pareto-style frontier
+\TableRef{tab:method-scoring-contract} captures the method-level contract.
+The prompt optimizer is agnostic to the concrete task as long as the model output
+can be parsed and evaluated. This contract keeps the optimization loop separate
+from any single dataset or scoring rubric.
 
-selected_prompt = best prompt on the validation frontier
-evaluate selected_prompt on held-out final-test examples
-\end{Verbatim}
-    \end{thesispromptbox}
-    \caption{High-level Latent-GEPA loop used for prompt optimization in this thesis.}
-    \label{fig:method-gepa-pseudocode}
-\end{figure}
+\subsection{Optimization Loop}
 
-The Pareto-style frontier is important because prompt quality is not judged from
-a single example. A candidate may improve one subset while hurting another.
+The loop begins from a \textbf{seed prompt}, the initial natural-language
+instruction given to the base model. It maintains a \textbf{validation frontier},
+a pool of candidate prompts that remain eligible for later proposal or final
+selection because they performed well on validation examples.
+
+\begin{algorithm}[!htb]
+    \caption{Latent-GEPA prompt optimization loop.}
+    \label{alg:latent-gepa-loop}
+    \begin{algorithmic}[1]
+        \Require seed prompt $p_0$; training examples $D_{\mathrm{train}}$;
+        validation examples $D_{\mathrm{val}}$; task metric $m$; enabled feedback
+        channels $\mathcal{F}$
+        \Ensure selected prompt $p^\star$
+        \State $\mathcal{P} \gets \{p_0\}$ \Comment{prompt pool}
+        \State $\mathcal{B} \gets \{p_0\}$ \Comment{validation frontier}
+        \For{optimization iteration $t = 1,\ldots,T$}
+            \State Sample a minibatch $B_t \subset D_{\mathrm{train}} \cup D_{\mathrm{val}}$
+            \ForAll{prompts $p$ selected from $\mathcal{P}$}
+                \State Evaluate the base model with prompt $p$ on $B_t$
+                \State Compute task scores with metric $m$
+                \State Build reflection data $R(p,B_t)$ from successes and failures
+                \State Attach enabled latent feedback $\mathcal{F}(p,B_t)$ to $R(p,B_t)$
+            \EndFor
+            \State Generate candidates $\mathcal{C}_t$ by proposing edits from $\mathcal{B}$ and $R$
+            \State Evaluate $\mathcal{C}_t$ on validation examples
+            \State $\mathcal{P} \gets \mathcal{P} \cup \mathcal{C}_t$
+            \State Update $\mathcal{B}$ with Pareto-style validation selection
+        \EndFor
+        \State $p^\star \gets$ best prompt in $\mathcal{B}$ under validation metric $m$
+        \State Evaluate $p^\star$ once on held-out examples reserved for final evaluation
+        \State \Return $p^\star$
+    \end{algorithmic}
+\end{algorithm}
+
+The Pareto-style frontier is important because prompt quality is judged across
+sets of examples. A candidate may improve one subset while hurting another.
 GEPA therefore keeps useful candidates in a pool, proposes edits from that pool,
-and selects a final prompt from validation behavior rather than from the last
-generated prompt. This is why the saved prompt trajectory matters: it records
+and selects a final prompt from validation behavior instead of the last
+generated prompt. This is why the optimization trajectory matters: it shows
 which candidate prompts were proposed, which feedback produced them, and which
 ones survived validation-time selection.
 
-The model roles are deliberately separated. The evaluated judge is the base
-Qwen2.5-7B model. The proposer is a stronger Qwen35B model used to propose
-prompt edits. The auxiliary judge, when enabled, is also a feedback component
-rather than the model whose final scores are reported. This prevents an
-important ambiguity: improved final metrics should be attributed to a better
-prompt for the base judge, not to replacing the evaluated judge with a stronger
-model.
+\FigureRef{fig:latent-gepa-feedback-flow} summarizes the same loop as a feedback
+flow. The figure is deliberately task-agnostic and shows the feedback path shared
+by the ablation conditions.
 
-The initial judge prompt is part of the method rather than a disposable
-implementation detail. The block below is the exact seed instruction saved by
-the matched Topical-Chat / USR engagingness runs, with only line wrapping
-adapted to the page. It is shown as plain text because this is the object that
-GEPA edits.
-
-\begin{figure}[!p]
+\begin{figure}[!htb]
     \centering
-    \begin{thesispromptbox}[width=0.98\linewidth]{Seed Judge Prompt for Topical-Chat Engagingness}
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\scriptsize,
+        >=Latex,
+        box/.style={draw=black!55, very thick, rounded corners=4pt,
+            align=center, text width=27mm, minimum height=16mm, inner sep=3.2pt},
+        metric/.style={box, fill=blue!7, draw=blue!55!black},
+        feedback/.style={box, fill=orange!10, draw=orange!75!black},
+        prompt/.style={box, fill=green!8, draw=green!45!black},
+        optional/.style={densely dashed},
+        line/.style={-{Latex[length=2.2mm]}, very thick, draw=black!60},
+        optline/.style={-{Latex[length=2.2mm]}, very thick, densely dashed, draw=black!55},
+        backline/.style={-{Latex[length=2.2mm]}, very thick, rounded corners=7pt, draw=green!45!black}
+    ]
+        \node[metric] (examples) at (0,0) {\textbf{Task examples}\\input, candidate\\reference target};
+        \node[metric] (evaluate) at (3.45,0) {\textbf{Evaluate prompt}\\base model\\parse prediction};
+        \node[feedback] (reflection) at (6.90,0) {\textbf{Reflection data}\\task error\\latent signals};
+        \node[feedback, optional] (compression) at (10.35,0) {\textbf{Optional compression}\\short prompt-level\\lesson};
+        \node[prompt] (proposer) at (13.80,0) {\textbf{Proposer}\\mutate or merge\\candidate prompt};
+
+        \node[prompt] (frontier) at (10.35,-2.15) {\textbf{Validation frontier}\\prompt pool\\selection};
+        \node[prompt] (selected) at (6.90,-2.15) {\textbf{Selected prompt}\\best validation\\candidate};
+        \node[metric] (final) at (3.45,-2.15) {\textbf{Held-out evaluation}\\run once after\\selection};
+
+        \draw[line] (examples.east) -- (evaluate.west);
+        \draw[line] (evaluate.east) -- (reflection.west);
+        \draw[optline] (reflection.east) -- (compression.west);
+        \draw[line] (compression.east) -- (proposer.west);
+        \draw[backline] (proposer.south) -- ++(0,-0.45) -| (frontier.east);
+        \draw[line] (frontier.west) -- (selected.east);
+        \draw[line] (selected.west) -- (final.east);
+        \draw[backline] (frontier.north) -- ++(0,0.45) -| (evaluate.south);
+    \end{tikzpicture}}
+    \caption{Generic Latent-GEPA feedback flow. Candidate prompts are evaluated
+    on task examples, reflection data may be enriched with latent-derived
+    signals, and the proposer uses the resulting feedback to produce new
+    candidates. Final evaluation is performed only after validation-time prompt
+    selection.}
+    \label{fig:latent-gepa-feedback-flow}
+\end{figure}
+
+\subsection{Feedback Conditions}
+\label{sec:method-feedback-conditions}
+
+The feedback conditions are defined as ablations. Each condition adds one source
+or transformation of proposer-side feedback while leaving the task metric as the
+selection objective. \TableRef{tab:feedback-conditions} first summarizes the
+conditions; the following subsections define the added signals.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{p{0.22\linewidth} c c c c p{0.30\linewidth}}
+        \toprule
+        \textbf{Feedback condition} & \textbf{Metric} & \textbf{Perplexity} & \textbf{Activation text} & \textbf{Auxiliary compression} & \textbf{Question} \\
+        \midrule
+        Metric Feedback & yes & no & no & no &
+        Can task feedback alone improve the prompt? \\
+        Perplexity Feedback & yes & yes & no & no &
+        Does model surprisal help interpret scoring errors? \\
+        Activation Feedback & yes & yes & yes & no &
+        Do activation verbalizations add useful semantic evidence? \\
+        Compressed Activation Feedback & yes & yes & yes & yes &
+        Can an auxiliary model turn raw evidence into better prompt-level lessons? \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Latent-GEPA feedback conditions used as ablations.}
+    \label{tab:feedback-conditions}
+\end{table}
+
+\TableRef{tab:feedback-conditions} is an ablation map. A feedback condition is
+useful only if it improves a matched control with the same data split, base
+model, proposer, and optimization budget. Negative evidence remains informative
+when the signal was present, parseable, and fairly tested.
+
+\subsection{Perplexity Feedback}
+\label{sec:method-perplexity-feedback}
+
+Perplexity is used as a response-only signal from the base model. Given a
+candidate token sequence $y_1,\ldots,y_T$ and conditioning context $x$,
+the average negative log-likelihood is
+
+\[
+\mathrm{NLL}(y \mid x) =
+-\frac{1}{T}\sum_{t=1}^{T}\log p(y_t \mid x, y_{<t}),
+\]
+
+and perplexity is
+
+\[
+\mathrm{PPL}(y \mid x) = \exp(\mathrm{NLL}(y \mid x)).
+\]
+
+Lower perplexity means that the base model assigned higher probability to the
+candidate under the given context. Perplexity is passed to the proposer as
+diagnostic feedback. Final selection remains based on the task metric.
+
+\subsection{Activation-Verbalization Feedback}
+\label{sec:method-nla-feedback}
+
+Activation verbalizations are transformed into feedback for the proposer. The
+base model processes an example, selected token positions are converted into
+activation vectors, and a compatible verbalizer maps those vectors into short
+textual descriptions. The resulting descriptions are attached to the reflection
+data used for prompt proposal.
+
+Token selection is part of the method. A verbalization of an uninformative token
+can produce generic feedback, while too many verbalizations can make the
+proposer context long and repetitive. The method therefore distinguishes input
+tokens, optional evidence tokens, and candidate-output tokens. It also limits
+repeated or low-information descriptions before they reach the proposer.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{tabular}{p{0.28\linewidth} p{0.30\linewidth} p{0.32\linewidth}}
+        \toprule
+        \textbf{Feedback condition} & \textbf{Information shown to proposer} & \textbf{Intended use} \\
+        \midrule
+        Metric only &
+        Target, prediction, and error summary. &
+        Identify which behavior should change. \\
+        Metric + PPL &
+        Metric feedback plus candidate perplexity. &
+        Distinguish uncertainty from confident wrong behavior. \\
+        Metric + PPL + activation text &
+        Metric feedback, perplexity, and selected activation descriptions. &
+        Add latent-derived textual evidence about the evaluated example. \\
+        \bottomrule
+    \end{tabular}
+    \caption{How activation verbalization extends the proposer context.}
+    \label{tab:nla-feedback}
+\end{table}
+
+\subsection{Auxiliary Feedback Compression}
+\label{sec:method-aux-judge}
+
+The auxiliary compression step addresses a practical limitation of raw feedback.
+Reflection data can become long, duplicated, or too low-level. An auxiliary
+model can be used as a compressor: it receives the example, the target, the
+base-model prediction, the error signal, the base-model rationale, and optional
+latent evidence. It returns a short prompt-level lesson for the proposer.
+
+\begin{table}[!htb]
+    \centering
+    \small
+    \begin{tabular}{p{0.30\linewidth} p{0.32\linewidth} p{0.28\linewidth}}
+        \toprule
+        \textbf{Raw evidence} & \textbf{Auxiliary lesson} & \textbf{Prompt-level use} \\
+        \midrule
+        Score mismatch, rationale, perplexity, and activation descriptions. &
+        A concise explanation of what the prompt failed to emphasize. &
+        The proposer receives a shorter instruction for revision. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Auxiliary model as feedback compressor.}
+    \label{tab:aux-judge-feedback}
+\end{table}
+
+The validity rule is strict: auxiliary feedback must be non-empty and parseable.
+An auxiliary compression step with empty or unparseable content invalidates the
+affected feedback condition. This rule keeps silent failures separate from
+evidence about the method.
+
+\section{Continuous-Prompt Interpretability}
+\label{sec:method-soft-prompt-readout}
+
+A separate diagnostic asks whether continuous prompt vectors can be interpreted
+as text. Latent-GEPA searches over readable instructions. Soft-prompt tuning
+keeps the base model frozen and trains a small set of continuous \textbf{virtual
+prompt tokens} prepended to the ordinary input. The diagnostic then asks what, if
+anything, can be recovered from those learned vectors by the readout procedures
+defined in \SectionRef{subsec:method-soft-prompt-pipeline}.
+
+This diagnostic separates three questions:
+
+\begin{itemize}
+    \item \textbf{task utility}: do the learned vectors improve the task metric?
+    \item \textbf{discrete proximity}: are the learned vectors close to ordinary
+    vocabulary embeddings?
+    \item \textbf{semantic readout}: does textual recovery produce content that
+    is meaningful for interpreting what the learned vectors do?
+\end{itemize}
+
+Task improvement is a sanity check that the virtual tokens changed model
+behavior. The main object is the interpretability readout: what can be recovered
+from a trained continuous prompt, and whether that recovery contains useful
+semantic evidence.
+
+\subsection{Readout Pipeline}
+\label{subsec:method-soft-prompt-pipeline}
+
+The main condition initializes the virtual tokens randomly. Text initialization is
+kept only as a control, because it biases any later discrete-token projection
+toward the seed instruction used to initialize the prompt.
+
+After training, the readout has two stages:
+
+\begin{enumerate}
+    \item \textbf{Nearest-token projection.} Each virtual token vector is
+    compared with the model vocabulary embeddings. The nearest discrete token is
+    selected by L2 distance, while cosine similarity is stored as a secondary
+    geometric diagnostic. This gives a readable baseline whose faithfulness
+    requires additional checks.
+    \item \textbf{SIPIT-style bounded recovery.} The learned virtual-token
+    vectors are treated as continuous targets. The recovery procedure attempts
+    to find a sequence of discrete tokens that reproduces the corresponding
+    hidden states. The verification criterion is essential: unverified recovered
+    text is interpreted as diagnostic output.
+\end{enumerate}
+
+\subsection{Readout Controls}
+\label{subsec:method-soft-prompt-controls}
+
+This diagnostic differs from standard SIPIT. In a standard recovery setting, the
+target hidden states are generated by real prompt tokens, so exact textual
+recovery is the success criterion. In the soft-prompt readout, the target
+vectors may be learned continuous objects lacking exact discrete token
+equivalents. The controls in \TableRef{tab:soft-prompt-readout} calibrate that
+interpretation.
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{p{0.24\linewidth} p{0.24\linewidth} p{0.22\linewidth} p{0.20\linewidth}}
+        \toprule
+        \textbf{Condition} & \textbf{Optimized or tested object} & \textbf{Readout} & \textbf{Valid interpretation} \\
+        \midrule
+        GEPA prompt &
+        Natural-language instruction &
+        Direct text inspection &
+        Prompt content proposed by GEPA. \\
+        Randomly initialized soft prompt &
+        Continuous virtual tokens &
+        Nearest-token and SIPIT readout &
+        Task utility and off-manifold interpretability diagnostic. \\
+        Soft prompt initialized from text &
+        Continuous virtual tokens initialized from seed text &
+        Nearest-token and SIPIT readout &
+        Control for initialization bias in nearest-token interpretation. \\
+        Hard-token control &
+        Exact embeddings of sampled vocabulary tokens &
+        SIPIT verification &
+        Positive control: standard discrete-token targets should verify. \\
+        Initialization-prompt control &
+        Exact embeddings of the seed instruction tokens &
+        Nearest-token and SIPIT readout &
+        Separates correct nearest-token text from bounded-recovery exhaustion. \\
+        Random continuous control &
+        Norm-matched Gaussian continuous vectors &
+        Nearest-token and SIPIT readout &
+        Negative control for continuous off-manifold targets. \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Soft-prompt readout conditions and their interpretation.}
+    \label{tab:soft-prompt-readout}
+\end{table}
+
+\paragraph{Interpretation Rule.}
+\label{subsec:method-soft-prompt-interpretation}
+
+This diagnostic is included because it makes the distinction between usefulness,
+inversion, and semantic interpretation explicit. A soft prompt may improve
+the task metric while SIPIT-style recovery still fails to produce a
+faithful or useful natural-language explanation of the learned vectors. That
+outcome is directly relevant to the broader research question: latent
+representations can be operationally useful while remaining semantically opaque.
+
+\chapter{Experimental Setup}
+\label{chapter:experimental_setup}
+
+This chapter defines the experimental conditions needed to interpret the
+reported evidence: \textbf{what was measured}, \textbf{which data and models
+were used}, and \textbf{which artifacts make each run auditable}. This
+separation is important because the study combines several different experiment
+families: embedding-inversion diagnostics, SIPIT hidden-state inversion, NLA
+activation verbalization, GEPA prompt optimization, and soft-prompt readout.
+
+The setup follows three rules:
+\begin{itemize}
+    \item Every result must be tied to a specific dataset split.
+    \item Every model must have a precise role: evaluated model, proposer,
+    auxiliary feedback model, inversion target, or verbalizer.
+    \item Feedback signals such as perplexity and NLA serve as inputs to prompt
+    optimization. Their value is measured through downstream effects on held-out
+    examples.
+\end{itemize}
+
+\section{Datasets and Splits}
+\label{sec:setup-datasets}
+
+The experiments use two main families of data. The first family is the newly
+constructed Semantic-Fidelity Corpus, designed for latent-to-text diagnostics.
+The second family contains G-EVAL-style natural-language generation evaluation
+datasets with human scores. The semantic-fidelity data tests whether a
+reconstructed or verbalized text preserves meaning. The G-EVAL-style data tests
+whether a judge prompt agrees with human annotations.
+
+The Topical-Chat experiments use the USR-formatted Topical-Chat release
+distributed with the USR evaluation data.
+This release provides candidate responses, human quality scores, and the
+USR/G-EVAL-style dimensions already aligned with each scored example. The
+Hugging Face page remains useful as upstream dataset
+context.\footnote{\url{https://huggingface.co/datasets/Conversational-Reasoning/Topical-Chat}}
+
+\begin{table}[!htb]
+    \centering
+    \scriptsize
+    \begin{adjustbox}{width=\textwidth}
+    \begin{tabular}{p{0.19\linewidth} p{0.20\linewidth} p{0.21\linewidth} p{0.13\linewidth} p{0.20\linewidth} p{0.19\linewidth}}
+        \toprule
+        \textbf{Dataset} & \textbf{Source} & \textbf{Task} & \textbf{Size used} & \textbf{Split policy} & \textbf{Experiment role} \\
+        \midrule
+        Semantic-Fidelity Corpus &
+        Newly constructed corpus &
+        Test negation, polarity, and commonsense preservation &
+        2080 rows &
+        Stable train/validation/test split &
+        Main diagnostic data for semantic-fidelity claims. \\
+        SIPIT logical 20-token set &
+        Derived from the Semantic-Fidelity Corpus &
+        Hidden-state prompt recovery on logical categories &
+        40 prompts &
+        Balanced by category &
+        Extension of SIPIT to controlled logical inputs. \\
+        Topical-Chat / USR &
+        USR Topical-Chat release &
+        USR response quality scoring on four dimensions &
+        Run-dependent subsets &
+        Split by conversation group id &
+        Main GEPA pilot and soft-prompt readout task. \\
+        SummEval &
+        G-EVAL-style summarization data &
+        Summary quality scoring on four dimensions &
+        Run-dependent subsets &
+        Split by example/group id &
+        Paper-aligned GEPA extension beyond dialogue. \\
+        QAGS-CNN / QAGS-XSUM &
+        G-EVAL-style factual-consistency data &
+        Summary consistency scoring &
+        Run-dependent subsets &
+        Split by example/group id &
+        Paper-aligned consistency-only tasks. \\
+        \bottomrule
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Dataset families used in the experimental setup. Exact row ids and
+    split membership are saved in per-run split manifests.}
+    \label{tab:setup-datasets}
+\end{table}
+
+\TableRef{tab:setup-datasets} reports each dataset role; final performance is
+reported in \ChapterRef{chapter:results}. The Semantic-Fidelity Corpus is
+structured as follows:
+\begin{itemize}
+    \item \textbf{Content blocks:} 40 standard control rows, 720 negation and
+    polarity rows, and 1320 commonsense or counterfactual rows.
+    \item \textbf{Stable split:} 962 training rows, 290 validation rows, and
+    828 test rows.
+    \item \textbf{Purpose:} the shared row identifiers make it possible to join
+    embedding-inversion, SIPIT, and NLA analyses on the same semantic examples.
+\end{itemize}
+
+For the G-EVAL-style experiments, the split policy is designed to avoid leakage:
+\begin{itemize}
+    \item Several candidate responses can share the same context, source, or
+    conversation, so the runner splits by a stable group id at the shared-context
+    level.
+    \item Training rows are used during prompt search.
+    \item Validation rows are used for GEPA candidate-prompt selection.
+    \item Final-test rows are evaluated only after the optimized prompt has
+    been selected. The name \textbf{final-test} keeps this split separate from
+    the validation rows used during GEPA selection.
+\end{itemize}
+
+The current G-EVAL-style matrix follows the dimensions used by the G-EVAL
+paper:
+\begin{itemize}
+    \item \textbf{Topical-Chat / USR:} naturalness, coherence, engagingness, and
+    groundedness.
+    \item \textbf{SummEval:} fluency, coherence, consistency, and relevance.
+    \item \textbf{QAGS-CNN and QAGS-XSUM:} consistency.
+\end{itemize}
+Some early experiments used only Topical-Chat engagingness because it was the
+first fully working pipeline. Later matrix runs extend the same protocol to the
+remaining dimensions.
+
+The soft-prompt diagnostic is reported separately from GEPA because it trains
+continuous virtual prompt tokens, whereas GEPA optimizes a readable
+natural-language prompt. Its main setup is:
+\begin{itemize}
+    \item \textbf{Task:} Topical-Chat / USR engagingness.
+    \item \textbf{Base model family:} the same Qwen2.5-7B judge family used in
+    the Latent-GEPA runs.
+    \item \textbf{Main split:} 40 training groups, 10 validation groups, and 10
+    final-test groups, corresponding to 240, 60, and 60 rows respectively.
+\end{itemize}
+
+\begin{figure}[!htb]
+    \centering
+    \begin{thesispromptbox}[width=0.98\linewidth]{Seed Instruction for Topical-Chat Engagingness Runs}
 \begin{Verbatim}[fontsize=\scriptsize]
 You are evaluating one potential next response in a dialogue.
 
@@ -1380,552 +1594,21 @@ Score: <1, 2, or 3>
 Do not output scores outside this scale. Never output 0, 4, or 5 for Engagingness.
 \end{Verbatim}
     \end{thesispromptbox}
-    \caption{Seed prompt used before GEPA optimization for the Topical-Chat / USR engagingness task.}
-    \label{fig:method-seed-engagingness-prompt}
+    \caption{Seed instruction used by the Topical-Chat engagingness GEPA and
+    soft-prompt runs.}
+    \label{fig:setup-seed-engagingness-prompt}
 \end{figure}
-
-Methodologically, this prompt fixes four properties before optimization starts:
-the bounded 1--3 score space, the evidence order, the requirement that the
-judge explain the score briefly, and the parseable final line. GEPA is allowed
-to rewrite the instruction, but not to change the task into a different
-evaluation problem.
-
-\section{Latent-GEPA Feedback Variants}
-\label{sec:method-feedback-variants}
-
-The Latent-GEPA component is organized as an ablation study. Each variant adds one
-additional feedback source or transformation. This makes comparisons meaningful:
-a variant should be compared against a matched control with the same data split,
-judge model, proposer model, and optimization budget.
-
-\begin{table}[!htb]
-    \centering
-    \small
-    \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.18\linewidth} c c c c p{0.32\linewidth}}
-        \toprule
-        \textbf{Variant} & \textbf{Metric} & \textbf{PPL} & \textbf{NLA} & \textbf{Aux. judge} & \textbf{Scientific question} \\
-        \midrule
-        \texttt{base\_gepa} & yes & no & no & no &
-        Can GEPA improve the seed judge prompt using task metric feedback alone? \\
-        \texttt{ppl} & yes & yes & no & no &
-        Does response-only perplexity help the proposer distinguish confidence from failure cases? \\
-        \texttt{ppl\_nla} & yes & yes & yes & no &
-        Do raw activation verbalizations provide useful additional proposer context? \\
-        \shortstack[l]{\texttt{ppl\_nla}\\\texttt{\_auxjudge}} & yes & yes & yes & yes &
-        Can a stronger model compress raw evidence into rubric-level feedback that GEPA can use? \\
-        \bottomrule
-    \end{tabular}
-    \end{adjustbox}
-    \caption{Latent-GEPA feedback variants used as ablations.}
-    \label{tab:feedback-variants}
-\end{table}
-
-\TableRef{tab:feedback-variants} defines the method variants independently of
-their final results. The table is an ablation map: each added signal is useful
-only if it improves a matched control with the same data, judge, proposer, and
-optimization budget. When a signal is present, parseable, and fairly tested, a
-negative result is still informative because it identifies which form of
-feedback fails to help the proposer.
-
-\section{Perplexity Feedback}
-\label{sec:method-perplexity-feedback}
-
-Perplexity is used as a response-only signal from the base judge model. Given a
-candidate response token sequence $y_1,\ldots,y_T$ and conditioning context $x$,
-the average negative log-likelihood is
-
-\[
-\mathrm{NLL}(y \mid x) =
--\frac{1}{T}\sum_{t=1}^{T}\log p(y_t \mid x, y_{<t}),
-\]
-
-and perplexity is
-
-\[
-\mathrm{PPL}(y \mid x) = \exp(\mathrm{NLL}(y \mid x)).
-\]
-
-Lower perplexity means that the base model assigned higher probability to the
-response under the given context. In this thesis, perplexity is not a final
-evaluation metric. It is a feedback signal passed to the proposer. For example,
-if a wrong score has high perplexity, the proposer may be told that the base
-judge was uncertain or that the output did not match the model's expected
-format. If a wrong score has low perplexity, the proposer may instead infer that
-the prompt consistently encouraged a wrong but confident behavior.
-
-This distinction matters because final evaluation is still based on agreement
-with human scores. Perplexity can help explain a model response, but it cannot
-replace the target metric.
-
-\section{NLA Feedback for Latent-GEPA}
-\label{sec:method-nla-feedback}
-
-In Latent-GEPA, NLA verbalizations are transformed into feedback for the
-prompt proposer. The base judge processes an evaluation example. Selected token
-positions are converted into activation vectors. The activation verbalizer turns
-those vectors into text. The resulting descriptions are attached to the
-reflection data that GEPA gives to the proposer.
-
-Token selection is part of the method. A verbalization of an uninformative token
-can produce generic feedback, while too many verbalizations can make the
-proposer context long and repetitive. The method therefore records token source,
-token position, layer, verbalization text, and deduplication status. Candidate
-output tokens, source/context tokens, and reference/fact tokens are treated as
-different sources because they can describe different parts of the judgment
-problem.
-
-\begin{table}[!htb]
-    \centering
-    \small
-    \begin{tabular}{p{0.28\linewidth} p{0.30\linewidth} p{0.32\linewidth}}
-        \toprule
-        \textbf{Feedback condition} & \textbf{Information shown to proposer} & \textbf{Intended use} \\
-        \midrule
-        Metric only &
-        Human score, predicted score, and error summary. &
-        Identify which rubric behavior should change. \\
-        Metric + PPL &
-        Metric feedback plus response perplexity. &
-        Distinguish uncertainty from confident wrong behavior. \\
-        Metric + PPL + NLA &
-        Metric feedback, perplexity, and selected activation verbalizations. &
-        Add latent-derived textual evidence about the judged example. \\
-        \bottomrule
-    \end{tabular}
-    \caption{How NLA feedback extends the proposer context in Latent-GEPA.}
-    \label{tab:nla-feedback}
-\end{table}
-\clearpage
-
-The verbalizations are treated as weak evidence. They are not labels and they
-are not assumed to be faithful by default. Their value is tested by whether they
-help GEPA produce better prompts under matched controls.
-
-The following block shows one concrete record from a saved PPL+NLA GEPA-viz
-artifact. It is intentionally close to the runtime data record instead of
-being rewritten as prose: the metric function returns a scalar \texttt{score}
-and a multiline \texttt{feedback} string, and GEPA stores that inside a
-reflective minibatch item. The PPL-only condition has the same fields, but the
-\texttt{NLA multi-token verbalizations} section is absent. Long textual values
-are abbreviated and lightly reformatted for readability, while the most
-important keys and diagnostic values are highlighted.
-
-\clearpage
-
-\begin{lstlisting}[caption={Concrete PPL plus NLA reflection record stored by GEPA before proposer serialization.}, label={lst:method-ppl-nla-record}, basicstyle=\ttfamily\fontsize{6.6}{7.4}\selectfont, frame=lines, breaklines=true, columns=fullflexible, stringstyle=\color{black}, keywordstyle=\color{black}, commentstyle=\color{black}, identifierstyle=\color{black}, showstringspaces=false, escapeinside={(*@}{@*)}]
-{
-  "candidate_id": "0.1",
-  "parent": "0",
-  "minibatch_row": 0,
-  (*@\textbf{"example"}@*): {
-    (*@\textbf{"source\_text"}@*): "hey , ever use facebook ? ...",
-    (*@\textbf{"fact"}@*): "burger king had a promotion where if you unfriend 10 people ...",
-    (*@\textbf{"candidate\_output": "i have not used it , but i have heard of it before"}@*),
-    (*@\textbf{"ground\_truth"}@*): {
-      (*@\codehl{"human\_score": 2.6666666666666665}@*),
-      "context_id": "context_055",
-      (*@\textbf{"response\_id": "context\_055\_response\_04"}@*),
-      "dataset": "topical_chat",
-      (*@\textbf{"dimension": "engagingness"}@*),
-      "min_score": 1,
-      "max_score": 3
-    }
-  },
-  (*@\textbf{"prediction"}@*): {
-    "reasoning": "The candidate response is neutral and provides minimal engagement...",
-    "rationale": "The response is brief and does not add any personal touch...",
-    (*@\codehl{"score": "1"}@*)
-  },
-  (*@\codehl{"score": 0.16666666666666674}@*),
-  (*@\textbf{"feedback"}@*): [
-    Human mean engagingness score: (*@\codehl{2.67}@*); predicted score: (*@\codehl{1}@*);
-    normalized agreement: (*@\codehl{0.167}@*).
-    Metric definition: Engagingness: whether the response captures interest
-    and moves the conversation forward.
-    Abstract error summary: target_bucket=(*@\codehl{high}@*); judge_bucket=(*@\codehl{low}@*);
-    error_direction=(*@\codehl{underrated}@*); agreement_bucket=(*@\codehl{low}@*).
-    (*@\textbf{Rubric signals: candidate\_length=medium; context\_depth=short;}@*)
-    asks_question=no; fact_available=yes; generic_acknowledgement_only=no;
-    has_concrete_surface_detail=yes.
-    Perplexity signals: response_mean_nll=(*@\codehl{2.1684}@*);
-    response_perplexity=(*@\codehl{8.7447}@*); response_token_count=(*@\codehl{14}@*).
-    (*@\textbf{NLA multi-token verbalizations from Qwen2.5-7B layer 20}@*)
-    (precomputed; use as weak interpretive feedback, not as ground truth):
-    - candidate_middle token=(*@\codehl{'have'}@*): (*@\textbf{heard about it / some experience}@*)
-      (*@\textbf{with the product.}@*)
-    - candidate_last token=(*@\codehl{'before'}@*): (*@\textbf{period completing the informal claim}@*)
-      (*@\textbf{about prior knowledge of the object.}@*)
-    - source_middle token=(*@\codehl{'american'}@*): (*@\textbf{adults / households / citizens.}@*)
-    - reference_last token=(*@\codehl{'whopper'}@*): (*@\textbf{offer / card / similar prize.}@*)
-    The output was (*@\codehl{underrated}@*). Revise the judging instructions to better
-    distinguish weak outputs from outputs that satisfy the target dimension.
-  ]
-}
-\end{lstlisting}
-
-The highlighted fields define how this record should be read. The
-\texttt{example} field contains the actual input to the base judge: dialogue
-context, optional fact, and candidate response. The
-\texttt{ground\_truth.human\_score} value is the USR human target; here it is
-close to the top of the 1--3 engagingness scale. The base judge instead emits
-\texttt{prediction.score = 1}, so the normalized \texttt{score} used by GEPA is
-low. The \texttt{Abstract error summary} compresses this into the prompt-level
-lesson \quotes{high target, low judge, underrated}.
-
-\texttt{Perplexity signals} are numeric likelihood diagnostics from the base
-judge model over the candidate response. They are not final evaluation metrics:
-they tell the proposer whether the response looked relatively probable to the
-same model that made the judgment. \texttt{NLA multi-token verbalizations} are
-weak textual descriptions of selected layer-20 activations. In this example the
-candidate token \texttt{have} verbalizes toward \quotes{heard about it} or
-\quotes{some experience}, while source/reference tokens verbalize toward
-\quotes{adults} and \quotes{offer}. This suggests that the model state still
-contains useful semantic hooks about prior awareness and the Whopper offer, even
-though the final judge score was too low. The proposer therefore receives a
-concrete reason to sharpen the prompt against underrating concise but relevant
-responses.
-
-\clearpage
-
-Before the Qwen35B proposer receives the record, the custom generalizing
-proposer serializes recent minibatch items into a textual
-\texttt{reflection\_data} field. The score labels and example identifiers are
-sanitized out of the final \texttt{Generic feedback} field to reduce overfitting
-to individual validation examples. The block below keeps the proposer-facing
-structure but highlights the fields that matter for reading the feedback.
-
-\begin{lstlisting}[caption={Proposer-facing reflection item after sanitization and feedback aggregation.}, label={lst:method-proposer-reflection-item}, basicstyle=\ttfamily\fontsize{6.6}{7.4}\selectfont, frame=lines, breaklines=true, columns=fullflexible, stringstyle=\color{black}, keywordstyle=\color{black}, commentstyle=\color{black}, identifierstyle=\color{black}, showstringspaces=false, escapeinside={(*@}{@*)}]
---- Reflection 1 ---
-(*@\textbf{Input summary}@*): source_text=redacted, fact=redacted, candidate_output=redacted
-(*@\textbf{Judge output summary}@*): score_parse=(*@\codehl{ok}@*); score_bucket=(*@\codehl{low}@*);
-output_length=medium; rationale_length=medium
-(*@\textbf{Generic feedback}@*):
-(*@\textbf{Abstract error summary}@*): target_bucket=(*@\codehl{high}@*); judge_bucket=(*@\codehl{low}@*);
-error_direction=(*@\codehl{underrated}@*); agreement_bucket=(*@\codehl{low}@*).
-(*@\textbf{Perplexity signals}@*): response_mean_nll=(*@\codehl{2.1684}@*); response_perplexity=(*@\codehl{8.7447}@*);
-response_token_count=(*@\codehl{14}@*).
-(*@\textbf{NLA multi-token verbalizations}@*) from Qwen2.5-7B layer 20
-(precomputed; use as weak interpretive feedback, not as ground truth):
-- candidate_middle token=(*@\codehl{'have'}@*): (*@\textbf{"heard about it" / "some experience"}@*)
-  (*@\textbf{"with the product."}@*)
-- candidate_last token=(*@\codehl{'before'}@*): (*@\textbf{"." completing prior knowledge claim.}@*)
-- source_middle token=(*@\codehl{'american'}@*): (*@\textbf{"adults" / "households" / "citizens".}@*)
-- reference_last token=(*@\codehl{'whopper'}@*): (*@\textbf{"offer" / "card" / "similar prize."}@*)
-The output was (*@\codehl{underrated}@*). Revise the judging instructions to better
-distinguish weak outputs from outputs that satisfy the target dimension.
-\end{lstlisting}
-
-This is the version that is closest to what the proposer actually uses. The
-\texttt{Input summary} is deliberately redacted: the proposer should learn a
-general prompt edit, not memorize \texttt{context\_055}. The
-\texttt{Judge output summary} says that parsing succeeded and the judge produced
-a low-score answer of normal length, so the failure is treated as a rubric
-failure rather than an output-format crash. The \texttt{Generic feedback} block
-then carries the actionable evidence: the item was underrated, the PPL values
-summarize how likely the candidate looked to the base model, and the NLA lines
-offer weak semantic hints about what selected activations were encoding. The
-last sentence is the actual instruction-level takeaway: revise the judge prompt
-so that concise but dimension-satisfying responses are not collapsed into the
-lowest score bucket.
-
-\clearpage
-
-\section{Auxiliary-Judge Feedback}
-\label{sec:method-aux-judge}
-
-The auxiliary-judge path addresses a practical limitation of raw feedback. GEPA
-can consume natural-language feedback, but raw reflection data can become long,
-duplicated, or too low-level. The auxiliary judge is used as a compressor: it
-receives the example, the human target, the base judge prediction, the error
-signal, the base judge rationale, and optional PPL/NLA evidence. It returns a
-short prompt-level lesson for the proposer.
-
-\begin{table}[!htb]
-    \centering
-    \small
-    \begin{tabular}{p{0.30\linewidth} p{0.32\linewidth} p{0.28\linewidth}}
-        \toprule
-        \textbf{Raw evidence} & \textbf{Auxiliary judge lesson} & \textbf{Prompt-level use} \\
-        \midrule
-        Score mismatch, rationale, PPL, and NLA descriptions. &
-        A concise explanation of what the prompt failed to emphasize. &
-        The proposer receives a shorter, rubric-aligned instruction for revision. \\
-        \bottomrule
-    \end{tabular}
-    \caption{Auxiliary judge as feedback compressor rather than evaluated judge.}
-    \label{tab:aux-judge-feedback}
-\end{table}
-
-The validity rule is strict: auxiliary feedback must be non-empty and parseable.
-If the auxiliary judge produces no usable content, the run is excluded from the
-auxiliary-feedback condition. This prevents a silent failure from being
-interpreted as evidence against the method.
-
-\section{Soft-Prompt Training and SIPIT-Style Readout}
-\label{sec:method-soft-prompt-readout}
-
-\subsection{Purpose}
-\label{subsec:method-soft-prompt-purpose}
-
-The soft-prompt diagnostic uses the same judge task as Latent-GEPA, but changes
-the object being optimized. GEPA searches over readable prompt text. Soft-prompt
-tuning keeps the base judge frozen and trains only a small set of continuous
-\textbf{virtual prompt tokens} prepended to the ordinary judge input.
-
-This diagnostic separates three questions:
-
-\begin{itemize}
-    \item \textbf{task utility}: do the learned vectors improve agreement with
-    human scores?
-    \item \textbf{discrete proximity}: are the learned vectors close to ordinary
-    vocabulary embeddings?
-    \item \textbf{semantic readout}: does a SIPIT-style inversion recover text
-    that is meaningful for interpreting what the learned vectors do?
-\end{itemize}
-
-Task improvement is therefore only a sanity check. The main object of this
-component is the interpretability readout: what can be recovered from a trained
-continuous prompt, and whether that recovery contains useful semantic evidence.
-
-\subsection{Readout Pipeline}
-\label{subsec:method-soft-prompt-pipeline}
-
-The main setting initializes the virtual tokens randomly. Text initialization is
-kept only as a control, because it biases any nearest-token interpretation
-toward the seed instruction used to initialize the prompt.
-
-After training, the readout has two stages:
-
-\begin{enumerate}
-    \item \textbf{Nearest-token projection.} Each virtual token vector is
-    compared with the model vocabulary embeddings. The nearest discrete token is
-    selected by L2 distance, while cosine similarity is stored as a secondary
-    geometric diagnostic. This gives a readable baseline, but it is not by
-    itself a faithful explanation of the learned prompt.
-    \item \textbf{SIPIT-style bounded recovery.} The learned virtual-token
-    vectors are treated as continuous targets. The recovery procedure attempts
-    to find a sequence of discrete tokens that reproduces the corresponding
-    hidden states. The verification flag is essential: if the recovered tokens
-    are not verified, the recovered text must be read only as a diagnostic
-    artifact.
-\end{enumerate}
-
-\subsection{Controls}
-\label{subsec:method-soft-prompt-controls}
-
-This differs from standard SIPIT. In a standard recovery run, the target hidden
-states are generated by real prompt tokens, so exact textual recovery is the
-right success criterion. In the soft-prompt readout, the target vectors may be
-learned continuous objects with no exact discrete token equivalent.
-
-The controls calibrate that interpretation:
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.24\linewidth} p{0.24\linewidth} p{0.22\linewidth} p{0.20\linewidth}}
-        \toprule
-        \textbf{Condition} & \textbf{Optimized or tested object} & \textbf{Readout} & \textbf{Valid interpretation} \\
-        \midrule
-        GEPA prompt &
-        Natural-language instruction &
-        Direct text inspection &
-        Prompt content proposed by GEPA. \\
-        Random-init soft prompt &
-        Continuous virtual tokens &
-        Nearest-token and SIPIT readout &
-        Task utility and off-manifold interpretability diagnostic. \\
-        Text-init soft prompt &
-        Continuous virtual tokens initialized from seed text &
-        Nearest-token and SIPIT readout &
-        Control for initialization bias in nearest-token interpretation. \\
-        Hard-token control &
-        Exact embeddings of sampled vocabulary tokens &
-        SIPIT verification &
-        Positive control: standard discrete-token targets should verify. \\
-        Init-prompt control &
-        Exact embeddings of the seed instruction tokens &
-        Nearest-token and SIPIT readout &
-        Separates correct nearest-token text from bounded-recovery exhaustion. \\
-        Random continuous control &
-        Norm-matched Gaussian continuous vectors &
-        Nearest-token and SIPIT readout &
-        Negative control for continuous off-manifold targets. \\
-        \bottomrule
-    \end{tabular}
-    \end{adjustbox}
-    \caption{Soft-prompt readout conditions and their interpretation.}
-    \label{tab:soft-prompt-readout}
-\end{table}
-
-\subsection{Interpretation Rule}
-\label{subsec:method-soft-prompt-interpretation}
-
-This diagnostic is included because it makes the distinction between usefulness,
-inversion, and semantic interpretation explicit. A soft prompt may improve
-agreement with human scores while SIPIT-style recovery still fails to produce a
-faithful or useful natural-language explanation of the learned vectors. That
-outcome is directly relevant to the broader thesis question: latent
-representations can be operationally useful without being semantically
-transparent.
-
-The method depends on artifact preservation, but artifact policy is mostly an
-experimental-setup issue. \ChapterRef{chapter:experimental_setup} therefore specifies the saved prompts,
-trajectories, split manifests, predictions, runtime logs, NLA metadata, and
-SIPIT verification outputs needed to audit the method without rerunning expensive
-jobs.
-
-\ChapterRef{chapter:experimental_setup} instantiates this method with concrete datasets, model checkpoints,
-metrics, hyperparameters, and execution environment. \ChapterRef{chapter:results} then uses the
-saved artifacts to evaluate which readouts preserve semantic content and which
-feedback variants improve, fail to improve, or diagnose Latent-GEPA prompt
-optimization.
-
-\chapter{Experimental Setup}
-\label{chapter:experimental_setup}
-
-This chapter defines the experimental conditions used in the thesis. The goal is
-not to interpret the results, but to make clear \textbf{what was measured},
-\textbf{which data and models were used}, and \textbf{which artifacts make each
-run auditable}. This separation is important because the thesis combines several
-different experiment families: embedding-inversion diagnostics, SIPIT
-hidden-state inversion, NLA activation verbalization, GEPA prompt optimization,
-and soft-prompt readout.
-
-The setup follows three rules:
-\begin{itemize}
-    \item Every result must be tied to a specific dataset split.
-    \item Every model must have a precise role: evaluated model, proposer,
-    auxiliary feedback model, inversion target, or verbalizer.
-    \item Feedback signals such as perplexity and NLA are not final evaluation
-    metrics. They are inputs to prompt optimization and must be evaluated only
-    through their downstream effect on held-out examples.
-\end{itemize}
-
-\section{Datasets and Splits}
-\label{sec:setup-datasets}
-
-The experiments use two main families of data. The first family is a
-semantic-fidelity corpus designed for latent-to-text diagnostics. The second
-family contains G-EVAL-style natural-language generation evaluation datasets
-with human scores. The semantic-fidelity data tests whether a reconstructed or
-verbalized text preserves meaning. The G-EVAL-style data tests whether a judge
-prompt agrees with human annotations.
-
-The Topical-Chat experiments do not consume the raw Hugging Face export
-directly. They use the USR-formatted file \texttt{tc\_usr\_data.json},
-distributed with the USR evaluation data.\footnote{\url{https://shikib.com/tc_usr_data.json}}
-This file is used because the experiments need candidate responses, human
-quality scores, and the USR/G-EVAL-style dimensions already aligned with each
-scored example. The Hugging Face page remains useful as upstream dataset
-context, but it is not the file consumed by the runner in the reported
-Topical-Chat experiments.\footnote{\url{https://huggingface.co/datasets/Conversational-Reasoning/Topical-Chat}}
-
-\begin{table}[!htb]
-    \centering
-    \scriptsize
-    \begin{adjustbox}{width=\textwidth}
-    \begin{tabular}{p{0.19\linewidth} p{0.20\linewidth} p{0.21\linewidth} p{0.13\linewidth} p{0.20\linewidth} p{0.19\linewidth}}
-        \toprule
-        \textbf{Dataset} & \textbf{Source} & \textbf{Task} & \textbf{Size used} & \textbf{Split policy} & \textbf{Thesis role} \\
-        \midrule
-        Semantic-Fidelity Corpus &
-        Locally generated corpus &
-        Test negation, polarity, and commonsense preservation &
-        2080 rows &
-        Stable train/validation/test split &
-        Main diagnostic data for semantic-fidelity claims. \\
-        SIPIT logical 20-token set &
-        Derived from the Semantic-Fidelity Corpus &
-        Hidden-state prompt recovery on logical categories &
-        40 prompts &
-        Balanced by category &
-        Extension of SIPIT to controlled logical inputs. \\
-        Topical-Chat / USR &
-        USR Topical-Chat JSON &
-        USR response quality scoring on four dimensions &
-        Run-dependent subsets &
-        Split by conversation group id &
-        Main GEPA pilot and soft-prompt readout task. \\
-        SummEval &
-        G-EVAL-style summarization data &
-        Summary quality scoring on four dimensions &
-        Run-dependent subsets &
-        Split by example/group id &
-        Paper-aligned GEPA extension beyond dialogue. \\
-        QAGS-CNN / QAGS-XSUM &
-        G-EVAL-style factual-consistency data &
-        Summary consistency scoring &
-        Run-dependent subsets &
-        Split by example/group id &
-        Paper-aligned consistency-only tasks. \\
-        \bottomrule
-    \end{tabular}
-    \end{adjustbox}
-    \caption{Dataset families used in the experimental setup. Exact row ids and
-    split membership are saved in per-run split manifests.}
-    \label{tab:setup-datasets}
-\end{table}
-
-\TableRef{tab:setup-datasets} reports the dataset role rather than final
-performance. The Semantic-Fidelity Corpus is structured as follows:
-\begin{itemize}
-    \item \textbf{Content blocks:} 40 standard control rows, 720 negation and
-    polarity rows, and 1320 commonsense or counterfactual rows.
-    \item \textbf{Stable split:} 962 training rows, 290 validation rows, and
-    828 test rows.
-    \item \textbf{Purpose:} the shared row identifiers make it possible to join
-    embedding-inversion, SIPIT, and NLA analyses on the same semantic examples.
-\end{itemize}
-
-For the G-EVAL-style experiments, the split policy is designed to avoid leakage:
-\begin{itemize}
-    \item Several candidate responses can share the same context, source, or
-    conversation, so the runner splits by a stable group id rather than by
-    individual row.
-    \item Training rows are used during prompt search.
-    \item Validation rows are used for GEPA candidate-prompt selection.
-    \item Final-test rows are evaluated only after the optimized prompt has
-    been selected. This split must not be called validation, otherwise it would
-    be unclear whether GEPA had indirectly optimized on the reported evaluation
-    set.
-\end{itemize}
-
-The current G-EVAL-style matrix follows the dimensions used by the G-EVAL
-paper:
-\begin{itemize}
-    \item \textbf{Topical-Chat / USR:} naturalness, coherence, engagingness, and
-    groundedness.
-    \item \textbf{SummEval:} fluency, coherence, consistency, and relevance.
-    \item \textbf{QAGS-CNN and QAGS-XSUM:} consistency.
-\end{itemize}
-Some early experiments used only Topical-Chat engagingness because it was the
-first fully working pipeline. Later matrix runs extend the same protocol to the
-remaining dimensions.
-
-The soft-prompt diagnostic is reported separately from GEPA because it trains
-continuous virtual prompt tokens rather than optimizing a readable
-natural-language prompt. Its main setup is:
-\begin{itemize}
-    \item \textbf{Task:} Topical-Chat / USR engagingness.
-    \item \textbf{Base model family:} the same Qwen2.5-7B judge family used in
-    the Latent-GEPA runs.
-    \item \textbf{Main split:} 40 training groups, 10 validation groups, and 10
-    final-test groups, corresponding to 240, 60, and 60 rows respectively.
-\end{itemize}
 
 \section{Model Roles and Checkpoints}
 \label{sec:setup-models}
 
-Several language models appear in the experiments, but they do not play the same
-role. \TableRef{tab:model-roles} lists the roles explicitly. This avoids a
-common ambiguity: the model that proposes a prompt edit is not necessarily the
-model whose final scores are evaluated.
-When an exact repository identifier is needed for reproduction, it is reported
-in a footnote or in the run manifest rather than used as the model name in the
-main prose. The main evaluated model is Qwen2.5-7B-Instruct
+Several language models appear in the experiments with distinct roles.
+\TableRef{tab:model-roles} lists the roles explicitly. This avoids a common
+ambiguity: the model that proposes a prompt edit can differ from the model whose
+final scores are evaluated. When an exact repository identifier is needed for
+reproduction, it is reported in a footnote or in the run manifest; the main
+prose uses the model role and family name. The main evaluated model is
+Qwen2.5-7B-Instruct
 \cite{DBLP:journals/corr/abs-2412-15115}.\footnote{Exact Hugging Face
 identifier used in the GEPA and soft-prompt runs:
 \url{https://huggingface.co/Qwen/Qwen2.5-7B-Instruct}.}
@@ -1977,22 +1660,22 @@ identifier used in the GEPA and soft-prompt runs:
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Model roles in the experimental setup. The final GEPA score is
-    always produced by the base judge, not by the proposer or auxiliary judge.}
+    \caption{Model roles in the experimental setup. The base judge always
+    produces the final GEPA score.}
     \label{tab:model-roles}
 \end{table}
 
 The most important role distinctions are:
 \begin{itemize}
     \item The evaluated model in Latent-GEPA is the 7B base judge plus its
-    prompt. GEPA changes the prompt, not the judge weights.
+    prompt. GEPA keeps the judge weights fixed and changes the prompt.
     \item Qwen35B is used for prompt proposal and, when enabled, auxiliary
-    feedback compression. It does not produce the final reported GEPA scores.
+    feedback compression. Final reported GEPA scores come from the 7B base
+    judge.
     \item Perplexity and NLA are computed on the 7B base judge because they are
     intended to describe the model whose prompt is being optimized.
-    \item NLA checkpoints are model- and layer-specific. A verbalizer trained
-    for one base model should not be used to interpret activations from a
-    different base model.
+    \item NLA checkpoints are model- and layer-specific. Activation
+    interpretation requires a verbalizer matched to the base model and layer.
 \end{itemize}
 
 \begin{table}[!htb]
@@ -2001,7 +1684,7 @@ The most important role distinctions are:
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{p{0.23\linewidth} p{0.15\linewidth} p{0.33\linewidth} p{0.23\linewidth}}
         \toprule
-        \textbf{Base model} & \textbf{Layer} & \textbf{Activation verbalizer} & \textbf{Use in this thesis} \\
+        \textbf{Base model} & \textbf{Layer} & \textbf{Activation verbalizer} & \textbf{Experiment role} \\
         \midrule
         Qwen2.5-7B-Instruct &
         20 / 28 &
@@ -2010,11 +1693,11 @@ The most important role distinctions are:
         Gemma-3-12B-IT &
         32 / 48 &
         Gemma-3-12B layer-32 AV &
-        Available, but not used in the reported GEPA pipeline. \\
+        Available outside the reported GEPA pipeline. \\
         Gemma-3-27B-IT &
         41 / 62 &
         Gemma-3-27B layer-41 AV &
-        Available, but not used because the base judge is Qwen. \\
+        Available; the reported GEPA pipeline uses the Qwen base judge. \\
         Llama-3.3-70B-Instruct &
         53 / 80 &
         Llama-3.3-70B layer-53 AV &
@@ -2023,8 +1706,8 @@ The most important role distinctions are:
     \end{tabular}
     \end{adjustbox}
     \caption[Released NLA AV checkpoints.]{Released NLA activation-verbalizer checkpoints relevant to model
-    selection. The table lists only AV checkpoints because the thesis uses the
-    activation-to-text direction.}
+    selection. The table lists only AV checkpoints because the feedback pipeline
+    uses the activation-to-text direction.}
     \label{tab:nla-checkpoints}
 \end{table}
 
@@ -2045,9 +1728,8 @@ AV checkpoints are listed in the NLA model collection:
 The experiments were run on the university Slurm cluster. The cluster matters
 for reproducibility because several runs are memory-bound and because
 Qwen35B-proposer configurations require more than one GPU on the same node.
-Following the same level of detail used in the reference thesis, the hardware
-snapshot in \TableRef{tab:cluster-hardware} records only the GPU resources that
-affect the experiments.
+The hardware snapshot in \TableRef{tab:cluster-hardware} records only the GPU
+resources that affect the experiments.
 
 \begin{table}[!htb]
     \centering
@@ -2055,7 +1737,7 @@ affect the experiments.
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{p{0.32\linewidth} p{0.30\linewidth} p{0.30\linewidth}}
         \toprule
-        \textbf{Resource role} & \textbf{GPU resources} & \textbf{Use in this thesis} \\
+        \textbf{Resource role} & \textbf{GPU resources} & \textbf{Experiment role} \\
         \midrule
         Multi-GPU cluster node &
         4 x NVIDIA RTX 3090, 24 GiB each &
@@ -2075,17 +1757,17 @@ affect the experiments.
 The runtime environment has a few constraints that affect reproducibility:
 \begin{itemize}
     \item \textbf{GPU allocation:} Slurm allocates GPUs and starts the jobs. The
-    code uses only the devices made visible by Slurm instead of selecting
-    physical GPU indices manually.
+    runtime uses the devices made visible by Slurm, which keeps physical GPU index
+    selection under the scheduler.
     \item \textbf{Containerization:} most experiments run inside Docker
-    containers, so Python, PyTorch, CUDA, and FlashAttention/vLLM compatibility
-    are fixed by the image used for the run.
+    containers, so the language runtime, PyTorch, CUDA, and FlashAttention/vLLM
+    compatibility are fixed by the image used for the run.
     \item \textbf{Model serving:} vLLM serves the 7B base judge through an
     OpenAI-compatible API, while llama.cpp serves the Qwen35B proposer and, when
     enabled, the auxiliary judge.
     \item \textbf{Model cache:} model files are loaded from the local cluster
     cache when available, to avoid unnecessary downloads and startup variability.
-    \item \textbf{Audit trail:} final thesis-grade runs must preserve the exact
+    \item \textbf{Audit trail:} final reported runs must preserve the exact
     image, dependency manifest, runtime manifest, and Slurm/model-server logs.
 \end{itemize}
 
@@ -2125,7 +1807,7 @@ The runtime environment has a few constraints that affect reproducibility:
         \draw[line] (finaltest.south) -- ++(0,-8mm) -| (artifacts.east);
         \draw[audit] (split.south) -- ++(0,-34mm) -| (artifacts.south west);
     \end{tikzpicture}}
-    \caption{Deployment-level setup used for thesis-grade GEPA runs. Unlike the
+    \caption{Deployment-level setup used for final reported GEPA runs. Unlike the
     method diagram in \ChapterRef{chapter:method}, this figure focuses on the
     execution components and artifacts that make each run auditable.}
     \label{fig:experimental-deployment}
@@ -2136,21 +1818,21 @@ from the method-level data flow. Slurm allocates the resources and starts the
 containerized job. The base judge runs through vLLM, optional PPL/NLA signals
 are computed from the same base model, and the Qwen35B proposer or auxiliary
 judge runs through llama.cpp when enabled. The final-test evaluation and all
-intermediate artifacts are saved separately so that \ChapterRef{chapter:results} can audit a run
-without rerunning it.
+intermediate artifacts are saved separately so that \ChapterRef{chapter:results}
+can audit a run from preserved evidence.
 
 \section{Software Stack and Artifacts}
 \label{sec:setup-software-artifacts}
 
-The implementation is organized around Python experiment scripts, Slurm launch
-scripts, Docker containers, vLLM, llama.cpp, Hugging Face Transformers, PEFT,
-and the local GEPA/G-EVAL runner. Raw URLs for software and datasets are kept as
+The software stack combines the experiment runner, Slurm launch configuration,
+Docker containers, vLLM, llama.cpp, Hugging Face Transformers, PEFT, and the
+local GEPA/G-EVAL runner. Raw URLs for software and datasets are kept as
 footnotes when they are useful for reproducibility.\footnote{vLLM:
 \url{https://github.com/vllm-project/vllm}; llama.cpp:
 \url{https://github.com/ggml-org/llama.cpp}; GEPA visualization:
 \url{https://github.com/modaic-ai/gepa-viz}.}
 
-Every thesis-grade GEPA run is required to save:
+Every final reported GEPA run is required to save:
 \begin{itemize}
     \item scalar metrics, baseline predictions, and optimized predictions;
     \item seed prompt, optimized prompt, prompt trajectory, and GEPA
@@ -2171,14 +1853,13 @@ SIPIT and soft-prompt runs have their own artifact requirements:
     learned prompt embeddings, nearest-token diagnostics, and SIPIT readout
     summaries.
 \end{itemize}
-These files are part of the experimental setup rather than optional logs:
-without them, a scalar metric would not be enough to decide whether a run
-actually tested the intended condition.
+These files are required audit material. They make it possible to decide whether
+a run actually tested the intended condition, beyond the scalar metric alone.
 
 \section{Evaluation Metrics}
 \label{sec:setup-metrics}
 
-The thesis uses both task metrics and diagnostic metrics.
+The evaluation uses both task metrics and diagnostic metrics.
 \TableRef{tab:metric-boundaries} defines the main metric ranges and directions.
 
 \begin{table}[!htb]
@@ -2225,8 +1906,8 @@ The thesis uses both task metrics and diagnostic metrics.
 
 \TableRef{tab:geval-metrics} lists the paper-aligned metrics for the
 G-EVAL-style experiments. The runner also stores MAE, normalized agreement, parsed
-count, total count, and coverage as diagnostics; these values help explain
-failures but are not substitutes for the paper-aligned metrics.
+count, total count, and coverage as diagnostics; these values complement the
+paper-aligned metrics when explaining failures.
 
 \begin{table}[!htb]
     \centering
@@ -2326,7 +2007,7 @@ judging, so their metrics are reported separately in
         Recovered text &
         Qualitative readout &
         Text obtained from the discrete recovery procedure; it is meaningful only together with the verification and distance diagnostics. \\
-        \texttt{all\_positions\_verified} &
+        All-position verification flag &
         Recovery-validity flag &
         True only when every soft-token position is recovered exactly by the SIPIT-style procedure. \\
         Recovery timesteps and recovery time &
@@ -2346,8 +2027,8 @@ judging, so their metrics are reported separately in
 
 Hyperparameters are reported by experiment family because the experiment families answer
 different questions. Values marked with an asterisk are the current reporting
-defaults or final values for the completed runs. Values without an asterisk were
-tried or remain run-dependent.
+defaults or final values for the completed runs. Unstarred values were tried or
+remain run-dependent.
 
 \begin{table}[!htb]
     \centering
@@ -2361,8 +2042,8 @@ tried or remain run-dependent.
         Topical-Chat / USR, SummEval, QAGS-CNN, QAGS-XSUM &
         Defines the scoring task and paper-aligned metric set. \\
         Split sizes &
-        Diagnostic and long variants &
-        Separates crash/plumbing tests from thesis-grade runs. \\
+        Diagnostic and long run sizes &
+        Separates crash/plumbing tests from final reported runs. \\
         Split key &
         Group-id split$^*$ &
         Prevents related candidates from leaking across splits. \\
@@ -2372,8 +2053,8 @@ tried or remain run-dependent.
         Proposer &
         Qwen35B via llama.cpp$^*$ &
         Stronger model for reflective prompt edits. \\
-        Feedback variant &
-        \texttt{base\_gepa}, \texttt{ppl}, \texttt{ppl\_nla}, \texttt{ppl\_nla\_auxjudge} &
+        Feedback condition &
+        Metric, Perplexity, Activation, and Compressed Activation feedback &
         Supports controlled ablations. \\
         vLLM model length and batch settings &
         Run-dependent &
@@ -2426,8 +2107,8 @@ tried or remain run-dependent.
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Soft-prompt tuning hyperparameters. These runs train only virtual
-    prompt embeddings, not the base model weights.}
+    \caption{Soft-prompt tuning hyperparameters. These runs train virtual
+    prompt embeddings while keeping the base model weights fixed.}
     \label{tab:soft-prompt-hyperparameters}
 \end{table}
 
@@ -2441,7 +2122,7 @@ tried or remain run-dependent.
         \midrule
         Target layer &
         28 for Qwen2.5-7B readout runs$^*$ &
-        Layer used by the bounded recovery script. \\
+        Layer used by the bounded recovery procedure. \\
         Precision &
         4-bit, 16-bit checks &
         Tests whether failures are precision- or budget-related. \\
@@ -2466,37 +2147,36 @@ tried or remain run-dependent.
 
 Each result family has its own baseline:
 \begin{itemize}
-    \item \textbf{Embedding inversion:} variants are compared only when they
+    \item \textbf{Embedding inversion:} conditions are compared only when they
     share data, tokenizer, schedule, and evaluation protocol.
     \item \textbf{SIPIT reproduction:} results are compared with the SIPIT paper
     setting and, when available, with BruteForce and HardPrompts baselines.
     \item \textbf{SIPIT extensions:} random-prefix and soft-prompt readout
-    experiments are not direct SIPIT paper reproductions because they change the
-    input object being inverted.
+    experiments extend the SIPIT paper setting by changing the input object
+    being inverted.
 \end{itemize}
 
 GEPA comparisons are organized as ablations:
 \begin{itemize}
-    \item \texttt{base\_gepa}: the proposer receives only task-metric feedback.
-    \item \texttt{ppl}: adds response-only perplexity from the base judge.
-    \item \texttt{ppl\_nla}: adds activation verbalizations from the same base
+    \item \textbf{Metric Feedback:} the proposer receives only task-metric feedback.
+    \item \textbf{Perplexity Feedback:} adds response-only perplexity from the base judge.
+    \item \textbf{Activation Feedback:} adds activation verbalizations from the same base
     judge.
-    \item \texttt{ppl\_nla\_auxjudge}: adds a Qwen35B auxiliary judge that
+    \item \textbf{Compressed Activation Feedback:} adds a Qwen35B auxiliary judge that
     compresses raw evidence into shorter rubric-level feedback.
 \end{itemize}
 
 A clean NLA claim requires the same dataset, dimension, seed, split sizes,
-proposer, GEPA budget, and PPL control. Diagnostic runs are used only to detect
-crashes, parsing failures, absent outputs, or incompatible configurations. They
-are not sufficient to make convergence claims about GEPA, because the optimizer
-can behave differently when it is given hours of search rather than a few
-minutes.
+proposer, GEPA budget, and PPL control. Diagnostic runs detect crashes, parsing
+failures, absent outputs, or incompatible configurations. GEPA convergence
+claims require matched long runs, because the optimizer can behave differently
+when it receives hours of search instead of a few minutes.
 
 \section{Runtime and Efficiency Measurements}
 \label{sec:setup-runtime}
 
 Runtime is part of the setup because several experiment families are computationally
-expensive. Every thesis-grade run should save:
+expensive. Every final reported run should save:
 \begin{itemize}
     \item start time, end time, elapsed seconds, Slurm job id, node list, and
     CUDA visible devices;
@@ -2508,20 +2188,20 @@ expensive. Every thesis-grade run should save:
     evaluation, and artifact export.
 \end{itemize}
 
-Runtime numbers are interpreted as efficiency diagnostics rather than universal
-model-quality measures. Queue wait time and cluster contention can affect
-operational duration, while GPU memory pressure can affect whether a job starts
-at all. Scientific runtime comparisons should therefore use artifact timestamps
-and runtime manifests, not only scheduler summaries.
+Runtime numbers are interpreted as efficiency diagnostics. Queue wait time and
+cluster contention can affect operational duration, while GPU memory pressure
+can affect whether a job starts at all. Scientific runtime comparisons should
+therefore use artifact timestamps and runtime manifests together with scheduler
+summaries.
 
 \chapter{Results}
 \label{chapter:results}
 
-This chapter reports the experimental evidence used in the thesis. The goal is
-not to present every log file, but to separate \textbf{completed results},
-\textbf{diagnostic evidence}, and \textbf{failure analyses}. This distinction is
-important because some experiments support direct claims, while others are included
-only because they explain why a hypothesis was rejected.
+This chapter reports the experimental evidence for the research questions
+introduced in \ChapterRef{chapter:method}. It separates \textbf{completed
+results}, \textbf{diagnostic evidence}, and \textbf{failure analyses} so that
+each claim is tied to the appropriate artifact strength. Some experiments
+support direct claims, while others explain why a hypothesis was rejected.
 
 The main reading rules for this chapter are:
 \begin{itemize}
@@ -2551,16 +2231,16 @@ the reader can distinguish robust evidence from diagnostic analyses.
         \midrule
         Semantic-Fidelity Corpus &
         Completed validation &
-        Dataset contribution is reproducible and passes validation. \\
+        Corpus artifacts are reproducible and pass validation. \\
         Embedding inversion &
         Diagnostic reproduction &
-        Useful negative and positive-control evidence, but not a clean paper-level reproduction. \\
+        Useful negative and positive-control evidence with an unresolved paper-level reproduction gap. \\
         SIPIT discrete-prompt recovery &
         Completed and log-derived evidence &
-        GPT-2 Table-5-style SIPIT reached exact recovery; thesis logical prompts were also exactly recovered. \\
+        GPT-2 Table-5-style SIPIT reached exact recovery; Semantic-Fidelity logical prompts were also exactly recovered. \\
         Soft-prompt tuning and SIPIT readout &
         Completed diagnostic evidence &
-        Soft prompts can affect the judge, but SIPIT-style readout does not recover faithful natural-language prompts. \\
+        Soft prompts can affect the judge; SIPIT-style readout failed to recover faithful natural-language prompts. \\
         NLA extraction validation &
         Plumbing validation &
         Qwen layer-20 activation extraction and AV verbalization work technically. \\
@@ -2569,7 +2249,7 @@ the reader can distinguish robust evidence from diagnostic analyses.
         PPL feedback improved Topical-Chat / USR engagingness in the historical long run. \\
         GEPA with raw or fixed NLA &
         Mixed diagnostic evidence &
-        Raw NLA hurt performance; fixed NLA is weak-positive but did not produce a changed prompt. \\
+        Raw NLA hurt performance; fixed NLA is weak-positive and selected the seed prompt. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
@@ -2577,18 +2257,18 @@ the reader can distinguish robust evidence from diagnostic analyses.
     \label{tab:results-evidence-overview}
 \end{table}
 
-The current evidence supports a conservative conclusion: the dataset and several
-diagnostic pipelines are reproducible, GEPA with perplexity can improve a
-G-EVAL-style judge prompt in the observed setting, but raw NLA verbalizations do
-not provide a robust improvement signal for GEPA in the completed experiments.
+Taken together, the current evidence supports a conservative conclusion: the
+dataset and several diagnostic pipelines are reproducible, GEPA with perplexity
+can improve a G-EVAL-style judge prompt in the observed setting, while raw NLA
+verbalizations provide weak or negative improvement evidence for GEPA in the
+completed experiments.
 
 \section{Semantic-Fidelity Corpus Validation}
 \label{sec:results-canonical-dataset}
 
 The first result is the construction and validation of the Semantic-Fidelity
-Corpus. This is not only preprocessing: it defines the
-stress-test surface used by the inversion and verbalization diagnostics. The
-validation report contains no warnings and no errors.
+Corpus. The corpus defines the stress-test surface used by the inversion and
+verbalization diagnostics. The validation report is clean.
 
 \begin{table}[!htb]
     \centering
@@ -2596,7 +2276,7 @@ validation report contains no warnings and no errors.
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{p{0.13\linewidth} p{0.34\linewidth} p{0.12\linewidth} p{0.29\linewidth}}
         \toprule
-        \textbf{Block} & \textbf{Phenomenon} & \textbf{Rows} & \textbf{Role in the thesis} \\
+        \textbf{Block} & \textbf{Phenomenon} & \textbf{Rows} & \textbf{Experiment role} \\
         \midrule
         A &
         Controlled standard sentences &
@@ -2638,10 +2318,11 @@ validation report contains no warnings and no errors.
     \label{tab:canonical-corpus-splits}
 \end{table}
 
-The main result is that the corpus gives the thesis a controlled way to test
-semantic drift. In the result sections below, this corpus is used as the
-reference point for deciding whether a readout preserves the intended semantic
-phenomenon.
+The main result is that the corpus provides a controlled way to test
+semantic drift. \SectionRef{sec:results-embedding-inversion},
+\SectionRef{sec:results-sipit}, and
+\SectionRef{sec:results-standalone-nla} use this corpus as the reference point
+for deciding whether a readout preserves the intended semantic phenomenon.
 
 \section{Embedding-Inversion Diagnostics}
 \label{sec:results-embedding-inversion}
@@ -2650,19 +2331,19 @@ phenomenon.
 \label{subsec:results-embedding-scope}
 
 The embedding-inversion study was useful mainly as a diagnostic reproduction
-study. It did not produce a clean paper-level reproduction, but it identified
-conditions under which the implementation can overfit and conditions under
-which full-mask recovery remains weak.
+study. It yielded diagnostic evidence for a paper-level reproduction gap, and
+it identified conditions under which the implementation can
+overfit and conditions under which full-mask recovery remains weak.
 
-The negative result should not be read as a single failed script. The local work
+The negative result is best read as a reproduction gap. The local work
 replicated the core conditional masked-diffusion formulation, embedding
-conditioning path, paper-equation loss variants, fixed-mask/sequential decoding
+conditioning path, paper-equation loss formulations, fixed-mask/sequential decoding
 checks, and multiple control probes.
 
-At the same time, the public material did not fully pin every condition needed
-for an exact paper-level baseline. Some paper-specific training and data
+At the same time, the public material left some conditions needed for an exact
+paper-level baseline underspecified. Some paper-specific training and data
 conditions therefore remained ambiguous. The evidence points to an unresolved
-reproduction gap rather than to one confirmed local implementation bug.
+reproduction gap.
 
 \subsection{Diagnostic Outcomes}
 \label{subsec:results-embedding-outcomes}
@@ -2678,18 +2359,18 @@ reproduction gap rather than to one confirmed local implementation bug.
         Long Jina-v3 run &
         Full-mask reconstruction probe &
         Token accuracy about 0.127 at 97.5K steps &
-        Not a paper-level reproduction; useful negative evidence. \\
+        Diagnostic reproduction gap; useful negative evidence. \\
         Corrected v3 10K probe &
         Short corrected probe &
         Weak full-mask behavior &
-        Suggests the issue is not only one long-run accident. \\
+        Suggests a systematic issue beyond one long-run accident. \\
         Tiny full-mask overfit &
         Paper-equation v2 architecture with Eq. 4-style loss &
         Train accuracy reached 1.000 &
         Positive control: the training path can learn when the problem is small. \\
         Full-data probes &
         Larger full-data settings &
-        No strong full-mask recovery &
+        Weak full-mask recovery &
         Full-scale behavior remained unresolved. \\
         Qwen3-Embedding tiny probe &
         Alternative embedding model &
@@ -2705,36 +2386,34 @@ reproduction gap rather than to one confirmed local implementation bug.
 \subsection{Interpretation}
 \label{subsec:results-embedding-interpretation}
 
-This diagnostic supports the broader thesis motivation: standard reconstruction
+This diagnostic supports the broader motivation: standard reconstruction
 signals can hide important differences between a small positive control and a
-realistic inversion setting. The results should therefore be discussed as
-diagnostic evidence rather than as a successful reproduction of the original
-embedding-inversion method.
+realistic inversion setting. The results provide diagnostic reproduction
+evidence for the original embedding-inversion method.
 
 \section{SIPIT and Continuous-Prompt Readout}
 \label{sec:results-sipit}
 
 SIPIT is evaluated in two distinct settings. The first is the standard
 hidden-state recovery setting, where the target is a real discrete prompt. The
-second is a thesis extension, where the target is a learned continuous
-soft-prompt vector. These settings must not be conflated: a failure on
-continuous off-manifold vectors is not the same thing as a failure to recover an
-ordinary token sequence.
+second is a continuous-prompt extension, where the target is a learned continuous
+soft-prompt vector. These settings answer distinct questions: continuous
+off-manifold vector recovery differs from ordinary token-sequence recovery.
 
 \subsection{Discrete-Prompt Recovery}
 \label{subsec:results-sipit-gpt2}
 
 The standard SIPIT setting was evaluated before the continuous-prompt extension.
 This setting uses hidden states generated by real token sequences and asks
-whether the original tokens can be recovered. The collision check found no exact
-hidden-state collisions on the sampled GPT-2 prompts.
+whether the original tokens can be recovered. The collision check found zero
+exact hidden-state collisions on the sampled GPT-2 prompts.
 
 \begin{table}[!htb]
     \centering
     \scriptsize
     \begin{tabular}{l r r r}
         \toprule
-        \textbf{Layer} & \textbf{Prompts checked} & \textbf{Minimum L2 distance} & \textbf{\texttt{allclose} collisions} \\
+        \textbf{Layer} & \textbf{Prompts checked} & \textbf{Minimum L2 distance} & \textbf{Exact-equivalence collisions} \\
         \midrule
         First & 100 & 6.1603 & 0 \\
         Middle & 100 & 27.1380 & 0 \\
@@ -2760,10 +2439,10 @@ a partial exhaustive-search baseline.
         \midrule
         SIPIT &
         100 & 1.0000 & 1268.4 s & 5.13\% &
-        Completed CSV/JSON report; exact recovery in the GPT-2 setting. \\
+        Completed structured reports; exact recovery in the GPT-2 setting. \\
         HardPrompts &
         100 & 0.2000 & 3604.1 s & 0.00\% &
-        Completed CSV/JSON report; much lower exact recovery under the same target. \\
+        Completed structured reports; much lower exact recovery under the same target. \\
         BruteForce &
         7 traces & 0.0000 & -- & 96.57\% &
         Log-derived partial baseline; completed traces exhausted almost the full vocabulary. \\
@@ -2776,7 +2455,7 @@ a partial exhaustive-search baseline.
     \label{tab:sipit-table5-recovery}
 \end{table}
 
-The thesis-specific logical-prompt variant used the same recovery path on a
+The Semantic-Fidelity logical-prompt condition used the same recovery path on a
 balanced 40-prompt GPT-2 dataset built from negation and
 commonsense/counterfactual examples. SIPIT recovered all prompts exactly, with
 mean vocabulary exploration close to the Table-5-style GPT-2 run:
@@ -2789,28 +2468,28 @@ mean vocabulary exploration close to the Table-5-style GPT-2 run:
         \toprule
         \textbf{Target} & \textbf{Prompts} & \textbf{Exact-match accuracy} & \textbf{Mean time / prompt} & \textbf{Vocabulary explored} \\
         \midrule
-        Thesis logical20 SIPIT & 40 & 1.0000 & 1242.9 s & 4.61\% \\
+        Semantic-Fidelity logical20 SIPIT & 40 & 1.0000 & 1242.9 s & 4.61\% \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{SIPIT exact recovery on the thesis logical20 GPT-2 dataset.}
+    \caption{SIPIT exact recovery on the Semantic-Fidelity logical20 GPT-2 dataset.}
     \label{tab:sipit-logical20-recovery}
 \end{table}
 
 These results clarify the boundary between ordinary SIPIT recovery and the
-soft-prompt readout below. In the discrete-prompt setting, SIPIT succeeds on
-both the recovered GPT-2 reproduction target and the thesis logical-prompt
-target. The negative readout result later in this section is therefore about
-continuous learned vectors, not about a failure to recover ordinary token
-sequences.
+soft-prompt readout in \SectionRef{subsec:results-soft-prompt-readout}. In the
+discrete-prompt setting, SIPIT succeeds on both the recovered GPT-2 reproduction
+target and the Semantic-Fidelity logical-prompt target. The negative readout
+result later in this section therefore concerns continuous learned vectors while
+preserving the ordinary-token recovery result.
 
 \subsection{Soft-Prompt Tuning}
 \label{subsec:results-soft-prompt}
 
 The soft-prompt diagnostic asks whether a continuous prompt trained on the same
 G-EVAL-style task can later be interpreted by SIPIT-style recovery. Task metrics
-are reported first only as a sanity check: if the soft prompt does not affect
-the judge, there is little reason to interpret its learned vectors.
+are reported first as a sanity check: task-active soft prompts provide the
+strongest basis for interpreting learned vectors.
 
 \begin{table}[!htb]
     \centering
@@ -2847,9 +2526,8 @@ the judge, there is little reason to interpret its learned vectors.
 \end{table}
 
 \FigureRef{fig:soft-prompt-deltas} shows the same pattern visually. The
-important result is not that soft prompting is the best scoring method, but that
-the learned vectors are task-active and therefore meaningful targets for a
-readout experiment.
+important result is that the learned vectors are task-active and therefore
+meaningful targets for a readout experiment.
 
 \begin{figure}[!htb]
     \centering
@@ -2865,8 +2543,8 @@ readout experiment.
 
 The readout results answer a different question: after task training, do the
 learned continuous prompt vectors correspond to readable discrete text?
-\TableRef{tab:soft-prompt-sipit-readout} shows that they do not, under the
-current bounded recovery setup.
+\TableRef{tab:soft-prompt-sipit-readout} shows a negative readout outcome under
+the current bounded recovery setup.
 
 \begin{table}[!htb]
     \centering
@@ -2924,17 +2602,18 @@ starts from hidden states generated by a real token sequence and tries to
 recover that sequence. The soft-prompt readout instead starts from learned
 continuous vectors. The random-hard-token control confirms that the recovery
 code can verify exact vocabulary embeddings, while the random-continuous control
-shows that off-manifold vectors should not be expected to recover as natural
-text. Therefore, the current result is negative for semantic interpretability:
-soft prompts can improve task behavior, but their SIPIT-style nearest text is
-not a faithful natural-language explanation.
+shows that off-manifold vectors recover poorly as natural text. The current
+result is therefore negative for semantic interpretability: soft prompts can
+improve task behavior, while their SIPIT-style nearest text remains an
+unfaithful natural-language explanation.
 
 \section{NLA Extraction Validation}
 \label{sec:results-standalone-nla}
 
 Before using NLA inside GEPA, the standalone pipeline was tested on SummEval
 prompts. The purpose of this section is narrow: it verifies activation
-extraction and activation verbalization, not semantic usefulness.
+extraction and activation verbalization; semantic usefulness is evaluated
+separately in the GEPA experiments.
 
 \begin{table}[!htb]
     \centering
@@ -2947,7 +2626,7 @@ extraction and activation verbalization, not semantic usefulness.
         GPU extraction validation &
         Qwen2.5-7B-Instruct, layer 20 &
         2 &
-        Vectors length 3584; positions \texttt{prompt\_final} and \texttt{generated\_score}. &
+        Vectors length 3584; final-prompt and generated-score token positions. &
         Activation extraction works. \\
         Sample12 extraction &
         Same model and layer, four SummEval dimensions &
@@ -2957,7 +2636,7 @@ extraction and activation verbalization, not semantic usefulness.
         Full streamed verbalization &
         Qwen layer-20 AV checkpoint &
         24 &
-        Parse status \texttt{partial\_tags}; injection check OK for all rows. &
+        Partial-tag parse status; injection check OK for all rows. &
         AV verbalization works technically. \\
         \bottomrule
     \end{tabular}
@@ -2971,12 +2650,12 @@ verbalize activations. This operational validation is scoped to extraction and
 verbalization quality; semantic-fidelity claims require comparisons against
 held-out task labels or controlled semantic phenomena.
 
-\section{GEPA and G-EVAL Prompt Optimization}
+\section{Judge-Prompt Optimization}
 \label{sec:results-gepa}
 
 The Latent-GEPA experiments test whether additional feedback helps optimize an
 LLM-as-a-judge prompt. All result tables in this section report held-out
-evaluation rows, not the validation rows used during prompt search.
+evaluation rows, while prompt search uses separate validation rows.
 
 \subsection{Perplexity Feedback}
 \label{subsec:results-gepa-ppl}
@@ -3005,10 +2684,10 @@ feedback to GEPA on Topical-Chat / USR engagingness.
     \label{tab:gepa-ppl-long}
 \end{table}
 
-This result is important because it shows that the GEPA runner can produce a
-better judge prompt under a long search budget. The prompt-level change is also
+The long-budget run shows that the GEPA runner can produce a better judge
+prompt under a long search budget. The prompt-level change is also
 interpretable. As shown in \TableRef{tab:ppl-prompt-change}, the optimized
-prompt does not change the task; it makes the engagingness rubric sharper by
+prompt keeps the task fixed while making the engagingness rubric sharper by
 emphasizing specificity, conversational momentum, and parsing discipline.
 
 \begin{center}
@@ -3031,8 +2710,8 @@ emphasizing specificity, conversational momentum, and parsing discipline.
         ``Is the response dull or interesting?'' &
         ``Does the response \textbf{capture interest and propel the conversation
         forward}?'' &
-        The optimized prompt makes engagingness explicitly conversational, not
-        just stylistic. \\
+        The optimized prompt makes engagingness explicitly conversational and
+        stylistically grounded. \\
         Low score boundary &
         Generic, repetitive, evasive, or unlikely to continue the conversation. &
         Generic, repetitive, evasive, \textbf{closed-ended}, or likely to stall
@@ -3052,7 +2731,7 @@ emphasizing specificity, conversational momentum, and parsing discipline.
         End with \texttt{Score: <1, 2, or 3>}. &
         Same final-line constraint, stated as a strict output-format
         requirement. &
-        This is mainly an operational constraint, not a semantic rubric change. \\
+        This is mainly an operational constraint; the semantic rubric is unchanged. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
@@ -3063,9 +2742,10 @@ emphasizing specificity, conversational momentum, and parsing discipline.
 \end{center}
 \clearpage
 
-The full optimized prompt selected by that run is reported below. The text is
-copied from the saved artifact, with line wrapping adapted for page layout; the
-main semantic changes are highlighted in \TableRef{tab:ppl-prompt-change}.
+The full optimized prompt selected by that run is shown in
+\FigureRef{fig:results-ppl-optimized-prompt}. The text is copied from the saved
+artifact, with line wrapping adapted for page layout; the main semantic changes
+are summarized in \TableRef{tab:ppl-prompt-change}.
 
 \begin{figure}[!p]
     \centering
@@ -3123,7 +2803,7 @@ control shown in \TableRef{tab:gepa-long-nla-comparison}.
 
 The NLA experiments compare three situations:
 \begin{itemize}
-    \item \textbf{PPL-only current control:} same current-code path, without NLA;
+    \item \textbf{PPL-only current control:} same current-code path, NLA disabled;
     \item \textbf{raw NLA:} early direct insertion of NLA verbalizations into
     proposer feedback;
     \item \textbf{fixed NLA:} corrected NLA schema and token-status handling,
@@ -3146,7 +2826,7 @@ The NLA experiments compare three situations:
         Negative diagnostic evidence. \\
         Fixed NLA long &
         60 & no & 0.6812 & 0.6771 & 0.5712 & 0.7528 & 0.4944 &
-        Weak-positive but not a prompt-improvement win. \\
+        Weak-positive diagnostic evidence with unchanged prompt. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
@@ -3156,11 +2836,11 @@ The NLA experiments compare three situations:
 \end{table}
 
 \TableRef{tab:nla-prompt-outcomes} reports the prompt-level outcome of the
-same comparison. This is necessary because a metric delta alone does not say
-whether GEPA actually selected a new instruction. The raw-NLA run did select a
-different prompt, but the resulting rubric shift did not transfer to held-out
-test rows. The fixed-NLA run produced cleaner feedback artifacts, but the final
-selected prompt remained the seed.
+same comparison. A metric delta needs prompt-level context to show whether GEPA
+actually selected a new instruction. The raw-NLA run selected a different
+prompt, and the resulting rubric shift failed to transfer to held-out test rows.
+The fixed-NLA run produced cleaner feedback artifacts, while the final selected
+prompt remained the seed.
 
 \begin{table}[!htb]
     \centering
@@ -3172,7 +2852,7 @@ selected prompt remained the seed.
         \midrule
         PPL current control &
         no &
-        Same seed prompt shown in \SectionRef{sec:method-gepa-loop}. &
+        Same seed prompt shown in \FigureRef{fig:setup-seed-engagingness-prompt}. &
         The matched control provides a stable baseline for the current code
         path. \\
         Raw NLA long &
@@ -3184,9 +2864,9 @@ selected prompt remained the seed.
         worsened, so raw NLA is negative diagnostic evidence. \\
         Fixed NLA long &
         no &
-        Same seed prompt shown in \SectionRef{sec:method-gepa-loop}. &
-        The small metric gain is not evidence of a discovered improved prompt,
-        because GEPA selected the unchanged seed instruction. \\
+        Same seed prompt shown in \FigureRef{fig:setup-seed-engagingness-prompt}. &
+        The small metric gain is weak diagnostic evidence because GEPA selected
+        the unchanged seed instruction. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
@@ -3195,13 +2875,13 @@ selected prompt remained the seed.
 \end{table}
 
 The GEPA-viz trajectory in \FigureRef{fig:gepa-viz-search-trajectory} adds an
-optimization-level view that is not visible from final test metrics alone. In
+optimization-level view beyond final test metrics. In
 the current PPL control and fixed-NLA runs, the initial prompt remains the best
 candidate according to GEPA's validation score. Raw NLA briefly improves the
-internal validation objective, but that improvement does not transfer to the
+internal validation objective, while that improvement fails to transfer to the
 held-out final test in \TableRef{tab:gepa-long-nla-comparison}. The lower
-panel also shows that GEPA explores substantially longer prompt variants, so the
-absence of a final prompt change is not due to a lack of proposer activity.
+panel also shows that GEPA explores substantially longer candidate prompts; the
+unchanged final prompt is compatible with substantial proposer activity.
 
 \begin{figure}[!htb]
     \centering
@@ -3221,7 +2901,7 @@ better on the recorded final-test metrics.
     \includegraphics[width=0.92\linewidth]{figures/chapter5/gepa_long_run_metrics.pdf}
     \caption{Long-run optimized GEPA metrics. The raw-NLA run underperforms the
     matched PPL conditions, while fixed NLA gives a small positive movement
-    without changing the final prompt.}
+with an unchanged final prompt.}
     \label{fig:gepa-long-run-metrics}
 \end{figure}
 
@@ -3235,13 +2915,13 @@ The fixed-NLA improvement over the matched current-code PPL control is:
 \end{itemize}
 At prediction level, only 2 of 60 final-test examples improved, 0 worsened, and
 58 were unchanged. Since the fixed-NLA run selected the byte-identical seed
-prompt, this result should be treated as weak diagnostic evidence, not as proof
-that GEPA discovered a better prompt because of NLA.
+prompt, this result gives weak diagnostic evidence, while conclusive evidence
+that GEPA discovered a better prompt because of NLA remains open.
 
 \subsection{NLA Feedback Quality}
 \label{subsec:results-nla-feedback-quality}
 
-The main NLA failure hypothesis is that raw activation verbalizations are not
+The main NLA failure hypothesis is that raw activation verbalizations are poorly
 aligned with the rubric-level information that GEPA needs. The feedback health
 diagnostics support this interpretation.
 
@@ -3258,34 +2938,34 @@ diagnostics support this interpretation.
         Long, repetitive, mostly continuation-like feedback. \\
         Fixed NLA long &
         1752 & 300 & 42.18\% & 10.55 & 89.73\% &
-        Healthier schema, but still mostly not rubric-level. \\
+        Healthier schema, but still mostly completion-like. \\
         Candidate-only 6 diagnostic &
         187 & 36 & 0.00\% & 10.74 & 92.51\% &
         Removes duplicates but remains negative. \\
         Candidate-only 10 diagnostic &
         213 & 30 & 0.00\% & 10.66 & 90.14\% &
-        Less bad than 6-token variant, still not positive. \\
+        Better than the 6-token condition, still negative. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
     \caption{NLA feedback-health diagnostics. Candidate-only rows are diagnostic
-    ablations, not final performance evidence.}
+    ablations for feedback quality.}
     \label{tab:nla-feedback-health}
 \end{table}
 
 \begin{figure}[!htb]
     \centering
     \includegraphics[width=0.92\linewidth]{figures/chapter5/nla_feedback_health.pdf}
-    \caption{NLA feedback quality indicators. Removing duplicates is not enough:
-    candidate-only NLA still produces mostly completion-like text and does not
-    improve the diagnostic metrics.}
+    \caption{NLA feedback quality indicators. Removing duplicates leaves
+    candidate-only NLA mostly completion-like and fails to improve the
+    diagnostic metrics.}
     \label{fig:nla-feedback-health}
 \end{figure}
 
-The candidate-only diagnostics rule out a simple explanation: NLA does not fail
-only because the feedback repeats source or reference text. Even when duplicate
-rows are removed, the proposer still receives feedback that is mostly
-completion-like rather than error-directed and rubric-conditioned.
+The candidate-only diagnostics rule out a simple explanation: repeated source or
+reference text is only part of the problem. Even when duplicate rows are
+removed, the proposer still receives feedback that is mostly completion-like
+and weakly error-directed or rubric-conditioned.
 
 \subsection{Dataset and Dimension Diagnostics}
 \label{subsec:results-gepa-matrix}
@@ -3301,7 +2981,7 @@ claims.
     \begin{adjustbox}{width=\textwidth}
     \begin{tabular}{p{0.16\linewidth} p{0.15\linewidth} p{0.14\linewidth} r r r r p{0.18\linewidth}}
         \toprule
-        \textbf{Dataset} & \textbf{Dimension} & \textbf{Variant} & \textbf{n} & \textbf{Pearson} & \textbf{Spearman} & \textbf{MAE} & \textbf{Status} \\
+        \textbf{Dataset} & \textbf{Dimension} & \textbf{Feedback condition} & \textbf{n} & \textbf{Pearson} & \textbf{Spearman} & \textbf{MAE} & \textbf{Status} \\
         \midrule
         SummEval &
         Consistency & PPL diagnostic & 32 & 0.7013 & 0.7909 & 1.1042 &
@@ -3325,20 +3005,20 @@ claims.
     \end{tabular}
     \end{adjustbox}
     \caption{Dataset and dimension matrix diagnostics. These rows are useful for
-    checking pipeline coverage, not for final performance conclusions.}
+    checking pipeline coverage.}
     \label{tab:gepa-dataset-diagnostics}
 \end{table}
 
 This table supports a narrow claim: the pipeline can run beyond Topical-Chat,
-but the current thesis-grade evidence is still concentrated on Topical-Chat /
+but the current final evidence is still concentrated on Topical-Chat /
 USR engagingness.
 
 \section{Runtime and Efficiency}
 \label{sec:results-runtime}
 
-Runtime is reported as an efficiency diagnostic. It should not be compared as a
-universal method-quality score because the runs differ in feedback type and
-cluster conditions.
+Runtime is reported as an efficiency diagnostic. Method-quality comparisons use
+the task metrics, because runtime depends on feedback type and cluster
+conditions.
 
 \begin{table}[!htb]
     \centering
@@ -3372,7 +3052,7 @@ conditions.
 \section{Failure Modes and Negative Evidence}
 \label{sec:results-failure-modes}
 
-The negative results are part of the thesis evidence because they explain which
+The negative results are part of the evidence because they explain which
 hypotheses were ruled out.
 
 \begin{table}[!htb]
@@ -3384,24 +3064,24 @@ hypotheses were ruled out.
         \textbf{Failure mode} & \textbf{Evidence} & \textbf{Consequence} \\
         \midrule
         Embedding-inversion full-data probes stayed weak &
-        Jina-v3 probes did not recover strong full-mask behavior. &
-        Treat the evidence as diagnostic, not as a successful paper reproduction. \\
+        Jina-v3 probes showed weak full-mask behavior. &
+        Treat the evidence as diagnostic reproduction evidence. \\
         Raw NLA worsened GEPA &
         Raw-NLA long run dropped correlations and increased MAE. &
-        Do not claim raw NLA helps. \\
-        Fixed NLA did not change the prompt &
+        Rule out a positive raw-NLA claim. \\
+        Fixed NLA selected the seed prompt &
         Fixed-NLA long run selected the same seed prompt as final prompt. &
         Treat the small metric gain as weak diagnostic evidence. \\
         Candidate-only NLA remained negative &
         Duplicate-free candidate diagnostics still worsened correlations. &
-        Duplicate rows are not the only problem. \\
+        Completion-like feedback remains after deduplication. \\
         Soft-prompt vectors stayed off manifold &
         Nearest-token L2 around 60 and exact verification false. &
-        Do not interpret recovered text as a faithful natural-language prompt. \\
+        Treat recovered text as an unfaithful diagnostic artifact. \\
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Negative evidence that affects the interpretation of the thesis
+    \caption{Negative evidence that affects the interpretation of the
     results.}
     \label{tab:negative-evidence}
 \end{table}
@@ -3427,7 +3107,7 @@ claim to the evidence currently available.
         Embedding inversion produced a clean paper-level reproduction. &
         No &
         Full-mask probes stayed weak; tiny overfit worked. &
-        Diagnostic only, not a paper-level reproduction. \\
+        Diagnostic evidence only. \\
         SIPIT exact recovery works in the recovered GPT-2 and logical20 settings. &
         Yes &
         GPT-2 Table-5-style SIPIT accuracy 1.0000; logical20 SIPIT accuracy 1.0000. &
@@ -3439,7 +3119,7 @@ claim to the evidence currently available.
         SIPIT recovers learned soft prompts as useful natural language. &
         No &
         Readout and controls show off-manifold continuous vectors. &
-        Current readout is not semantically faithful. \\
+        Current readout lacks semantic faithfulness. \\
         NLA extraction and verbalization works. &
         Yes &
         Qwen layer-20 extraction and AV verbalization completed. &
@@ -3451,7 +3131,7 @@ claim to the evidence currently available.
         Raw NLA robustly improves GEPA. &
         No &
         Raw-NLA long and candidate-only diagnostics. &
-        Completed diagnostics do not support direct raw-NLA use. \\
+        Completed diagnostics rule out direct raw-NLA use. \\
         Fixed NLA improves GEPA conclusively. &
         Weak / inconclusive &
         Small positive matched long delta. &
@@ -3459,48 +3139,48 @@ claim to the evidence currently available.
         \bottomrule
     \end{tabular}
     \end{adjustbox}
-    \caption{Current claim matrix for the thesis results.}
+    \caption{Current claim matrix for the results.}
     \label{tab:final-claim-matrix}
 \end{table}
 
 \chapter{Conclusions and Future Directions}
 \label{chapter:conclusions}
 
-This thesis investigated whether latent representations and their textual
+The experiments investigated whether latent representations and their textual
 readouts can be used to study semantic fidelity and to improve LLM-as-a-judge
-prompt optimization. The work was organized around two connected goals. The
-first was to evaluate whether inversion and verbalization methods preserve
-meaning in cases where lexical similarity can be misleading. The second was to
-test whether latent-derived evidence can be turned into useful feedback for
-GEPA-style prompt optimization.
+prompt optimization. They followed two connected goals. The first was to
+evaluate whether inversion and verbalization methods preserve meaning in cases
+where lexical similarity can be misleading. The second was to test whether
+latent-derived evidence can be turned into useful feedback for GEPA-style
+prompt optimization.
 
-The first contribution is the Semantic-Fidelity Corpus, a controlled collection
-of standard controls, negation and polarity examples, and
-commonsense-sensitive pairs. Its role is to make semantic drift visible: a
-reconstruction may be fluent and close in wording while still losing the
-meaning component that matters. This corpus provides a reusable basis for
-checking whether latent-to-text outputs preserve fragile semantic properties
-rather than only surface similarity.
+The Semantic-Fidelity Corpus was built as a controlled collection of standard
+controls, negation and polarity examples, and commonsense-sensitive pairs. It
+makes semantic drift visible: a reconstruction may be fluent and close in
+wording while still losing the meaning component that matters. Built around
+these failure modes, the corpus provides a reusable basis for checking whether
+latent-to-text outputs preserve fragile semantic properties beyond surface
+similarity.
 
 The inversion experiments show that interpretability depends strongly on the
 kind of representation being decoded. SIPIT-style recovery works in the
-discrete-token settings considered in this thesis, including the logical prompt
-set built from the corpus. However, this result does not transfer directly to
-learned continuous prompts. Random-initialized soft prompts can affect judge
-behavior, but their nearest-token projections and bounded SIPIT-style readouts
-do not provide faithful natural-language explanations. This supports a central
-distinction of the thesis: a latent vector can be operationally useful without
-being semantically transparent.
+discrete-token settings considered here, including the logical prompt
+set built from the corpus. However, the result transfers poorly to learned
+continuous prompts. Random-initialized soft prompts can affect judge behavior,
+while their nearest-token projections and bounded SIPIT-style readouts failed
+to provide faithful natural-language explanations. The result separates task
+utility from semantic transparency: a latent vector can be operationally useful
+while remaining semantically opaque.
 
 The Latent-GEPA experiments give a similarly cautious conclusion. Perplexity
 feedback produced the clearest positive GEPA result in the historical
 Topical-Chat / USR engagingness run, suggesting that model-confidence signals
-can help the proposer revise a judge prompt. Raw NLA feedback, instead, did not
-produce a robust improvement in the completed experiments. The fixed-NLA
-condition improved artifact quality and produced a small matched metric gain,
-but the selected final prompt remained unchanged. Therefore, the current
-evidence supports NLA as a useful diagnostic signal, not yet as a conclusive
-prompt-optimization improvement.
+can help the proposer revise a judge prompt. Raw NLA feedback produced weak or
+negative improvement evidence in the completed experiments.
+The fixed-NLA condition improved artifact quality and produced a small matched
+metric gain, but the selected final prompt remained unchanged. The current
+evidence therefore treats NLA as a useful diagnostic signal, with conclusive
+prompt-optimization improvement left for future work.
 
 These conclusions are limited by the evidence level of each result family. The
 validated corpus, SIPIT exact-recovery checks, soft-prompt diagnostics, and
@@ -3508,13 +3188,13 @@ matched GEPA long runs support direct discussion. Other results, such as the
 embedding-inversion reproduction gap and the raw-NLA failures, are better read
 as diagnostic evidence. Moreover, the G-EVAL comparison is implemented with a
 local Qwen-based judge pipeline, so the reported values should be interpreted
-as results for this setting rather than as a model-for-model reproduction of
-the original G-EVAL paper.
+as results for this setting, with model-for-model G-EVAL reproduction left
+outside the claim.
 
 The most important future direction is to improve the interface between NLA and
 the GEPA proposer. The completed diagnostics indicate that token position,
 layer choice, deduplication, and feedback compression are decisive. A stronger
-Latent-GEPA variant should compare several token-selection policies and use an
+Latent-GEPA extension should compare several token-selection policies and use an
 auxiliary judge to turn raw activation verbalizations into shorter,
 rubric-level lessons before passing them to the proposer.
 
@@ -3535,7 +3215,7 @@ can be measured more precisely.
 I would like to sincerely thank my supervisor, Professor Gianluca Moro, and my
 co-supervisors, Dr. Lorenzo Molfetta, Dr. Stefano Fantazzini, and Dr. Giacomo
 Frisoni, for guiding me and collaborating with me throughout the development of
-this thesis.
+this project.
 
 I would also like to thank my parents, my family, and my closest friends for
 supporting me throughout these years.
