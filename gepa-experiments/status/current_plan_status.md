@@ -1442,3 +1442,96 @@ follow-up monitor pid: 93682
 The resume preflight passed, skipped already-completed jobs, and restarted
 `B_sweep_candidate_fml_3`; the follow-up queue will start automatically after
 the resume queue exits.
+
+## 2026-06-27 Locked-GPU Follow-Up Relaunch
+
+Status check at 2026-06-27 15:26 CEST:
+
+- Slurm had no active or pending jobs for the user;
+- Docker had no active GEPA/llama.cpp containers;
+- locked GPUs `0` and `2` on `faretra` were effectively free
+  (`~24.2 GiB` free each);
+- GPUs `1` and `3` were busy with other processes and were not part of the
+  locked-GPU plan;
+- the resumed locked queue
+  `gepa-experiments/results/locked_gpu_resume_20260626Tresume1510Z`
+  had completed the remaining B-sweep jobs and `D5_matched_no_aux_long_ppl_nla`
+  with `END:0`.
+
+The follow-up queue did start after the resume queue exited, but it did not run
+the intended jobs. Root cause:
+
+- follow-up root:
+  `gepa-experiments/results/locked_gpu_followup_20260626Tfollowup_after_resume02`;
+- all F1-F8 entries ended immediately with `status=127`;
+- the script launched `run_gepa_engaging_job.sh` and
+  `run_experimental_nla_strategy_job.sh` directly on the host instead of through
+  `run_docker.sh`;
+- it also passed `GEPA_CONFIG`, while the entrypoint scripts use `CONFIG_FILE`;
+- as a result, F1-F5 started from the default local config instead of the
+  generated follow-up configs, and F6/F7 failed on the host with
+  `python: command not found`.
+
+Fix applied:
+
+- `gepa-experiments/slurm/run_locked_gpu_followup_queue.sh` now launches every
+  follow-up job through `run_docker.sh`, matching the validated direct
+  locked-GPU runner path;
+- generated configs are passed through `CONFIG_FILE`;
+- the launcher sets `CUDA_VISIBLE_DEVICES=0,2`,
+  `JUDGE_GPU_DEVICE=0`, and `PROPOSER_GPU_DEVICE=2`;
+- per-job Docker container names, sidecar names, and log filenames are unique;
+- `KEEP_MAIN_CONTAINER_ON_FAIL=0` is used for follow-up cleanup;
+- `LOCKED_GPU_PREFLIGHT_ONLY=1` was added for safe remote validation before
+  launching.
+
+Remote validation after syncing the fix:
+
+```text
+preflight: passed
+GPU 0: ~24.2 GiB free
+GPU 2: ~24.2 GiB free
+Docker containers before launch: none
+ports 19300-19371: free
+```
+
+Relaunched follow-up queue:
+
+```text
+run id: 20260627Tfixed_followup_132916Z
+root: gepa-experiments/results/locked_gpu_followup_20260627Tfixed_followup_132916Z
+queue pid: 4084174
+Telegram monitor pid: 4084175
+current job: F1_clean_aux_long_ppl_nla_seed42
+```
+
+Startup verification for F1:
+
+```text
+config: .../configs/F1_clean_aux_long_ppl_nla_seed42.env
+judge/vLLM GPU: 0
+llama.cpp proposer/aux GPU: 2
+proposer endpoint: http://127.0.0.1:19301/v1
+NLA feedback: enabled
+PPL feedback: enabled
+aux judge feedback: enabled
+aux judge disable thinking: enabled
+```
+
+Follow-up health check at 2026-06-27 15:31 CEST:
+
+```text
+queue pid: alive
+Telegram monitor: alive
+Docker containers: vLLM/GEPA main alive, llama.cpp sidecar alive
+GPU 0: occupied by the main job
+GPU 2: occupied by llama.cpp sidecar
+NLA extraction: 300/300 manifest rows
+NLA activation rows prepared: 1752
+```
+
+Interpretation: the locked GPUs are no longer idle. The current active work is
+the corrected follow-up queue, starting with the clean aux-judge + PPL + NLA
+long rerun. The earlier `followup_after_resume02` artifacts should be ignored
+for scientific purposes because they are host-launch failures, not valid
+experiment outputs.

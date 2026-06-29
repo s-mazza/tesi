@@ -1,0 +1,15 @@
+Risultati long run su Topical-Chat / Engagingness
+Confronto con baseline G-Eval
+
++-----------------------------------+-------------------------------+------+------------------+---------------------+-------------+----------------+-------------------+-----------+------------+---------------+--------+
+| Run                               | Setup                         | Seed | G-Eval Agreement | Optimized Agreement | Delta Agree | G-Eval Pearson | Optimized Pearson | Delta Prs | G-Eval MAE | Optimized MAE | Delta  |
++-----------------------------------+-------------------------------+------+------------------+---------------------+-------------+----------------+-------------------+-----------+------------+---------------+--------+
+| Aux judge, clean rerun            | GEPA + PPL + NLA + Aux Judge  | 42   | 0.758            | 0.775               | +0.017      | 0.716          | 0.711             | -0.005    | 0.483      | 0.450         | -0.033 |
+| Aux judge, rerun con seed diverso | GEPA + PPL + NLA + Aux Judge  | 43   | 0.681            | 0.689               | +0.008      | 0.423          | 0.304             | -0.119    | 0.639      | 0.622         | -0.017 |
+| Controllo matched senza aux judge | GEPA + PPL + NLA, no AuxJudge | 42   | 0.753            | 0.731               | -0.022      | 0.681          | 0.330             | -0.351    | 0.494      | 0.539         | +0.044 |
++-----------------------------------+-------------------------------+------+------------------+---------------------+-------------+----------------+-------------------+-----------+------------+---------------+--------+
+
+Sintesi:
+- Nei due long run con aux judge, l'ottimizzazione migliora agreement e MAE rispetto alla baseline G-Eval.
+- Nel controllo matched senza aux judge, l'ottimizzazione peggiora agreement, Pearson e MAE.
+- Il segnale a favore dell'aux judge e' piu' chiaro su agreement/MAE; Pearson non migliora sistematicamente.

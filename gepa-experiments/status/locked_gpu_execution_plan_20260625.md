@@ -517,3 +517,57 @@ wait condition: resume queue pid 86941 exits
 Operational note: the first attempted relaunch had a shell-quoting issue in the
 follow-up launcher redirection and did not produce a usable follow-up. The
 working relaunch uses explicit paths and the verified resume PID above.
+
+## 2026-06-27 Follow-Up Queue Host-Launch Failure And Fix
+
+After the resume queue completed, the follow-up queue rooted at
+
+```text
+gepa-experiments/results/locked_gpu_followup_20260626Tfollowup_after_resume02
+```
+
+started but immediately marked all F1-F8 jobs as `status=127`. This was not a
+GPU allocation problem and not a Slurm scheduling problem: `squeue` was empty,
+Docker had no running GEPA containers, and locked GPUs `0` and `2` were free.
+
+The failure was caused by the follow-up script itself:
+
+- it called `run_gepa_engaging_job.sh` and
+  `run_experimental_nla_strategy_job.sh` directly on the host;
+- it passed the generated config through `GEPA_CONFIG`, but the entrypoints
+  expect `CONFIG_FILE`;
+- therefore the scripts either used the default local config or failed on the
+  host environment with missing commands such as `python`.
+
+Corrective action:
+
+- `run_locked_gpu_followup_queue.sh` was changed to use the same Docker path as
+  the validated locked-GPU queue:
+  `bash gepa-experiments/slurm/run_docker.sh "<entrypoint>"`;
+- generated configs are passed through `CONFIG_FILE`;
+- `CUDA_VISIBLE_DEVICES=0,2`, `JUDGE_GPU_DEVICE=0`, and
+  `PROPOSER_GPU_DEVICE=2` are set explicitly per job;
+- Docker image inspection was added to preflight;
+- `LOCKED_GPU_PREFLIGHT_ONLY=1` was added to test the follow-up script without
+  starting training.
+
+The fixed script was synced to `faretra`, preflight passed, and the follow-up
+queue was relaunched in a clean root:
+
+```text
+run id: 20260627Tfixed_followup_132916Z
+root: gepa-experiments/results/locked_gpu_followup_20260627Tfixed_followup_132916Z
+queue pid: 4084174
+Telegram monitor pid: 4084175
+current job: F1_clean_aux_long_ppl_nla_seed42
+```
+
+Startup check showed the intended configuration: vLLM judge on GPU `0`,
+llama.cpp proposer/aux judge on GPU `2`, PPL enabled, NLA enabled, auxiliary
+judge enabled, and aux-judge thinking disabled.
+
+Follow-up health check at 2026-06-27 15:31 CEST showed the queue and Telegram
+monitor alive, both Docker containers running, GPU `0` and GPU `2` occupied by
+the intended job containers, and F1 already past the previous host-launch
+failure point with `300/300` NLA manifest rows extracted and `1752` activation
+rows prepared.
